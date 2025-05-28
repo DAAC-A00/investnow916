@@ -5,15 +5,17 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentRoute, useMenuItems, useNavigationActions } from '../../../shared/stores/createNavigationStore';
+import { useResponsive } from '../../../shared/hooks/useResponsive';
 
 export function BottomNavigation() {
   const router = useRouter();
   const currentRoute = useCurrentRoute();
   const menuItems = useMenuItems();
   const { setCurrentRoute, initializeDefaultMenus } = useNavigationActions();
+  const { isMobile, isHydrated } = useResponsive();
 
   // 컴포넌트 마운트 시 기본 메뉴 초기화
   useEffect(() => {
@@ -22,34 +24,28 @@ export function BottomNavigation() {
     }
   }, [menuItems.length, initializeDefaultMenus]);
 
-  // 하단 네비게이션에 표시할 메뉴 순서 정의
-  const bottomNavOrder = ['home', 'counter', 'menu'];
+  // 하단 네비게이션에 표시할 메뉴 순서 정의 (Counter 제외)
+  const bottomNavOrder = ['home', 'menu'];
   
   // 순서에 맞게 메뉴 아이템 정렬
-  const sortedMenuItems = bottomNavOrder
+  const bottomNavItems = bottomNavOrder
     .map(id => menuItems.find(item => item.id === id))
     .filter(Boolean) as typeof menuItems;
 
-  const handleMenuClick = (route: string) => {
+  const handleMenuClick = useCallback((route: string) => {
     setCurrentRoute(route);
     router.push(route);
-  };
+  }, [router, setCurrentRoute]);
 
-  // 메뉴 아이템이 아직 로드되지 않았으면 로딩 상태 표시
-  if (sortedMenuItems.length === 0) {
-    return (
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-        <div className="flex justify-around items-center h-16 px-4">
-          <div className="text-gray-400 text-sm">메뉴 로딩 중...</div>
-        </div>
-      </nav>
-    );
+  // 하이드레이션 완료 전이거나 모바일이 아니면 렌더링하지 않음
+  if (!isHydrated || !isMobile) {
+    return null;
   }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-      <div className="flex justify-around items-center h-16 px-4">
-        {sortedMenuItems.map((item) => {
+      <div className="flex justify-around items-center h-16">
+        {bottomNavItems.map((item) => {
           const isActive = currentRoute === item.route;
           
           return (
@@ -58,22 +54,17 @@ export function BottomNavigation() {
               onClick={() => handleMenuClick(item.route)}
               disabled={item.isDisabled}
               className={`
-                flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200
-                ${isActive 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }
-                ${item.isDisabled 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'cursor-pointer'
-                }
+                flex flex-col items-center justify-center flex-1 h-full relative
+                ${isActive ? 'text-blue-600' : 'text-gray-500'}
+                ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-500 cursor-pointer'}
+                transition-colors duration-200
                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
               `}
             >
               {item.icon && (
-                <span className="text-lg mb-1">{item.icon}</span>
+                <span className="text-2xl">{item.icon}</span>
               )}
-              <span className="text-xs font-medium">{item.label}</span>
+              <span className="text-xs mt-1">{item.label}</span>
               {isActive && (
                 <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full" />
               )}

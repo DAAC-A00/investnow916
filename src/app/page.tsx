@@ -4,20 +4,22 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNavigationActions } from '../packages/shared/stores/createNavigationStore';
 
 export default function Home() {
+  const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
 
   useEffect(() => {
     setCurrentRoute('/');
   }, [setCurrentRoute]);
 
-  const handleNavigate = (route: string) => {
+  const handleNavigate = useCallback((route: string) => {
     setCurrentRoute(route);
-    window.location.href = route;
-  };
+    router.push(route);
+  }, [router, setCurrentRoute]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">

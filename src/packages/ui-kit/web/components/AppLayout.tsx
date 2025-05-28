@@ -5,42 +5,51 @@
 
 'use client';
 
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useResponsive } from '../../../shared/hooks/useResponsive';
 import { BottomNavigation } from './BottomNavigation';
-import { DrawerMenu } from './DrawerMenu';
-import { MenuToggleButton } from './MenuToggleButton';
+import { RightNavigation } from './RightNavigation';
+import { useNavigationActions, useRightNavWidth } from '../../../shared/stores/createNavigationStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
   const { isMobile, isDesktop, isHydrated } = useResponsive();
+  const rightNavWidth = useRightNavWidth();
+  const { setCurrentRoute } = useNavigationActions();
+
+  // 현재 경로가 변경될 때마다 현재 라우트 업데이트
+  useEffect(() => {
+    setCurrentRoute(pathname);
+  }, [pathname, setCurrentRoute]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 데스크톱/태블릿용 메뉴 토글 버튼 */}
-      {isHydrated && isDesktop && (
-        <div className="fixed top-4 right-4 z-50">
-          <MenuToggleButton />
-        </div>
-      )}
+    <div className="min-h-full bg-gray-50">
+      <div className={`flex min-h-full ${isDesktop ? `pr-${rightNavWidth}` : ''}`}>
+        {/* 메인 콘텐츠 */}
+        <main className={`
+          flex-1 w-full
+          ${isMobile ? 'pb-20' : 'pb-8'}
+          ${isDesktop ? 'pt-8' : 'pt-4'}
+          px-4 min-h-screen
+        `}>
+          <div className="max-w-4xl mx-auto">
+            {children}
+          </div>
+        </main>
 
-      {/* 메인 콘텐츠 */}
-      <main className={`
-        ${isMobile ? 'pb-20' : 'pb-8'}
-        ${isDesktop ? 'pt-8' : 'pt-4'}
-        px-4 min-h-screen
-      `}>
-        {children}
-      </main>
+        {/* 데스크톱/태블릿용 우측 네비게이션 */}
+        {isHydrated && isDesktop && <RightNavigation />}
+      </div>
 
       {/* 모바일용 하단 네비게이션 - 하이드레이션 완료 후 표시 */}
       {isHydrated && isMobile && <BottomNavigation />}
-
-      {/* 데스크톱/태블릿용 Drawer 메뉴 */}
-      {isHydrated && isDesktop && <DrawerMenu />}
     </div>
   );
 }

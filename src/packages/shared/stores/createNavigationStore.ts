@@ -13,6 +13,7 @@ export type DeviceType = 'mobile' | 'desktop';
 // 확장된 네비게이션 상태 인터페이스
 interface ExtendedNavigationState extends NavigationState {
   deviceType: DeviceType;
+  rightNavWidth: number; // 오른쪽 네비게이션 너비 (tailwind 클래스 숫자 값)
 }
 
 // 네비게이션 액션 인터페이스
@@ -25,6 +26,7 @@ interface NavigationActions {
   addMenuItem: (item: MenuItemType) => void;
   updateMenuItem: (id: string, updates: Partial<MenuItemType>) => void;
   initializeDefaultMenus: () => void;
+  setRightNavWidth: (width: number) => void; // 오른쪽 네비게이션 너비 설정 액션
 }
 
 // 전체 스토어 타입
@@ -71,6 +73,7 @@ const navigationStoreCreator: StateCreator<
   isMobile: false,
   deviceType: 'desktop',
   menuItems: [],
+  rightNavWidth: 64, // 기본 너비 (tailwind w-64)
 
   // 액션들
   setCurrentRoute: (route: string) =>
@@ -151,6 +154,16 @@ const navigationStoreCreator: StateCreator<
       false,
       'initializeDefaultMenus'
     ),
+    
+  // 오른쪽 네비게이션 너비 설정
+  setRightNavWidth: (width: number) =>
+    set(
+      (state) => {
+        state.rightNavWidth = width;
+      },
+      false,
+      'setRightNavWidth'
+    ),
 });
 
 // 스토어 생성
@@ -169,6 +182,7 @@ export const useIsMenuOpen = () => useNavigationStore((state) => state.isMenuOpe
 export const useIsMobile = () => useNavigationStore((state) => state.isMobile);
 export const useDeviceType = () => useNavigationStore((state) => state.deviceType);
 export const useMenuItems = () => useNavigationStore((state) => state.menuItems);
+export const useRightNavWidth = () => useNavigationStore((state) => state.rightNavWidth);
 
 // 액션 훅
 export const useNavigationActions = () => useNavigationStore((state) => ({
@@ -180,4 +194,5 @@ export const useNavigationActions = () => useNavigationStore((state) => ({
   addMenuItem: state.addMenuItem,
   updateMenuItem: state.updateMenuItem,
   initializeDefaultMenus: state.initializeDefaultMenus,
+  setRightNavWidth: state.setRightNavWidth,
 }));

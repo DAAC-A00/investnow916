@@ -4,5 +4,4 @@
 
 export { AppLayout } from './AppLayout';
 export { BottomNavigation } from './BottomNavigation';
-export { DrawerMenu } from './DrawerMenu';
-export { MenuToggleButton } from './MenuToggleButton';
+export { RightNavigation } from './RightNavigation';
