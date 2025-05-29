@@ -51,6 +51,14 @@ const defaultMenuItems: MenuItemType[] = [
     isDisabled: false,
   },
   {
+    id: 'exchange',
+    label: '환율 정보',
+    icon: '💱',
+    route: '/exchange',
+    description: '실시간 환율 정보 조회',
+    isDisabled: false,
+  },
+  {
     id: 'menu',
     label: '전체 메뉴',
     icon: '☰',
@@ -73,7 +81,8 @@ const navigationStoreCreator: StateCreator<
   isMobile: false,
   deviceType: 'desktop',
   menuItems: [],
-  rightNavWidth: 64, // 기본 너비 (tailwind w-64)
+  // 오른쪽 네비게이션 기본 너비를 20으로 고정
+  rightNavWidth: 20,
 
   // 액션들
   setCurrentRoute: (route: string) =>

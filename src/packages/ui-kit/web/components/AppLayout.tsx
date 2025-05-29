@@ -23,7 +23,8 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { isMobile, isDesktop, isHydrated } = useResponsive();
-  const rightNavWidth = useRightNavWidth();
+  // 고정 너비 20 사용 (기존 동적 너비 대신)
+  const rightNavWidth = 20;
   const menuItems = useMenuItems();
   const { setCurrentRoute, initializeDefaultMenus } = useNavigationActions();
 
@@ -42,7 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-full bg-gray-50">
-      <div className={`flex min-h-full ${isDesktop ? `pr-${rightNavWidth}` : ''}`}>
+      <div className={`flex min-h-full ${isDesktop ? 'pr-20' : ''}`}>
         {/* 메인 콘텐츠 */}
         <main className={`
           flex-1 w-full
