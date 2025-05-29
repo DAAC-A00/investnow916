@@ -5,7 +5,7 @@ import { useExchangeCoinsStore } from '@/packages/shared/stores/createExchangeCo
 import { BybitCategoryType, CoinInfo, ExchangeType } from '@/packages/shared/types/exchange';
 import ExchangeCoinsInitializer from '@/packages/shared/components/ExchangeCoinsInitializer';
 
-export default function CoinsPage() {
+export default function BybitCoinsPage() {
   const [selectedExchange, setSelectedExchange] = useState<ExchangeType>('bybit');
   const [selectedCategory, setSelectedCategory] = useState<BybitCategoryType>('linear');
   const [filterBaseCoin, setFilterBaseCoin] = useState<string>('');
@@ -62,7 +62,7 @@ export default function CoinsPage() {
         autoFetch={true} 
       />
       
-      <h1 className="text-2xl font-bold mb-6">거래소 코인 정보</h1>
+      <h1 className="text-2xl font-bold mb-6">Bybit 코인 정보</h1>
       
       {/* 거래소 및 카테고리 선택 */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
