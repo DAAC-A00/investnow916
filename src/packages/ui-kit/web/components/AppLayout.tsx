@@ -5,14 +5,16 @@
 
 'use client';
 
-'use client';
-
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useResponsive } from '../../../shared/hooks/useResponsive';
 import { BottomNavigation } from './BottomNavigation';
 import { RightNavigation } from './RightNavigation';
-import { useNavigationActions, useRightNavWidth } from '../../../shared/stores/createNavigationStore';
+import { 
+  useNavigationActions, 
+  useRightNavWidth,
+  useMenuItems 
+} from '../../../shared/stores/createNavigationStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -22,7 +24,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { isMobile, isDesktop, isHydrated } = useResponsive();
   const rightNavWidth = useRightNavWidth();
-  const { setCurrentRoute } = useNavigationActions();
+  const menuItems = useMenuItems();
+  const { setCurrentRoute, initializeDefaultMenus } = useNavigationActions();
+
+  // 컴포넌트 마운트 시 기본 메뉴 초기화
+  useEffect(() => {
+    if (menuItems.length === 0) {
+      console.log('메뉴 아이템 초기화');
+      initializeDefaultMenus();
+    }
+  }, [menuItems.length, initializeDefaultMenus]);
 
   // 현재 경로가 변경될 때마다 현재 라우트 업데이트
   useEffect(() => {

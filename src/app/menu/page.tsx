@@ -14,12 +14,7 @@ export default function MenuPage() {
   const currentRoute = useCurrentRoute();
   const { initializeDefaultMenus, setCurrentRoute } = useNavigationActions();
 
-  // 컴포넌트 마운트 시 기본 메뉴 초기화
-  useEffect(() => {
-    if (menuItems.length === 0) {
-      initializeDefaultMenus();
-    }
-  }, [menuItems.length, initializeDefaultMenus]);
+  // 참고: 기본 메뉴 초기화는 AppLayout에서 처리됩니다
 
   // 현재 경로 설정
   useEffect(() => {
