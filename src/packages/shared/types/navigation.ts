@@ -11,6 +11,7 @@ export interface MenuItemType {
   route: string;
   isActive?: boolean;
   isDisabled?: boolean;
+  isAdminOnly?: boolean;  // 관리자 모드에서만 표시할지 여부
 }
 
 export interface NavigationState {

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "../packages/ui-kit/web/components";
 import { ThemeInitializer } from "../packages/shared/components/ThemeInitializer";
+import { AdminModeInitializer } from "../packages/shared/components/AdminModeInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko" className="h-full" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -50,9 +51,11 @@ export default function RootLayout({
         />
       </head>
       <body
+        suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full`}
       >
         <ThemeInitializer />
+        <AdminModeInitializer />
         <AppLayout>
           {children}
         </AppLayout>

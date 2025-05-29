@@ -52,6 +52,23 @@ const defaultMenuItems: MenuItemType[] = [
     isDisabled: false,
   },
   {
+    id: 'settings',
+    label: '설정',
+    icon: '⚙️',
+    route: '/settings',
+    description: '앱 설정 및 개발자 옵션',
+    isDisabled: false,
+  },
+  {
+    id: 'storage',
+    label: 'Storage 관리',
+    icon: '🗄️',
+    route: '/admin/storage',
+    description: 'Local Storage 데이터 관리 (관리자 전용)',
+    isDisabled: true, // 기본적으로 비활성화 (관리자 모드에서만 활성화)
+    isAdminOnly: true, // 관리자 전용 메뉴 표시
+  },
+  {
     id: 'menu',
     label: '전체 메뉴',
     icon: '☰',

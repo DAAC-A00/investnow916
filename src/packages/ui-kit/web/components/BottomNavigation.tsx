@@ -9,6 +9,7 @@ import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentRoute, useMenuItems, useNavigationActions } from '../../../shared/stores/createNavigationStore';
 import { useResponsive } from '../../../shared/hooks/useResponsive';
+import { useIsAdminModeEnabled } from '../../../shared/stores/createAdminModeStore';
 
 export function BottomNavigation() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function BottomNavigation() {
   const menuItems = useMenuItems();
   const { setCurrentRoute, initializeDefaultMenus } = useNavigationActions();
   const { isMobile, isHydrated } = useResponsive();
+  const isAdminMode = useIsAdminModeEnabled();
 
   // 컴포넌트 마운트 시 기본 메뉴 초기화
   useEffect(() => {
@@ -24,13 +26,13 @@ export function BottomNavigation() {
     }
   }, [menuItems.length, initializeDefaultMenus]);
 
-  // 하단 네비게이션에 표시할 메뉴 순서 정의 (메뉴 제외)
-  const bottomNavOrder = ['home', 'menu'];
+  // 하단 네비게이션에 표시할 메뉴 순서 정의 (환율 정보, Storage 관리 메뉴 추가)
+  const bottomNavOrder = ['home', 'exchange', 'storage', 'menu'];
   
-  // 순서에 맞게 메뉴 아이템 정렬
+  // 순서에 맞게 메뉴 아이템 정렬 및 관리자 전용 메뉴 필터링
   const bottomNavItems = bottomNavOrder
     .map(id => menuItems.find(item => item.id === id))
-    .filter(Boolean) as typeof menuItems;
+    .filter(item => item && (!item.isAdminOnly || (item.isAdminOnly && isAdminMode))) as typeof menuItems;
 
   const handleMenuClick = useCallback((route: string) => {
     setCurrentRoute(route);
@@ -51,12 +53,12 @@ export function BottomNavigation() {
           return (
             <button
               key={item.id}
-              onClick={() => handleMenuClick(item.route)}
+              onClick={() => !item.isDisabled && handleMenuClick(item.route)}
               disabled={item.isDisabled}
               className={`
                 flex flex-col items-center justify-center flex-1 h-full relative
                 ${isActive ? 'text-primary' : 'text-muted-foreground'}
-                ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-primary cursor-pointer'}
+                ${item.isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:text-primary cursor-pointer'}
                 transition-colors duration-200
                 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
               `}

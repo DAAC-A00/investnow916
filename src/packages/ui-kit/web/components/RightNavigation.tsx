@@ -3,6 +3,7 @@
 import React, { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentRoute, useMenuItems, useNavigationActions, useRightNavWidth } from '../../../shared/stores/createNavigationStore';
+import { useIsAdminModeEnabled } from '../../../shared/stores/createAdminModeStore';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
 export function RightNavigation() {
@@ -12,14 +13,15 @@ export function RightNavigation() {
   // 고정 너비 20 사용 (기존 동적 너비 대신)
   const rightNavWidth = 20;
   const { setCurrentRoute } = useNavigationActions();
+  const isAdminMode = useIsAdminModeEnabled();
 
-  // 우측 네비게이션에 표시할 메뉴 순서 정의 (menu 제외)
-  const rightNavOrder = ['home'];
+  // 우측 네비게이션에 표시할 메뉴 순서 정의 (환율 정보, Storage 관리 메뉴 추가)
+  const rightNavOrder = ['home', 'exchange', 'storage', 'settings'];
   
-  // 순서에 맞게 메뉴 아이템 정렬
+  // 순서에 맞게 메뉴 아이템 정렬 및 관리자 전용 메뉴 필터링
   const rightNavItems = rightNavOrder
     .map(id => menuItems.find(item => item.id === id))
-    .filter(Boolean);
+    .filter(item => item && (!item.isAdminOnly || (item.isAdminOnly && isAdminMode)));
 
   const handleMenuClick = useCallback((route: string) => {
     setCurrentRoute(route);
@@ -43,12 +45,12 @@ export function RightNavigation() {
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => handleMenuClick(item.route)}
+                  onClick={() => !item.isDisabled && handleMenuClick(item.route)}
                   disabled={item.isDisabled}
                   className={`
                     w-full flex flex-col items-center justify-center px-2 py-3 rounded-lg
                     ${isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent hover:text-accent-foreground'}
-                    ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    ${item.isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
                     transition-colors duration-200
                     focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
                   `}
