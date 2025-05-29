@@ -38,7 +38,7 @@ const defaultMenuItems: MenuItemType[] = [
     id: 'home',
     label: '홈',
     icon: '🏠',
-    route: '/',
+    route: '/home',
     description: 'InvestNow916 메인 페이지',
     isDisabled: false,
   },
