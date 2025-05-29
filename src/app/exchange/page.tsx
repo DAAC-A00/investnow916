@@ -78,20 +78,20 @@ export default function ExchangeRatePage() {
       <h1 className="text-3xl font-bold mb-6">환율 정보</h1>
       
       {/* 로딩 및 에러 상태 */}
-      {isLoading && <div className="mb-4 text-blue-500">데이터를 불러오는 중...</div>}
-      {error && <div className="mb-4 text-red-500">오류: {error}</div>}
+      {isLoading && <div className="mb-4 text-primary-foreground">데이터를 불러오는 중...</div>}
+      {error && <div className="mb-4 text-error">오류: {error}</div>}
       
       {/* 기준 통화 정보 */}
-      <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+      <div className="mb-6 p-4 bg-background/50 dark:bg-muted/50 rounded-lg">
         <h2 className="text-xl font-semibold mb-2">기준 통화: {baseCode}</h2>
         {lastUpdated && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground/80">
             마지막 업데이트: {lastUpdated}
           </p>
         )}
         <button 
           onClick={() => fetchRates()} 
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+          className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
           disabled={isLoading}
         >
           새로고침
@@ -105,7 +105,7 @@ export default function ExchangeRatePage() {
           placeholder="통화 검색 (예: KRW, USD, EUR...)"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800"
+          className="w-full p-2 border border-input bg-background/50 dark:bg-muted/50 rounded-lg"
         />
       </div>
       
@@ -119,8 +119,8 @@ export default function ExchangeRatePage() {
               onClick={() => handleChangeCurrency(currency)}
               className={`px-3 py-1 rounded-full text-sm ${
                 baseCode === currency
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 hover:bg-muted/60 dark:bg-muted/60 dark:hover:bg-muted/70'
               }`}
             >
               {currency}
@@ -136,11 +136,11 @@ export default function ExchangeRatePage() {
             key={currency}
             className={`p-4 border rounded-lg cursor-pointer transition-all ${
               currency === baseCode
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                ? 'border-primary bg-background/20 dark:bg-muted/20'
+                : 'border-border hover:border-primary dark:border-border dark:hover:border-primary/90'
             } ${
               selectedCurrency === currency
-                ? 'ring-2 ring-blue-500'
+                ? 'ring-2 ring-primary'
                 : ''
             }`}
             onClick={() => handleSelectCurrency(currency)}
@@ -154,7 +154,7 @@ export default function ExchangeRatePage() {
             
             {/* 선택된 통화에 대한 추가 정보 */}
             {selectedCurrency === currency && (
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-4 pt-4 border-t border-border dark:border-border">
                 <p className="mb-2">
                   1 {baseCode} = {formatNumber(rates[currency] || 0)} {currency}
                 </p>
@@ -166,7 +166,7 @@ export default function ExchangeRatePage() {
                     e.stopPropagation();
                     handleChangeCurrency(currency);
                   }}
-                  className="mt-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
+                  className="mt-2 px-3 py-1 bg-primary text-primary-foreground text-sm rounded hover:bg-primary/90 transition"
                 >
                   {currency}로 기준 변경
                 </button>

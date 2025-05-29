@@ -20,11 +20,11 @@ export function ThemeToggleButton() {
       onClick={toggleTheme}
       className="
         w-full flex items-center justify-center px-4 py-3 rounded-lg
-        bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700
-        text-gray-700 dark:text-gray-300
+        bg-muted/50 hover:bg-muted/60 dark:bg-muted/60 dark:hover:bg-muted/70
+        text-muted-foreground
         transition-colors duration-200
-        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-        border border-gray-200 dark:border-gray-600
+        focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+        border border-border dark:border-border
       "
       title={`${theme === 'light' ? '다크' : '라이트'} 모드로 전환`}
     >
