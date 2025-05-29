@@ -27,13 +27,13 @@ export default function MenuPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-muted py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-foreground mb-4">
             ☰ 전체 메뉴
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-muted-foreground">
             사용 가능한 모든 기능을 확인하고 이동할 수 있습니다
           </p>
         </div>
@@ -46,9 +46,9 @@ export default function MenuPage() {
               <div
                 key={item.id}
                 className={`
-                  bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer
+                  bg-card rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer border border-border
                   ${isActive 
-                    ? 'ring-2 ring-blue-500 bg-blue-50' 
+                    ? 'ring-2 ring-primary bg-accent' 
                     : 'hover:scale-105'
                   }
                   ${item.isDisabled 
@@ -62,11 +62,11 @@ export default function MenuPage() {
                   {item.icon && (
                     <div className="text-4xl mb-4">{item.icon}</div>
                   )}
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-semibold text-card-foreground mb-2">
                     {item.label}
                   </h3>
                   {item.description && (
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-muted-foreground text-sm">
                       {item.description}
                     </p>
                   )}
@@ -78,7 +78,7 @@ export default function MenuPage() {
 
         {menuItems.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">
+            <div className="text-muted-foreground text-lg">
               메뉴를 로딩 중입니다...
             </div>
           </div>

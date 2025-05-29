@@ -3,6 +3,7 @@
 import React, { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentRoute, useMenuItems, useNavigationActions, useRightNavWidth } from '../../../shared/stores/createNavigationStore';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 export function RightNavigation() {
   const router = useRouter();
@@ -26,12 +27,12 @@ export function RightNavigation() {
   }, [router, setCurrentRoute]);
 
   return (
-    <aside className={`fixed top-0 right-0 w-${rightNavWidth} h-full bg-white border-l border-gray-200 shadow-lg z-30 dark:bg-gray-900 dark:border-gray-700`}>
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 text-center">메뉴</h2>
+    <aside className={`fixed top-0 right-0 w-${rightNavWidth} h-full bg-background border-l border-border shadow-lg z-30 flex flex-col`}>
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-bold text-foreground text-center">메뉴</h2>
       </div>
       
-      <nav className="p-4">
+      <nav className="p-4 flex-1">
         <ul className="space-y-2">
           {rightNavItems.map((item) => {
             if (!item) return null;
@@ -46,10 +47,10 @@ export function RightNavigation() {
                   disabled={item.isDisabled}
                   className={`
                     w-full flex flex-col items-center justify-center px-2 py-3 rounded-lg
-                    ${isActive ? 'bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'}
+                    ${isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent hover:text-accent-foreground'}
                     ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     transition-colors duration-200
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                    focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
                   `}
                 >
                   <div className="flex flex-col items-center justify-center">
@@ -64,6 +65,11 @@ export function RightNavigation() {
           })}
         </ul>
       </nav>
+
+      {/* 테마 토글 버튼 - 최하단에 배치 */}
+      <div className="p-4 border-t border-border">
+        <ThemeToggleButton />
+      </div>
     </aside>
   );
 }

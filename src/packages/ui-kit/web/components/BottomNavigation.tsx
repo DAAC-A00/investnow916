@@ -43,7 +43,7 @@ export function BottomNavigation() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40">
       <div className="flex justify-around items-center h-16">
         {bottomNavItems.map((item) => {
           const isActive = currentRoute === item.route;
@@ -55,10 +55,10 @@ export function BottomNavigation() {
               disabled={item.isDisabled}
               className={`
                 flex flex-col items-center justify-center flex-1 h-full relative
-                ${isActive ? 'text-blue-600' : 'text-gray-500'}
-                ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-500 cursor-pointer'}
+                ${isActive ? 'text-primary' : 'text-muted-foreground'}
+                ${item.isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-primary cursor-pointer'}
                 transition-colors duration-200
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
               `}
             >
               {item.icon && (
@@ -66,7 +66,7 @@ export function BottomNavigation() {
               )}
               <span className="text-xs mt-1">{item.label}</span>
               {isActive && (
-                <div className="absolute bottom-0 w-8 h-1 bg-blue-600 rounded-t-full" />
+                <div className="absolute bottom-0 w-8 h-1 bg-primary rounded-t-full" />
               )}
             </button>
           );

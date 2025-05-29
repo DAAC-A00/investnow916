@@ -42,7 +42,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [pathname, setCurrentRoute]);
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-background">
       <div className={`flex min-h-full ${isDesktop ? 'pr-20' : ''}`}>
         {/* 메인 콘텐츠 */}
         <main className={`
