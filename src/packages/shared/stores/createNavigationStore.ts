@@ -42,14 +42,7 @@ const defaultMenuItems: MenuItemType[] = [
     description: 'InvestNow916 메인 페이지',
     isDisabled: false,
   },
-  {
-    id: 'counter',
-    label: 'Counter',
-    icon: '🔢',
-    route: '/counter',
-    description: '숫자 카운터 기능',
-    isDisabled: false,
-  },
+
   {
     id: 'exchange',
     label: '환율 정보',

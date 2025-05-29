@@ -36,10 +36,10 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => handleNavigate('/counter')}
+              onClick={() => handleNavigate('/exchange')}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              🔢 Counter 체험하기
+              💱 환율 정보 보기
             </button>
             <button
               onClick={() => handleNavigate('/menu')}

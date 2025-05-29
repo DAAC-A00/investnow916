@@ -14,7 +14,7 @@ export function RightNavigation() {
   const { setCurrentRoute } = useNavigationActions();
 
   // 우측 네비게이션에 표시할 메뉴 순서 정의 (menu 제외)
-  const rightNavOrder = ['home', 'counter'];
+  const rightNavOrder = ['home'];
   
   // 순서에 맞게 메뉴 아이템 정렬
   const rightNavItems = rightNavOrder

@@ -24,7 +24,7 @@ export function BottomNavigation() {
     }
   }, [menuItems.length, initializeDefaultMenus]);
 
-  // 하단 네비게이션에 표시할 메뉴 순서 정의 (Counter 제외)
+  // 하단 네비게이션에 표시할 메뉴 순서 정의 (메뉴 제외)
   const bottomNavOrder = ['home', 'menu'];
   
   // 순서에 맞게 메뉴 아이템 정렬
