@@ -15,8 +15,8 @@ export function RightNavigation() {
   const { setCurrentRoute } = useNavigationActions();
   const isAdminMode = useIsAdminModeEnabled();
 
-  // 우측 네비게이션에 표시할 메뉴 순서 정의 (환율 정보, Storage 관리 메뉴 추가)
-  const rightNavOrder = ['home', 'exchange', 'storage', 'settings'];
+  // 우측 네비게이션에 표시할 메뉴 순서 정의 (관리자 모드에 따른 메뉴 표시)
+  const rightNavOrder = ['home', ...(isAdminMode ? ['exchange'] : []), 'storage', 'setting'];
   
   // 순서에 맞게 메뉴 아이템 정렬 및 관리자 전용 메뉴 필터링
   const rightNavItems = rightNavOrder

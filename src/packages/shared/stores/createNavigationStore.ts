@@ -52,10 +52,10 @@ const defaultMenuItems: MenuItemType[] = [
     isDisabled: false,
   },
   {
-    id: 'settings',
+    id: 'setting',
     label: '설정',
     icon: '⚙️',
-    route: '/settings',
+    route: '/setting',
     description: '앱 설정 및 개발자 옵션',
     isDisabled: false,
   },
