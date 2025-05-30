@@ -117,7 +117,7 @@ const parseSymbolsString = (symbolsString: string, exchange: ExchangeType, categ
 };
 
 // Bybit 카테고리 매핑
-const BYBIT_CATEGORY_MAP = {
+export const BYBIT_CATEGORY_MAP = {
   // API 요청용 카테고리: 저장용 카테고리
   'linear': 'um',
   'inverse': 'cm',
@@ -166,15 +166,10 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     // 문자열 형식으로 변환하여 저장
     // 형식: "baseCode/quoteCode-restOfSymbol=symbol,baseCode/quoteCode-restOfSymbol=symbol,..."
     const stringData = symbols
-      .filter(item => item.symbol) // 유효한 심볼만 처리
+      .filter(item => item.displaySymbol && item.originalSymbol) // 유효한 심볼만 처리
       .map(item => {
-        // 심볼에서 baseCoin과 quoteCoin 추출
-        const symbol = item.symbol;
-        const baseCoin = item.baseCoin || symbol.split('/')[0];
-        const quoteCoin = item.quoteCoin || symbol.split('/')[1];
-        const restOfSymbol = item.restOfSymbol || '';
-        
-        return `${baseCoin}/${quoteCoin}-${restOfSymbol}=${symbol}`;
+        // 저장 포맷: displaySymbol=originalSymbol
+        return `${item.displaySymbol}=${item.originalSymbol}`;
       })
       .join(',');
     
@@ -220,11 +215,14 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
               // 심볼에서 baseCoin과 quoteCoin을 제외한 나머지 부분 추출
               const baseQuotePattern = `${baseCoin}${quoteCoin}`;
               const restOfSymbol = symbol.replace(baseQuotePattern, '');
-              
+              // displaySymbol: quoteCode/baseCode[-rest]
+              const displaySymbol = restOfSymbol === ''
+                ? `${quoteCoin}/${baseCoin}`
+                : `${quoteCoin}/${baseCoin}-${restOfSymbol}`;
               return {
-                symbol: `${baseCoin}/${quoteCoin}`, // 표준화된 심볼 형식
-                baseCoin,
-                quoteCoin,
+                displaySymbol,
+                baseCode: baseCoin,
+                quoteCode: quoteCoin,
                 restOfSymbol,
                 originalSymbol: symbol,
                 // 추가 정보 저장

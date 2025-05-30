@@ -72,6 +72,51 @@ export interface BybitInstrument {
   [key: string]: any;  // 기타 속성
 }
 
+// Bybit Ticker API 응답 타입
+export interface BybitTickerResponse {
+  retCode: number;
+  retMsg: string;
+  result: {
+    category: string;
+    list: BybitTicker[];
+  };
+  retExtInfo: Record<string, unknown>;
+  time: number;
+}
+
+export interface BybitTicker {
+  symbol: string;
+  bid1Price: string;
+  bid1Size: string;
+  ask1Price: string;
+  ask1Size: string;
+  lastPrice: string;
+  prevPrice24h: string;
+  price24hPcnt: string;
+  highPrice24h: string;
+  lowPrice24h: string;
+  turnover24h: string;
+  volume24h: string;
+  usdIndexPrice?: string;
+  [key: string]: any;  // 기타 속성
+}
+
+// 티커 정보 공통 인터페이스
+export interface TickerInfo {
+  symbol: string;
+  lastPrice: number;
+  priceChange24h: number;
+  priceChangePercent24h: number;
+  highPrice24h: number;
+  lowPrice24h: number;
+  volume24h: number;
+  turnover24h: number;
+  bidPrice: number;
+  askPrice: number;
+  exchange: ExchangeType;
+  category: string;
+}
+
 // 거래소 코인 정보 상태 타입
 export interface ExchangeCoinsState {
   isLoading: boolean;
