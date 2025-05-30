@@ -74,8 +74,6 @@ export interface BybitInstrument {
 
 // 거래소 코인 정보 상태 타입
 export interface ExchangeCoinsState {
-  coins: CoinInfo[];
-  lastUpdated: Record<ExchangeType, Record<string, string | null>>;
   isLoading: boolean;
   error: string | null;
   
@@ -84,9 +82,8 @@ export interface ExchangeCoinsState {
   fetchAllBybitCoins: () => Promise<boolean>;
   fetchExchangeCoins: (exchange: ExchangeType) => Promise<boolean>;
   fetchAllExchangeCoins: () => Promise<boolean>;
-  clearCoins: () => void;
-  clearExchangeCoins: (exchange: ExchangeType) => void;
-  clearCategoryCoins: (exchange: ExchangeType, category: string) => void;
+  clearSymbols: (exchange?: ExchangeType, category?: string) => void;
+  getSymbolsForCategory: (exchange: ExchangeType, category: string) => string[];
   getFilteredCoins: (filter: {
     exchange?: ExchangeType;
     category?: string;

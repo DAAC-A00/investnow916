@@ -21,12 +21,11 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
 }) => {
   const [mounted, setMounted] = useState(false);
   const { 
-    coins, 
-    lastUpdated, 
     isLoading, 
     error,
     fetchBybitCoins, 
-    fetchExchangeCoins 
+    fetchExchangeCoins,
+    getSymbolsForCategory
   } = useExchangeCoinsStore();
 
   // 마운트 상태 체크 (하이드레이션 이슈 방지)
@@ -39,28 +38,40 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
     if (!mounted || !autoFetch) return;
 
     const fetchData = async () => {
-      if (exchange === 'bybit' && category) {
-        // 특정 카테고리만 가져오기
-        await fetchBybitCoins(category);
+      if (exchange === 'bybit') {
+        if (category) {
+          // 특정 카테고리만 가져오기
+          // 해당 카테고리의 심볼 데이터가 있는지 확인
+          const symbols = getSymbolsForCategory(exchange, category);
+          const hasData = symbols.length > 0;
+          
+          // 데이터가 없으면 가져오기
+          if (!hasData) {
+            await fetchBybitCoins(category);
+          }
+        } else {
+          // Bybit의 모든 카테고리 데이터 가져오기
+          const categories: BybitCategoryType[] = ['spot', 'linear', 'inverse', 'option'];
+          for (const cat of categories) {
+            // 해당 카테고리의 심볼 데이터가 있는지 확인
+            const symbols = getSymbolsForCategory(exchange, cat);
+            const hasData = symbols.length > 0;
+            
+            // 데이터가 없으면 가져오기
+            if (!hasData) {
+              await fetchBybitCoins(cat);
+            }
+          }
+        }
       } else {
         // 전체 거래소 데이터 가져오기
         await fetchExchangeCoins(exchange);
       }
     };
 
-    // 마지막 업데이트 시간 확인
-    const lastUpdate = category 
-      ? lastUpdated[exchange]?.[category] 
-      : Object.values(lastUpdated[exchange] || {}).find(Boolean);
-
-    // 데이터가 없거나 마지막 업데이트가 1시간 이상 지났으면 새로 가져오기
-    const needsUpdate = !lastUpdate || 
-      (new Date().getTime() - new Date(lastUpdate).getTime() > 60 * 60 * 1000);
-
-    if (needsUpdate) {
-      fetchData();
-    }
-  }, [mounted, autoFetch, exchange, category, lastUpdated, fetchBybitCoins, fetchExchangeCoins]);
+    // 데이터 가져오기 실행
+    fetchData();
+  }, [mounted, autoFetch, exchange, category, fetchBybitCoins, fetchExchangeCoins, getSymbolsForCategory]);
 
   // 하이드레이션 전에는 아무것도 렌더링하지 않음
   if (!mounted) return null;

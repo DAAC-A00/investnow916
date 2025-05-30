@@ -1,30 +1,28 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
+
+// 심볼 정보 타입 정의
+interface SymbolInfo {
+  symbol: string;
+  [key: string]: any; // 기타 추가 속성들
+}
+
 import { 
   BybitCategoryType, 
   BybitInstrumentsResponse, 
+  BybitInstrument,
   CoinInfo, 
   ExchangeCoinsState, 
   ExchangeType 
 } from '../types/exchange';
 
 // 초기 상태에 포함될 데이터 부분
-type ExchangeCoinsStateData = Pick<ExchangeCoinsState, 'coins' | 'lastUpdated' | 'isLoading' | 'error'>;
+type ExchangeCoinsStateData = Pick<ExchangeCoinsState, 'isLoading' | 'error'>;
 
 // 초기 상태 정의
 const initialState: ExchangeCoinsStateData = {
-  coins: [],
-  lastUpdated: {
-    bybit: {
-      spot: null,
-      linear: null,
-      inverse: null,
-      option: null,
-    },
-    binance: {},
-    upbit: {},
-  },
   isLoading: false,
   error: null,
 };
@@ -43,7 +41,8 @@ const API_URLS = {
   },
 };
 
-// Bybit API 응답 데이터를 CoinInfo 형식으로 변환하는 함수
+// 필요한 경우 Bybit API 응답 데이터를 CoinInfo 형식으로 변환하는 함수
+// 새로운 저장 방식에서는 사용하지 않지만, 후방 호환성을 위해 유지
 const transformBybitData = (
   data: BybitInstrumentsResponse, 
   category: BybitCategoryType
@@ -63,52 +62,149 @@ const transformBybitData = (
     }));
 };
 
+// Bybit API 응답에서 심볼 데이터를 형식화하는 함수
+const formatBybitSymbols = (
+  instruments: BybitInstrument[], 
+  category: BybitCategoryType
+): string => {
+  return instruments
+    .filter(item => item.status === 'Trading') // 거래 가능한 코인만 필터링
+    .map(item => {
+      const { symbol, baseCoin, quoteCoin } = item;
+      // 심볼에서 baseCoin과 quoteCoin을 제외한 나머지 부분 추출
+      const baseQuotePattern = `${baseCoin}${quoteCoin}`;
+      const restOfSymbol = symbol.replace(baseQuotePattern, '');
+      
+      return `${baseCoin}/${quoteCoin}${restOfSymbol}=${symbol}`;
+    })
+    .join(',');
+};
+
+// 저장된 심볼 문자열에서 코인 정보 배열로 변환하는 함수
+const parseSymbolsString = (symbolsString: string, exchange: ExchangeType, category: string): CoinInfo[] => {
+  if (!symbolsString) return [];
+  
+  const symbols = symbolsString.split(',');
+  return symbols.map(symbolPair => {
+    const [formatted, symbol] = symbolPair.split('=');
+    
+    // 심볼에서 기본 코인과 견적 코인 추출
+    // 실제 구현에서는 Bybit API에서 제공하는 정보를 사용하는 것이 정확하지만,
+    // 여기서는 예시로 간단하게 구현
+    let baseCoin = '';
+    let quoteCoin = '';
+    
+    // 실제 구현에서는 Bybit API에서 제공하는 정보 사용
+    if (symbol.includes('-')) {
+      // 예: BTCUSDT-PERP
+      const [baseQuote] = symbol.split('-');
+      baseCoin = baseQuote.slice(0, 3); // 예시로 BTC
+      quoteCoin = baseQuote.slice(3);  // 예시로 USDT
+    } else {
+      // 예: BTCUSDT
+      baseCoin = symbol.slice(0, 3);   // 예시로 BTC
+      quoteCoin = symbol.slice(3, 7);  // 예시로 USDT
+    }
+    
+    return {
+      symbol,
+      baseCoin,
+      quoteCoin,
+      exchange,
+      category,
+    };
+  });
+};
+
+// Bybit 카테고리 매핑
+const BYBIT_CATEGORY_MAP = {
+  // API 요청용 카테고리: 저장용 카테고리
+  'linear': 'um',
+  'inverse': 'cm',
+  // spot, option은 그대로 유지
+  'spot': 'spot',
+  'option': 'option'
+} as const;
+
+type BybitApiCategory = keyof typeof BYBIT_CATEGORY_MAP;
+
+// 내부 저장용 카테고리로 변환
+const toStorageCategory = (category: string): string => {
+  return BYBIT_CATEGORY_MAP[category as BybitApiCategory] || category;
+};
+
+// API 요청용 카테고리로 변환
+const toApiCategory = (storageCategory: string): string => {
+  return Object.entries(BYBIT_CATEGORY_MAP).find(
+    ([_, value]) => value === storageCategory
+  )?.[0] || storageCategory;
+};
+
+// 로컬 스토리지 접근 함수
+const getStorageKey = (exchange: ExchangeType, category: string, isApiCategory: boolean = false): string => {
+  // isApiCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
+  const storageCategory = isApiCategory ? toStorageCategory(category) : category;
+  return `${exchange}-${storageCategory}`;
+};
+
+// 로컬 스토리지에서 심볼 문자열 가져오기
+const getStoredSymbols = (exchange: ExchangeType, category: string, isApiCategory: boolean = false): string => {
+  if (typeof window === 'undefined') return '';
+  
+  const key = getStorageKey(exchange, category, isApiCategory);
+  const storedValue = localStorage.getItem(key);
+  return storedValue || '';
+};
+
+// 로컬 스토리지에 심볼 문자열 저장하기
+const storeSymbols = (exchange: ExchangeType, category: string, symbolsString: string, isApiCategory: boolean = false): void => {
+  if (typeof window === 'undefined') return;
+  
+  const key = getStorageKey(exchange, category, isApiCategory);
+  localStorage.setItem(key, symbolsString);
+};
+
 // 거래소 코인 정보 스토어 생성
 export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
   devtools(
-    persist(
-      immer((set, get) => ({
-        ...initialState,
+    immer((set, get) => ({
+      ...initialState,
 
         // Bybit 거래소의 코인 정보 가져오기
-        fetchBybitCoins: async (category: BybitCategoryType) => {
+        fetchBybitCoins: async (apiCategory: BybitCategoryType) => {
           try {
-            set(state => {
+            set((state: ExchangeCoinsState) => {
               state.isLoading = true;
               state.error = null;
             });
 
-            const response = await fetch(API_URLS.bybit.getUrl(category));
+            // API 요청은 원래 카테고리로
+            const response = await fetch(API_URLS.bybit.getUrl(apiCategory));
             
             if (!response.ok) {
               throw new Error(`API 요청 실패: ${response.status}`);
             }
             
-            const data: BybitInstrumentsResponse = await response.json();
+            const data = await response.json() as BybitInstrumentsResponse;
             
             if (data.retCode !== 0) {
-              throw new Error(`API 오류: ${data.retMsg}`);
+              throw new Error(`Bybit API 에러: ${data.retMsg}`);
             }
             
-            const newCoins = transformBybitData(data, category);
+            // 심볼 데이터 형식화 (카테고리는 원래 값 유지)
+            const formattedSymbols = formatBybitSymbols(data.result.list, apiCategory);
             
-            set(state => {
-              // 기존 코인 중 현재 거래소와 카테고리가 아닌 것만 필터링
-              const filteredCoins = state.coins.filter(
-                coin => !(coin.exchange === 'bybit' && coin.category === category)
-              );
-              
-              // 새로운 코인 정보 추가
-              state.coins = [...filteredCoins, ...newCoins];
-              
-              // 마지막 업데이트 시간 설정
-              state.lastUpdated.bybit[category] = new Date().toISOString();
+            // 로컬 스토리지에 저장할 때는 변환된 카테고리 사용
+            const storageCategory = toStorageCategory(apiCategory);
+            storeSymbols('bybit', storageCategory, formattedSymbols);
+            
+            set((state: ExchangeCoinsState) => {
               state.isLoading = false;
             });
             
             return true;
           } catch (error) {
-            set(state => {
+            set((state: ExchangeCoinsState) => {
               state.isLoading = false;
               state.error = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
             });
@@ -157,27 +253,68 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
           return results.every(Boolean);
         },
 
-        // 코인 정보 초기화
-        clearCoins: () => {
+        // 심볼 데이터 초기화
+        clearSymbols: (exchange?: ExchangeType, category?: string) => {
+          if (typeof window === 'undefined') return;
+          
+          if (!exchange) {
+            // 모든 심볼 데이터 초기화 (localStorage에서 exchange-category로 시작하는 모든 키 삭제)
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && (
+                key.startsWith('bybit-') || 
+                key.startsWith('binance-') || 
+                key.startsWith('upbit-'))
+              ) {
+                localStorage.removeItem(key);
+              }
+            }
+          } else if (!category) {
+            // 특정 거래소의 모든 카테고리 심볼 데이터 초기화
+            const categories = exchange === 'bybit' ? 
+              [...Object.values(BYBIT_CATEGORY_MAP), 'um', 'cm'] : // um, cm도 함께 삭제
+              exchange === 'binance' ? ['spot', 'futures', 'options'] :
+              exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
+            
+            // 모든 카테고리와 변환된 카테고리에 대해 삭제
+            const allCategories = new Set([
+              ...categories,
+              ...categories.map(cat => toStorageCategory(cat))
+            ]);
+            
+            allCategories.forEach(cat => {
+              const key = getStorageKey(exchange, cat);
+              localStorage.removeItem(key);
+            });
+          } else {
+            // 특정 거래소와 카테고리의 심볼 데이터 초기화
+            // API 카테고리와 저장용 카테고리 모두 삭제
+            const storageCategory = toStorageCategory(category);
+            const apiCategory = toApiCategory(category);
+            
+            const keysToRemove = new Set([
+              getStorageKey(exchange, storageCategory),
+              getStorageKey(exchange, apiCategory)
+            ]);
+            
+            keysToRemove.forEach(key => {
+              if (key) localStorage.removeItem(key);
+            });
+          }
+          
+          // 상태 업데이트 (로딩 상태 초기화)
           set(state => {
-            state.coins = [];
+            state.isLoading = false;
+            state.error = null;
           });
         },
-
-        // 특정 거래소의 코인 정보만 초기화
-        clearExchangeCoins: (exchange: ExchangeType) => {
-          set(state => {
-            state.coins = state.coins.filter(coin => coin.exchange !== exchange);
-          });
-        },
-
-        // 특정 거래소와 카테고리의 코인 정보만 초기화
-        clearCategoryCoins: (exchange: ExchangeType, category: string) => {
-          set(state => {
-            state.coins = state.coins.filter(
-              coin => !(coin.exchange === exchange && coin.category === category)
-            );
-          });
+        
+        // 특정 거래소와 카테고리의 심볼 목록 가져오기
+        getSymbolsForCategory: (exchange: ExchangeType, category: string): string[] => {
+          const symbolsString = getStoredSymbols(exchange, category);
+          if (!symbolsString) return [];
+          
+          return symbolsString.split(',').map(pair => pair.split('=')[1]);
         },
 
         // 코인 정보 필터링 (baseCoin 또는 quoteCoin으로)
@@ -186,68 +323,111 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
           category?: string;
           baseCoin?: string;
           quoteCoin?: string;
-        }) => {
-          const { coins } = get();
-          return coins.filter(coin => {
-            let match = true;
+        }): CoinInfo[] => {
+          const { exchange, category, baseCoin, quoteCoin } = filter;
+          
+          // 로컬 스토리지에서 데이터 조회 (저장된 카테고리로 조회 시도)
+          const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
+            // 먼저 저장된 카테고리로 시도
+            const storageKey = getStorageKey(ex, cat, false);
+            const apiKey = getStorageKey(ex, cat, true);
             
-            if (filter.exchange && coin.exchange !== filter.exchange) {
-              match = false;
+            try {
+              // 저장된 카테고리로 먼저 시도
+              let data = localStorage.getItem(storageKey);
+              
+              // 없으면 API 카테고리로 시도 (이전 버전 호환성)
+              if (!data && apiKey !== storageKey) {
+                data = localStorage.getItem(apiKey);
+              }
+              
+              return data ? JSON.parse(data) : [];
+            } catch (error) {
+              console.error(`Failed to load symbols for ${ex}-${cat}:`, error);
+              return [];
             }
-            
-            if (filter.category && coin.category !== filter.category) {
-              match = false;
+          };
+          
+          // 모든 거래소와 카테고리 조합에 대해 필터링
+          const exchanges = exchange ? [exchange] : (['bybit', 'binance', 'upbit'] as ExchangeType[]);
+          let categories: string[] = [];
+          
+          // 카테고리 필터가 없으면 모든 카테고리 사용
+          if (!category) {
+            categories = exchange === 'bybit' ? 
+              [...Object.values(BYBIT_CATEGORY_MAP), 'um', 'cm'] : // um, cm도 함께 검색
+              exchange === 'binance' ? ['spot', 'futures', 'options'] :
+              exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
+          } else {
+            // 카테고리 필터가 있으면 해당 카테고리와 변환된 카테고리 모두 검색
+            categories = [category, toStorageCategory(category), toApiCategory(category)];
+            // 중복 제거
+            categories = [...new Set(categories)];
+          }
+          
+          const result: CoinInfo[] = [];
+          const seenSymbols = new Set<string>();
+          
+          for (const ex of exchanges) {
+            for (const cat of categories) {
+              const symbols = loadSymbols(ex, cat);
+              
+              for (const symbol of symbols) {
+                const [base, quote] = symbol.symbol.split('/');
+                const symbolKey = `${ex}:${symbol.symbol}`;
+                
+                // 이미 처리된 심볼은 건너뜀 (중복 방지)
+                if (seenSymbols.has(symbolKey)) continue;
+                seenSymbols.add(symbolKey);
+                
+                // 필터링 조건 적용
+                if (baseCoin && base !== baseCoin) continue;
+                if (quoteCoin && quote !== quoteCoin) continue;
+                
+                // 원본 카테고리 유지 (API 카테고리로 변환)
+                const originalCategory = toApiCategory(cat) || cat;
+                
+                // symbol 속성 중복을 피하기 위해 나머지 속성을 먼저 펼치고 필요한 속성들을 덮어씁니다.
+                const { symbol: _, ...restSymbol } = symbol;
+                
+                result.push({
+                  ...restSymbol,
+                  exchange: ex,
+                  category: originalCategory, // API 카테고리로 변환하여 반환
+                  symbol: symbol.symbol,
+                  baseCoin: base,
+                  quoteCoin: quote
+                });
+              }
             }
-            
-            if (filter.baseCoin && coin.baseCoin !== filter.baseCoin) {
-              match = false;
-            }
-            
-            if (filter.quoteCoin && coin.quoteCoin !== filter.quoteCoin) {
-              match = false;
-            }
-            
-            return match;
-          });
+          }
+          
+          return result;
         },
 
         // 고유한 baseCoin 목록 가져오기
-        getUniqueBaseCoins: (filter?: { exchange?: ExchangeType; category?: string }) => {
-          const { coins } = get();
-          const filteredCoins = filter
-            ? coins.filter(
-                coin =>
-                  (!filter.exchange || coin.exchange === filter.exchange) &&
-                  (!filter.category || coin.category === filter.category)
-              )
-            : coins;
+        getUniqueBaseCoins: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
+          // 필터링된 코인 정보 가져오기
+          const filteredCoins = get().getFilteredCoins({
+            exchange: filter?.exchange,
+            category: filter?.category
+          });
           
           const baseCoins = new Set(filteredCoins.map(coin => coin.baseCoin));
           return Array.from(baseCoins).sort();
         },
 
         // 고유한 quoteCoin 목록 가져오기
-        getUniqueQuoteCoins: (filter?: { exchange?: ExchangeType; category?: string }) => {
-          const { coins } = get();
-          const filteredCoins = filter
-            ? coins.filter(
-                coin =>
-                  (!filter.exchange || coin.exchange === filter.exchange) &&
-                  (!filter.category || coin.category === filter.category)
-              )
-            : coins;
+        getUniqueQuoteCoins: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
+          // 필터링된 코인 정보 가져오기
+          const filteredCoins = get().getFilteredCoins({
+            exchange: filter?.exchange,
+            category: filter?.category
+          });
           
           const quoteCoins = new Set(filteredCoins.map(coin => coin.quoteCoin));
           return Array.from(quoteCoins).sort();
         },
-      })),
-      {
-        name: 'exchange-coins-storage',
-        partialize: (state) => ({
-          coins: state.coins,
-          lastUpdated: state.lastUpdated,
-        }),
-      }
-    )
+      }))
   )
 );

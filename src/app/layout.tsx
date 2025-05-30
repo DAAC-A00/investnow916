@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppLayout } from "../packages/ui-kit/web/components";
 import { ThemeInitializer } from "../packages/shared/components/ThemeInitializer";
 import { AdminModeInitializer } from "../packages/shared/components/AdminModeInitializer";
+import ExchangeCoinsInitializer from "../packages/shared/components/ExchangeCoinsInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +57,7 @@ export default function RootLayout({
       >
         <ThemeInitializer />
         <AdminModeInitializer />
+        <ExchangeCoinsInitializer autoFetch={true} />
         <AppLayout>
           {children}
         </AppLayout>
