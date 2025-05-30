@@ -3,24 +3,40 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '@/packages/shared/stores/createExchangeCoinsStore';
 import { BybitCategoryType, CoinInfo, ExchangeType } from '@/packages/shared/types/exchange';
-import ExchangeCoinsInitializer from '@/packages/shared/components/ExchangeCoinsInitializer';
 
 export default function BybitCoinsPage() {
-  const [selectedExchange, setSelectedExchange] = useState<ExchangeType>('bybit');
+  const [selectedExchange] = useState<ExchangeType>('bybit');
   const [selectedCategory, setSelectedCategory] = useState<BybitCategoryType>('linear');
   const [filterBaseCoin, setFilterBaseCoin] = useState<string>('');
   const [filterQuoteCoin, setFilterQuoteCoin] = useState<string>('');
+  const [lastRefreshed, setLastRefreshed] = useState<string>('데이터 로드 중...');
   
   const { 
-    coins, 
     isLoading, 
     error, 
-    lastUpdated,
     fetchBybitCoins,
     getFilteredCoins,
     getUniqueBaseCoins,
-    getUniqueQuoteCoins
+    getUniqueQuoteCoins,
+    getSymbolsForCategory
   } = useExchangeCoinsStore();
+
+  // 컴포넌트 마운트 시 현재 시간으로 업데이트 시간 설정
+  useEffect(() => {
+    // 로컬 스토리지에 데이터가 있는지 확인
+    const hasData = getSymbolsForCategory(selectedExchange, selectedCategory).length > 0;
+    if (hasData) {
+      setLastRefreshed(new Date().toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }));
+    } else {
+      setLastRefreshed('저장된 데이터 없음');
+    }
+  }, [selectedExchange, selectedCategory, getSymbolsForCategory]);
 
   // 필터링된 코인 목록
   const filteredCoins = getFilteredCoins({
@@ -36,33 +52,28 @@ export default function BybitCoinsPage() {
 
   // 코인 정보 수동 새로고침
   const handleRefresh = async () => {
-    await fetchBybitCoins(selectedCategory);
-  };
-
-  // 마지막 업데이트 시간 포맷팅
-  const formatLastUpdated = () => {
-    const lastUpdate = lastUpdated[selectedExchange]?.[selectedCategory];
-    if (!lastUpdate) return '업데이트 정보 없음';
-    
-    return new Date(lastUpdate).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      await fetchBybitCoins(selectedCategory);
+      setLastRefreshed(new Date().toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }));
+    } catch (error) {
+      console.error('데이터 새로고침 실패:', error);
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
-      {/* 거래소 코인 정보 초기화 컴포넌트 */}
-      <ExchangeCoinsInitializer 
-        exchange={selectedExchange} 
-        category={selectedCategory} 
-        autoFetch={true} 
-      />
-      
-      <h1 className="text-2xl font-bold mb-6">Bybit 코인 정보</h1>
+      {/* 상태 정보 */}
+      <div className="mb-6 p-4 bg-muted rounded">
+        <h1 className="text-2xl font-bold mb-4">Bybit 코인 정보</h1>
+        <p className="text-sm">마지막 업데이트: {lastRefreshed}</p>
+        <p className="text-sm">총 코인 수: {filteredCoins.length}</p>
+      </div>
       
       {/* 거래소 및 카테고리 선택 */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -71,11 +82,9 @@ export default function BybitCoinsPage() {
           <select
             className="w-full p-2 border rounded bg-background text-foreground"
             value={selectedExchange}
-            onChange={(e) => setSelectedExchange(e.target.value as ExchangeType)}
+            disabled={true} /* 고정된 값이므로 변경 불가능 */
           >
             <option value="bybit">Bybit</option>
-            <option value="binance" disabled>Binance (준비 중)</option>
-            <option value="upbit" disabled>Upbit (준비 중)</option>
           </select>
         </div>
         
@@ -104,10 +113,9 @@ export default function BybitCoinsPage() {
         </div>
       </div>
       
-      {/* 상태 정보 */}
+      {/* 추가 정보 */}
       <div className="mb-6 text-sm">
-        <p>마지막 업데이트: {formatLastUpdated()}</p>
-        <p>총 코인 수: {filteredCoins.length}</p>
+        <p>상태: {isLoading ? '로딩 중...' : '준비됨'}</p>
       </div>
       
       {/* 필터링 옵션 */}

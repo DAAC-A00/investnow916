@@ -157,11 +157,31 @@ const getStoredSymbols = (exchange: ExchangeType, category: string, isApiCategor
 };
 
 // 로컬 스토리지에 심볼 문자열 저장하기
-const storeSymbols = (exchange: ExchangeType, category: string, symbolsString: string, isApiCategory: boolean = false): void => {
+const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], isApiCategory: boolean = false): void => {
   if (typeof window === 'undefined') return;
   
-  const key = getStorageKey(exchange, category, isApiCategory);
-  localStorage.setItem(key, symbolsString);
+  try {
+    const key = getStorageKey(exchange, category, isApiCategory);
+    
+    // 문자열 형식으로 변환하여 저장
+    // 형식: "baseCode/quoteCode-restOfSymbol=symbol,baseCode/quoteCode-restOfSymbol=symbol,..."
+    const stringData = symbols
+      .filter(item => item.symbol) // 유효한 심볼만 처리
+      .map(item => {
+        // 심볼에서 baseCoin과 quoteCoin 추출
+        const symbol = item.symbol;
+        const baseCoin = item.baseCoin || symbol.split('/')[0];
+        const quoteCoin = item.quoteCoin || symbol.split('/')[1];
+        const restOfSymbol = item.restOfSymbol || '';
+        
+        return `${baseCoin}/${quoteCoin}-${restOfSymbol}=${symbol}`;
+      })
+      .join(',');
+    
+    localStorage.setItem(key, stringData);
+  } catch (error) {
+    console.error(`심볼 데이터 저장 실패 (${exchange}-${category}):`, error);
+  }
 };
 
 // 거래소 코인 정보 스토어 생성
@@ -191,12 +211,34 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
               throw new Error(`Bybit API 에러: ${data.retMsg}`);
             }
             
-            // 심볼 데이터 형식화 (카테고리는 원래 값 유지)
-            const formattedSymbols = formatBybitSymbols(data.result.list, apiCategory);
+            // Bybit API 응답에서 심볼 데이터 추출 및 형식화
+            const instruments = data.result.list.filter(item => item.status === 'Trading');
+            
+            // 심볼 데이터를 객체 배열로 변환
+            const symbolObjects = instruments.map(item => {
+              const { symbol, baseCoin, quoteCoin } = item;
+              // 심볼에서 baseCoin과 quoteCoin을 제외한 나머지 부분 추출
+              const baseQuotePattern = `${baseCoin}${quoteCoin}`;
+              const restOfSymbol = symbol.replace(baseQuotePattern, '');
+              
+              return {
+                symbol: `${baseCoin}/${quoteCoin}`, // 표준화된 심볼 형식
+                baseCoin,
+                quoteCoin,
+                restOfSymbol,
+                originalSymbol: symbol,
+                // 추가 정보 저장
+                status: item.status,
+                leverage: item.leverage,
+                price: item.lastPriceOnmarket,
+                fundingRate: item.fundingRate,
+                category: apiCategory
+              };
+            });
             
             // 로컬 스토리지에 저장할 때는 변환된 카테고리 사용
             const storageCategory = toStorageCategory(apiCategory);
-            storeSymbols('bybit', storageCategory, formattedSymbols);
+            storeSymbols('bybit', storageCategory, symbolObjects);
             
             set((state: ExchangeCoinsState) => {
               state.isLoading = false;
@@ -341,7 +383,25 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
                 data = localStorage.getItem(apiKey);
               }
               
-              return data ? JSON.parse(data) : [];
+              if (!data) return [];
+              
+              // 문자열 형태로 저장된 데이터 처리
+              // 형식: "baseCode/quoteCode-restOfSymbol=symbol,baseCode/quoteCode-restOfSymbol=symbol,..."
+              const symbolEntries = data.split(',');
+              return symbolEntries.map(entry => {
+                const [symbolData, originalSymbol] = entry.split('=');
+                if (!symbolData || !originalSymbol) return null;
+                
+                const [baseQuote, restOfSymbol] = symbolData.split('-');
+                const [baseCoin, quoteCoin] = baseQuote.split('/');
+                
+                return {
+                  symbol: originalSymbol,
+                  baseCoin,
+                  quoteCoin,
+                  restOfSymbol: restOfSymbol || ''
+                };
+              }).filter(Boolean) as SymbolInfo[];
             } catch (error) {
               console.error(`Failed to load symbols for ${ex}-${cat}:`, error);
               return [];
