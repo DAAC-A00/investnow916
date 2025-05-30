@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { BybitCategoryType, TickerInfo } from '@/packages/shared/types/exchange';
 import { BYBIT_CATEGORY_MAP } from '@/packages/shared/stores/createExchangeCoinsStore';
@@ -10,6 +10,12 @@ type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent
 type SortDirection = 'asc' | 'desc';
 
 export default function BybitTickersPage() {
+  // 가격 변동 효과: 상승/하락/없음 상태 관리 (컴포넌트 전체에서 관리)
+  const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | 'none'>>({});
+  const prevPrices = useRef<Record<string, number>>({});
+  // symbol별 lastPrice 최대 소수점 자리수 추적
+  const symbolMaxDecimals = useRef<Record<string, number>>({});
+
   const [selectedCategory, setSelectedCategory] = useState<BybitCategoryType>('linear');
   const [symbolFilter, setSymbolFilter] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('turnover24h');
@@ -82,6 +88,27 @@ export default function BybitTickersPage() {
     sortField,
     sortDirection
   });
+
+  // 가격 변동 감지 및 flash 상태 업데이트
+  useEffect(() => {
+    filteredTickers.forEach((ticker) => {
+      const symbol = ticker.symbol;
+      const prev = prevPrices.current[symbol];
+      let flash: 'up' | 'down' | 'none' = 'none';
+      if (prev !== undefined) {
+        if (ticker.lastPrice > prev) flash = 'up';
+        else if (ticker.lastPrice < prev) flash = 'down';
+      }
+      if (flash !== 'none') {
+        setFlashStates((s) => ({ ...s, [symbol]: flash }));
+        setTimeout(() => {
+          setFlashStates((s) => ({ ...s, [symbol]: 'none' }));
+        }, 300);
+      }
+      prevPrices.current[symbol] = ticker.lastPrice;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredTickers.map(t => t.symbol + ':' + t.lastPrice).join(',')]);
 
   // 가격 변화율에 따른 색상 클래스
   const getPriceChangeColor = (changePercent: number) => {
@@ -215,88 +242,68 @@ export default function BybitTickersPage() {
         </div>
       )}
       
-      {/* 티커 목록 테이블 */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-muted">
-              <th 
-                className="p-2 text-left border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('symbol')}
+      {/* 티커 목록 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+        {(() => {
+          // symbol별 lastPrice의 최대 소수점 자리수 추적 (렌더 직전)
+          filteredTickers.forEach(ticker => {
+            const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+            const current = (function getDecimals(num: number) {
+              if (!isFinite(num)) return 0;
+              const s = num.toString();
+              if (s.includes('.')) return s.split('.')[1].length;
+              return 0;
+            })(ticker.lastPrice);
+            if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+          });
+
+          if (filteredTickers.length === 0) {
+            return (
+              <div className="col-span-full p-4 text-center">
+                표시할 티커 정보가 없습니다.
+              </div>
+            );
+          }
+
+          return filteredTickers.map((ticker: TickerInfo) => {
+            const borderClass =
+              flashStates[ticker.symbol] === 'up' ? 'border-l-4 border-l-green-500' :
+              flashStates[ticker.symbol] === 'down' ? 'border-l-4 border-l-red-500' :
+              'border-l-4 border-l-transparent';
+            
+            const priceDecimals = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+            const priceColor = getPriceChangeColor(ticker.priceChange24h);
+            const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-50/70 dark:bg-green-900/30' : ticker.priceChange24h < 0 ? 'bg-red-50/70 dark:bg-red-900/30' : 'bg-muted/10 dark:bg-muted/30';
+            const formattedTurnover = formatNumber(ticker.turnover24h);
+            const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${Number(ticker.priceChange24h).toFixed(priceDecimals)}`;
+            const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
+            const formattedLastPrice = Number(ticker.lastPrice).toFixed(priceDecimals);
+
+            return (
+              <div 
+                key={`${ticker.category}-${ticker.symbol}`}
+                className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow ${borderClass} p-4`}
               >
-                심볼 {getSortIcon('symbol')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('lastPrice')}
-              >
-                현재가 {getSortIcon('lastPrice')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('priceChange24h')}
-              >
-                24시간 변화 {getSortIcon('priceChange24h')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('priceChangePercent24h')}
-              >
-                24시간 변화율 {getSortIcon('priceChangePercent24h')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('highPrice24h')}
-              >
-                24시간 최고가 {getSortIcon('highPrice24h')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('lowPrice24h')}
-              >
-                24시간 최저가 {getSortIcon('lowPrice24h')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('volume24h')}
-              >
-                24시간 거래량 {getSortIcon('volume24h')}
-              </th>
-              <th 
-                className="p-2 text-right border cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('turnover24h')}
-              >
-                24시간 거래대금 {getSortIcon('turnover24h')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTickers.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="p-4 text-center">
-                  표시할 티커 정보가 없습니다.
-                </td>
-              </tr>
-            ) : (
-              filteredTickers.map((ticker: TickerInfo) => (
-                <tr key={`${ticker.category}-${ticker.symbol}`} className="hover:bg-muted/50">
-                  <td className="p-2 border font-medium">{getDisplaySymbol(ticker.symbol)}</td>
-                  <td className="p-2 border text-right">{ticker.lastPrice.toFixed(4)}</td>
-                  <td className={`p-2 border text-right ${getPriceChangeColor(ticker.priceChange24h)}`}>
-                    {ticker.priceChange24h > 0 ? '+' : ''}{ticker.priceChange24h.toFixed(4)}
-                  </td>
-                  <td className={`p-2 border text-right ${getPriceChangeColor(ticker.priceChangePercent24h)}`}>
-                    {ticker.priceChangePercent24h > 0 ? '+' : ''}{ticker.priceChangePercent24h.toFixed(2)}%
-                  </td>
-                  <td className="p-2 border text-right">{ticker.highPrice24h.toFixed(4)}</td>
-                  <td className="p-2 border text-right">{ticker.lowPrice24h.toFixed(4)}</td>
-                  <td className="p-2 border text-right">{formatNumber(ticker.volume24h)}</td>
-                  <td className="p-2 border text-right">{formatNumber(ticker.turnover24h)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <div className="font-semibold text-lg">{getDisplaySymbol(ticker.symbol)}</div>
+                    <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${priceColor}`}>
+                      {formattedLastPrice} <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor}`}>
+                        {formattedPriceChangePercent}
+                      </span>
+                    </div>
+                    <div className={`text-sm ${priceColor}`}>
+                      {formattedPriceChange}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          });
+        })()}
       </div>
     </div>
   );
