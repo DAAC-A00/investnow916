@@ -27,7 +27,7 @@ export function BottomNavigation() {
   }, [menuItems.length, initializeDefaultMenus]);
 
   // 하단 네비게이션에 표시할 메뉴 순서 정의 (고정된 메뉴 순서)
-  const bottomNavOrder = ['home', 'exchange', 'menu'];
+  const bottomNavOrder = ['home', 'exchange', 'exchange-bybit', 'menu'];
   
   // 순서에 맞게 메뉴 아이템 정렬 (관리자 모드와 관계없이 항상 동일한 메뉴 표시)
   const bottomNavItems = bottomNavOrder

@@ -47,8 +47,16 @@ const defaultMenuItems: MenuItemType[] = [
     id: 'exchange',
     label: '환율',
     icon: '💱',
-    route: '/exchange',
+    route: '/fiat',
     description: '실시간 환율 정보 조회',
+    isAdminOnly: false,
+  },
+  {
+    id: 'exchange-bybit',
+    label: 'Bybit',
+    icon: '📊',
+    route: '/exchange/bybit',
+    description: '바이빗 거래소 코인 정보 조회',
     isAdminOnly: false,
   },
   {
