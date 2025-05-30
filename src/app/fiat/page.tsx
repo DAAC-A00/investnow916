@@ -75,7 +75,7 @@ export default function ExchangeRatePage() {
   
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">환율 정보</h1>
+      <h1 className="text-3xl font-bold mb-6">환율</h1>
       
       {/* 로딩 및 에러 상태 */}
       {isLoading && <div className="mb-4 text-primary-foreground">데이터를 불러오는 중...</div>}

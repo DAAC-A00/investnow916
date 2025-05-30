@@ -10,8 +10,8 @@ export interface MenuItemType {
   icon?: string;
   route: string;
   isActive?: boolean;
-  isDisabled?: boolean;
-  isAdminOnly?: boolean;  // 관리자 모드에서만 표시할지 여부
+  isOnlySearchable?: boolean; // 검색에만 표시되고 메뉴에는 표시되지 않는지 여부
+  isAdminOnly: boolean;  // 관리자 모드에서만 표시할지 여부
 }
 
 export interface NavigationState {

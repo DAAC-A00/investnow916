@@ -318,7 +318,7 @@ export default function LocalStorageManagerPage() {
     <div className="container mx-auto p-4 max-w-7xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Local Storage 관리</h1>
+          <h1 className="text-2xl font-bold text-foreground">저장소</h1>
           <p className="text-sm text-muted-foreground mt-1">
             브라우저의 로컬 스토리지에 저장된 데이터를 관리합니다.
           </p>

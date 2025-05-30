@@ -30,7 +30,7 @@ export default function HomePage() {
               onClick={() => router.push('/exchange')}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
-              💱 환율 정보 보기
+              💱 환율 보기
             </button>
             <button
               onClick={() => router.push('/menu')}

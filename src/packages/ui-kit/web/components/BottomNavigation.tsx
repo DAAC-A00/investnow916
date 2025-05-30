@@ -26,13 +26,13 @@ export function BottomNavigation() {
     }
   }, [menuItems.length, initializeDefaultMenus]);
 
-  // 하단 네비게이션에 표시할 메뉴 순서 정의 (관리자 모드에 따른 메뉴 표시)
-  const bottomNavOrder = ['home', ...(isAdminMode ? ['exchange'] : []), 'storage', 'menu'];
+  // 하단 네비게이션에 표시할 메뉴 순서 정의 (고정된 메뉴 순서)
+  const bottomNavOrder = ['home', 'exchange', 'menu'];
   
-  // 순서에 맞게 메뉴 아이템 정렬 및 관리자 전용 메뉴 필터링
+  // 순서에 맞게 메뉴 아이템 정렬 (관리자 모드와 관계없이 항상 동일한 메뉴 표시)
   const bottomNavItems = bottomNavOrder
     .map(id => menuItems.find(item => item.id === id))
-    .filter(item => item && (!item.isAdminOnly || (item.isAdminOnly && isAdminMode))) as typeof menuItems;
+    .filter((item): item is NonNullable<typeof item> => !!item);
 
   const handleMenuClick = useCallback((route: string) => {
     setCurrentRoute(route);
@@ -53,12 +53,11 @@ export function BottomNavigation() {
           return (
             <button
               key={item.id}
-              onClick={() => !item.isDisabled && handleMenuClick(item.route)}
-              disabled={item.isDisabled}
+              onClick={() => handleMenuClick(item.route)}
               className={`
                 flex flex-col items-center justify-center flex-1 h-full relative
                 ${isActive ? 'text-primary' : 'text-muted-foreground'}
-                ${item.isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:text-primary cursor-pointer'}
+                hover:text-primary cursor-pointer
                 transition-colors duration-200
                 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
               `}

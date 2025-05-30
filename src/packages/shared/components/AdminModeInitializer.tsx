@@ -23,22 +23,15 @@ export function AdminModeInitializer() {
     setIsMounted(true);
   }, []);
 
-  // 관리자 모드 상태에 따라 관리자 전용 메뉴 업데이트
+  // 관리자 모드 상태 변경 시 추가 작업이 필요한 경우 여기에 추가
   useEffect(() => {
     if (isMounted) {
-      // 1. 환율 정보 메뉴의 isDisabled 상태를 관리자 모드 상태의 반대로 설정
-      // (관리자 모드가 활성화되면 isDisabled = false, 비활성화되면 isDisabled = true)
-      updateMenuItem('exchange', { isDisabled: !store.isEnabled });
-      
-      // 2. Storage 관리 메뉴의 isDisabled 상태를 관리자 모드 상태의 반대로 설정
-      updateMenuItem('storage', { isDisabled: !store.isEnabled });
-      
       // 디버깅 정보 (개발 환경에서만 표시)
       if (process.env.NODE_ENV === 'development') {
-        console.log('[AdminModeInitializer] 관리자 전용 메뉴 상태:', store.isEnabled ? '활성화' : '비활성화');
+        console.log('[AdminModeInitializer] 관리자 모드 상태:', store.isEnabled ? '활성화' : '비활성화');
       }
     }
-  }, [isMounted, store.isEnabled, updateMenuItem]);
+  }, [isMounted, store.isEnabled]);
 
   // 디버깅 정보 (개발 환경에서만 표시)
   if (process.env.NODE_ENV === 'development' && isMounted) {

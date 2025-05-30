@@ -33,48 +33,47 @@ interface NavigationActions {
 type NavigationStore = ExtendedNavigationState & NavigationActions;
 
 // 기본 메뉴 아이템들
+//     label은 1~3글자로 제한
 const defaultMenuItems: MenuItemType[] = [
   {
     id: 'home',
     label: '홈',
     icon: '🏠',
-    route: '/home',
-    description: 'InvestNow916 메인 페이지',
-    isDisabled: false,
+    route: '/',
+    description: '홈 화면으로 이동',
+    isAdminOnly: false,
   },
-
   {
     id: 'exchange',
-    label: '환율 정보',
+    label: '환율',
     icon: '💱',
     route: '/exchange',
     description: '실시간 환율 정보 조회',
-    isDisabled: false,
+    isAdminOnly: false,
+  },
+  {
+    id: 'storage',
+    label: '저장소',
+    icon: '📂️',
+    route: '/admin/storage',
+    description: 'Local Storage 데이터 관리 (관리자 전용)',
+    isAdminOnly: true,
   },
   {
     id: 'setting',
     label: '설정',
     icon: '⚙️',
     route: '/setting',
-    description: '앱 설정 및 개발자 옵션',
-    isDisabled: false,
-  },
-  {
-    id: 'storage',
-    label: 'Storage 관리',
-    icon: '🗄️',
-    route: '/admin/storage',
-    description: 'Local Storage 데이터 관리 (관리자 전용)',
-    isDisabled: true, // 기본적으로 비활성화 (관리자 모드에서만 활성화)
-    isAdminOnly: true, // 관리자 전용 메뉴 표시
+    description: '앱 설정 관리',
+    isAdminOnly: false,
   },
   {
     id: 'menu',
-    label: '전체 메뉴',
+    label: '메뉴',
     icon: '☰',
     route: '/menu',
-    description: '모든 기능 목록 보기',
-    isDisabled: false,
+    description: '모든 메뉴 목록 보기',
+    isAdminOnly: false,
   },
 ];
 
