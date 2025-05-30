@@ -20,17 +20,23 @@ export default function BybitTickersPage() {
     isLoading, 
     error, 
     fetchTickers,
-    getTickersForCategory,
     getFilteredTickers,
     lastUpdated
   } = useBybitTickerStore();
 
-  // 컴포넌트 마운트 시 데이터 로드
+  // 500ms마다 주기적으로 티커 데이터 갱신
   useEffect(() => {
-    const loadData = async () => {
+    let timer: NodeJS.Timeout;
+    const fetchAndSchedule = async () => {
       await fetchTickers(selectedCategory);
+      timer = setInterval(() => {
+        fetchTickers(selectedCategory);
+      }, 500);
     };
-    loadData();
+    fetchAndSchedule();
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [selectedCategory, fetchTickers]);
 
   // 마지막 업데이트 시간 설정
@@ -43,7 +49,8 @@ export default function BybitTickersPage() {
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        second: '2-digit'
       }));
     } else {
       setLastRefreshed('저장된 데이터 없음');
@@ -75,15 +82,6 @@ export default function BybitTickersPage() {
     sortField,
     sortDirection
   });
-
-  // 티커 정보 수동 새로고침
-  const handleRefresh = async () => {
-    try {
-      await fetchTickers(selectedCategory);
-    } catch (error) {
-      console.error('데이터 새로고침 실패:', error);
-    }
-  };
 
   // 가격 변화율에 따른 색상 클래스
   const getPriceChangeColor = (changePercent: number) => {
@@ -152,29 +150,21 @@ export default function BybitTickersPage() {
         <p className="text-sm">총 티커 수: {filteredTickers.length}</p>
       </div>
       
-      {/* 카테고리 선택 및 새로고침 */}
+      {/* 카테고리 선택 */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1">
           <label className="block text-sm font-medium mb-2">카테고리</label>
-          <select
-            className="w-full p-2 border rounded bg-background text-foreground"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value as BybitCategoryType)}
-          >
-            <option value="spot">현물 (Spot)</option>
-            <option value="linear">선물 - USDT/USDC (Linear)</option>
-            <option value="inverse">선물 - 코인 마진 (Inverse)</option>
-          </select>
-        </div>
-        
-        <div className="flex-1 flex items-end">
-          <button
-            className="w-full p-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            {isLoading ? '로딩 중...' : '새로고침'}
-          </button>
+          <div className="flex flex-col gap-2">
+            <select
+              className="w-full p-2 border rounded bg-background text-foreground"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as BybitCategoryType)}
+            >
+              <option value="spot">현물 (Spot)</option>
+              <option value="linear">선물 - USDT/USDC (Linear)</option>
+              <option value="inverse">선물 - 코인 마진 (Inverse)</option>
+            </select>
+          </div>
         </div>
       </div>
       
@@ -281,13 +271,7 @@ export default function BybitTickersPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="p-4 text-center">
-                  데이터를 불러오는 중...
-                </td>
-              </tr>
-            ) : filteredTickers.length === 0 ? (
+            {filteredTickers.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-4 text-center">
                   표시할 티커 정보가 없습니다.

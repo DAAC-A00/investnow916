@@ -80,42 +80,6 @@ const formatBybitSymbols = (
     .join(',');
 };
 
-// 저장된 심볼 문자열에서 코인 정보 배열로 변환하는 함수
-const parseSymbolsString = (symbolsString: string, exchange: ExchangeType, category: string): CoinInfo[] => {
-  if (!symbolsString) return [];
-  
-  const symbols = symbolsString.split(',');
-  return symbols.map(symbolPair => {
-    const [formatted, symbol] = symbolPair.split('=');
-    
-    // 심볼에서 기본 코인과 견적 코인 추출
-    // 실제 구현에서는 Bybit API에서 제공하는 정보를 사용하는 것이 정확하지만,
-    // 여기서는 예시로 간단하게 구현
-    let baseCoin = '';
-    let quoteCoin = '';
-    
-    // 실제 구현에서는 Bybit API에서 제공하는 정보 사용
-    if (symbol.includes('-')) {
-      // 예: BTCUSDT-PERP
-      const [baseQuote] = symbol.split('-');
-      baseCoin = baseQuote.slice(0, 3); // 예시로 BTC
-      quoteCoin = baseQuote.slice(3);  // 예시로 USDT
-    } else {
-      // 예: BTCUSDT
-      baseCoin = symbol.slice(0, 3);   // 예시로 BTC
-      quoteCoin = symbol.slice(3, 7);  // 예시로 USDT
-    }
-    
-    return {
-      symbol,
-      baseCoin,
-      quoteCoin,
-      exchange,
-      category,
-    };
-  });
-};
-
 // Bybit 카테고리 매핑
 export const BYBIT_CATEGORY_MAP = {
   // API 요청용 카테고리: 저장용 카테고리
@@ -217,8 +181,8 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
               const restOfSymbol = symbol.replace(baseQuotePattern, '');
               // displaySymbol: quoteCode/baseCode[-rest]
               const displaySymbol = restOfSymbol === ''
-                ? `${quoteCoin}/${baseCoin}`
-                : `${quoteCoin}/${baseCoin}-${restOfSymbol}`;
+                ? `${baseCoin}/${quoteCoin}`
+                : `${baseCoin}/${quoteCoin}-${restOfSymbol}`;
               return {
                 displaySymbol,
                 baseCode: baseCoin,
