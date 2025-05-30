@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
  * 관리자 모드에서만 접근 가능한 페이지로, Local Storage의 모든 항목을 조회하고 수정할 수 있습니다.
  */
 export default function LocalStorageManagerPage() {
-  const [storageItems, setStorageItems] = useState<{ key: string; value: string }[]>([]);
+  const [storageItems, setStorageItems] = useState<{ key: string; value: string; size: number }[]>([]);
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -37,24 +37,76 @@ export default function LocalStorageManagerPage() {
     }
   }, [isMounted]);
 
+  // 문자열의 바이트 크기 계산 함수
+  const getByteSize = (str: string): number => {
+    return new Blob([str]).size;
+  };
+
+  // 바이트를 읽기 쉬운 형식으로 변환
+  const formatBytes = (bytes: number, decimals = 2): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
   // Local Storage 항목 로드 함수
   const loadStorageItems = () => {
     try {
-      const items: { key: string; value: string }[] = [];
+      const items: { key: string; value: string; size: number }[] = [];
+      let totalSize = 0;
       
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key) {
-          const value = localStorage.getItem(key) || '';
-          items.push({ key, value });
+          try {
+            const value = localStorage.getItem(key) || '';
+            const size = getByteSize(key + value);
+            totalSize += size;
+            items.push({ key, value, size });
+          } catch (error) {
+            console.error(`항목 로드 중 오류 (${key}):`, error);
+            // 문제가 있는 항목은 건너뜀
+            continue;
+          }
         }
       }
       
+      // 크기 기준으로 정렬 (큰 항목이 위로 오도록)
+      items.sort((a, b) => b.size - a.size);
+      
       setStorageItems(items);
+      setTotalStorageSize(totalSize);
     } catch (error) {
       console.error('Local Storage 로드 실패:', error);
     }
   };
+
+  // 전체 저장소 사용량 상태
+  const [totalStorageSize, setTotalStorageSize] = useState<number>(0);
+  
+  // 전체 저장소 제한 확인
+  const checkStorageQuota = (): { used: string; total: string; percent: number } => {
+    try {
+      // 대부분의 브라우저는 도메인당 약 5MB의 저장 용량을 제공
+      const totalQuota = 5 * 1024 * 1024; // 5MB in bytes
+      const used = totalStorageSize;
+      const percent = Math.min(100, (used / totalQuota) * 100);
+      
+      return {
+        used: formatBytes(used),
+        total: formatBytes(totalQuota),
+        percent
+      };
+    } catch (error) {
+      console.error('저장소 할당량 확인 실패:', error);
+      return { used: '0 Bytes', total: '알 수 없음', percent: 0 };
+    }
+  };
+  
+  const storageQuota = checkStorageQuota();
 
   // 새 항목 추가
   const handleAddItem = () => {
@@ -67,6 +119,10 @@ export default function LocalStorageManagerPage() {
       setNewValue('');
     } catch (error) {
       console.error('항목 추가 실패:', error);
+      // 저장소 용량 초과 시 사용자에게 알림
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        alert('저장소 용량이 가득 찼습니다. 일부 항목을 삭제한 후 다시 시도해주세요.');
+      }
     }
   };
 
@@ -128,114 +184,193 @@ export default function LocalStorageManagerPage() {
     return <div className="p-8 text-center">접근 권한이 없습니다. 관리자 모드를 활성화해주세요.</div>;
   }
 
+  const renderAddForm = () => (
+    <div className="bg-card border border-border rounded-lg shadow-sm p-4 mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-lg font-semibold text-foreground">새 항목 추가</h2>
+        <span className="text-xs text-muted-foreground">
+          {storageQuota.percent >= 90 && (
+            <span className="text-destructive font-medium">경고: 저장소가 거의 가득 찼습니다</span>
+          )}
+        </span>
+      </div>
+      <div className="flex flex-col md:flex-row gap-3">
+        <input
+          type="text"
+          value={newKey}
+          onChange={(e) => setNewKey(e.target.value)}
+          placeholder="키"
+          className="flex-1 p-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground"
+          autoFocus
+        />
+        <input
+          type="text"
+          value={newValue}
+          onChange={(e) => setNewValue(e.target.value)}
+          placeholder="값"
+          className="flex-1 p-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground"
+        />
+        <button
+          onClick={handleAddItem}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          추가
+        </button>
+      </div>
+    </div>
+  );
+
+  // 저장소 사용량 표시 컴포넌트
+  const renderStorageUsage = () => (
+    <div className="mb-6 p-4 bg-card border border-border rounded-lg shadow-sm">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-medium text-foreground">저장소 사용량</span>
+        <span className="text-sm text-muted-foreground">{storageQuota.used} / {storageQuota.total}</span>
+      </div>
+      <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+        <div 
+          className="bg-primary h-full transition-all duration-300" 
+          style={{ width: `${storageQuota.percent}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">
+        {storageQuota.percent.toFixed(1)}% 사용 중
+        {storageQuota.percent >= 90 && (
+          <span className="ml-2 text-destructive font-medium">경고: 저장소가 거의 가득 찼습니다</span>
+        )}
+      </p>
+    </div>
+  );
+
+  // 테이블 헤더 렌더링
+  const renderTableHeader = () => (
+    <tr className="border-b border-border">
+      <th className="text-left p-3 w-1/4 font-medium text-foreground">키</th>
+      <th className="text-left p-3 font-medium text-foreground">값</th>
+      <th className="text-right p-3 w-24 font-medium text-foreground">크기</th>
+      <th className="text-right p-3 w-32 font-medium text-foreground">작업</th>
+    </tr>
+  );
+
+  // 테이블 행 렌더링
+  const renderTableRow = (item: { key: string; value: string; size: number }) => (
+    <tr key={item.key} className="border-b border-border hover:bg-accent/10 transition-colors">
+      <td className="p-3 font-mono text-sm break-words min-w-[200px] w-1/4 align-top">
+        <div className="break-all">{item.key}</div>
+      </td>
+      <td className="p-3 align-top">
+        {editingKey === item.key ? (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            className="w-full p-2 border border-input rounded-md bg-background text-foreground"
+            autoFocus
+          />
+        ) : (
+          <div className="font-mono text-sm break-words whitespace-pre-wrap max-w-2xl">
+            {item.value || <span className="text-muted-foreground">(빈 값)</span>}
+          </div>
+        )}
+      </td>
+      <td className="p-3 text-right text-sm text-muted-foreground align-top">
+        {formatBytes(item.size)}
+      </td>
+      <td className="p-3 text-right align-top">
+        <div className="flex justify-end gap-2">
+          {editingKey === item.key ? (
+            <>
+              <button
+                onClick={handleUpdateItem}
+                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
+              >
+                저장
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="px-3 py-1.5 bg-muted text-muted-foreground rounded-md text-sm hover:bg-muted/80 transition-colors"
+              >
+                취소
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleStartEdit(item.key, item.value)}
+                className="px-3 py-1.5 bg-accent text-accent-foreground rounded-md text-sm hover:bg-accent/80 transition-colors"
+              >
+                편집
+              </button>
+              <button
+                onClick={() => handleDeleteItem(item.key)}
+                className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 transition-colors"
+              >
+                삭제
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Local Storage 관리</h1>
-      
-      {/* 새 항목 추가 폼 */}
-      <div className="bg-card p-4 rounded-lg shadow mb-6">
-        <h2 className="text-lg font-semibold mb-3">새 항목 추가</h2>
-        <div className="flex flex-col md:flex-row gap-3">
-          <input
-            type="text"
-            value={newKey}
-            onChange={(e) => setNewKey(e.target.value)}
-            placeholder="키"
-            className="flex-1 p-2 border border-border rounded bg-background"
-          />
-          <input
-            type="text"
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            placeholder="값"
-            className="flex-1 p-2 border border-border rounded bg-background"
-          />
-          <button
-            onClick={handleAddItem}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-          >
-            추가
-          </button>
+    <div className="container mx-auto p-4 max-w-7xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Local Storage 관리</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            브라우저의 로컬 스토리지에 저장된 데이터를 관리합니다.
+          </p>
+        </div>
+        <div className="text-sm bg-muted/50 px-3 py-2 rounded-md">
+          총 <span className="font-medium">{storageItems.length}</span>개 항목 • {formatBytes(totalStorageSize)}
         </div>
       </div>
       
+      {renderStorageUsage()}
+      {renderAddForm()}
+      
       {/* 항목 목록 */}
-      <div className="bg-card p-4 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">저장된 항목 ({storageItems.length})</h2>
-          <button
-            onClick={handleClearAll}
-            className="px-3 py-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 text-sm"
-          >
-            모두 삭제
-          </button>
+      <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border bg-card">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h2 className="text-lg font-semibold text-foreground">저장된 항목</h2>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleClearAll}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                disabled={storageItems.length === 0}
+              >
+                모두 삭제
+              </button>
+            </div>
+          </div>
         </div>
         
         {storageItems.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">저장된 항목이 없습니다.</p>
+          <div className="text-center p-12 border-b border-border">
+            <div className="max-w-md mx-auto p-6">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                  <path d="M21 12a9 9 0 0 0-9-9 9 9 0 0 0-9 9 9 9 0 0 0 9 9 9 9 0 0 0 1.38-.1"></path>
+                  <path d="M12 7v5l3 3"></path>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-1">저장된 항목이 없습니다</h3>
+              <p className="text-muted-foreground text-sm">
+                위의 폼을 사용하여 새 항목을 추가하세요.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-2">키</th>
-                  <th className="text-left p-2">값</th>
-                  <th className="text-right p-2">작업</th>
-                </tr>
+            <table className="w-full">
+              <thead className="bg-muted/30">
+                {renderTableHeader()}
               </thead>
-              <tbody>
-                {storageItems.map((item) => (
-                  <tr key={item.key} className="border-b border-border hover:bg-accent/30">
-                    <td className="p-2 font-mono text-sm">{item.key}</td>
-                    <td className="p-2">
-                      {editingKey === item.key ? (
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full p-1 border border-border rounded bg-background"
-                        />
-                      ) : (
-                        <div className="font-mono text-sm break-all max-h-24 overflow-y-auto">
-                          {item.value}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-2 text-right">
-                      {editingKey === item.key ? (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={handleUpdateItem}
-                            className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
-                          >
-                            저장
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs"
-                          >
-                            취소
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleStartEdit(item.key, item.value)}
-                            className="px-2 py-1 bg-accent text-accent-foreground rounded text-xs"
-                          >
-                            편집
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(item.key)}
-                            className="px-2 py-1 bg-destructive text-destructive-foreground rounded text-xs"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-border">
+                {storageItems.map((item) => renderTableRow(item))}
               </tbody>
             </table>
           </div>
