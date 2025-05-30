@@ -11,6 +11,9 @@ import { useRouter } from 'next/navigation';
  */
 export default function LocalStorageManagerPage() {
   const [storageItems, setStorageItems] = useState<{ key: string; value: string; size: number }[]>([]);
+  const [filteredItems, setFilteredItems] = useState<{ key: string; value: string; size: number }[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'all' | 'key' | 'value'>('all');
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -78,10 +81,41 @@ export default function LocalStorageManagerPage() {
       items.sort((a, b) => b.size - a.size);
       
       setStorageItems(items);
+      setFilteredItems(items);
       setTotalStorageSize(totalSize);
     } catch (error) {
       console.error('Local Storage 로드 실패:', error);
     }
+  };
+
+  // 검색 기능
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    updateFilteredItems(query);
+  };
+
+  // 검색 타입 변경 시 검색 결과 갱신
+  useEffect(() => {
+    if (searchQuery) {
+      updateFilteredItems(searchQuery);
+    }
+  }, [searchType, searchQuery]);
+
+  // 검색 결과 갱신 로직
+  const updateFilteredItems = (query: string) => {
+    const filtered = storageItems.filter(item => {
+      const searchValue = query.toLowerCase();
+      switch (searchType) {
+        case 'key':
+          return item.key.toLowerCase().includes(searchValue);
+        case 'value':
+          return item.value.toLowerCase().includes(searchValue);
+        default:
+          return item.key.toLowerCase().includes(searchValue) || 
+                 item.value.toLowerCase().includes(searchValue);
+      }
+    });
+    setFilteredItems(filtered);
   };
 
   // 전체 저장소 사용량 상태
@@ -234,9 +268,9 @@ export default function LocalStorageManagerPage() {
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        {storageQuota.percent.toFixed(4)}% 사용 중
+        {storageQuota.percent.toFixed(2)}% 사용 중
         {storageQuota.percent >= 90 && (
-          <span className="ml-2 text-destructive font-medium">경고: 저장소가 거의 가득 찼습니다</span>
+          <span className="ml-2 text-destructive font-medium">⚠️ 경고: 저장소가 거의 가득 찼습니다.</span>
         )}
       </p>
     </div>
@@ -323,8 +357,77 @@ export default function LocalStorageManagerPage() {
             브라우저의 로컬 스토리지에 저장된 데이터를 관리합니다.
           </p>
         </div>
-        <div className="text-sm bg-muted/50 px-3 py-2 rounded-md">
-          총 <span className="font-medium">{storageItems.length}</span>개 항목 • {formatBytes(totalStorageSize)}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="flex gap-2 items-center">
+              <div className="flex gap-1">
+                <input
+                  type="radio"
+                  id="searchAll"
+                  name="searchType"
+                  value="all"
+                  checked={searchType === 'all'}
+                  onChange={(e) => setSearchType('all')}
+                  className="h-4 w-4 text-primary border-border"
+                />
+                <label htmlFor="searchAll" className="text-sm">전체</label>
+              </div>
+              <div className="flex gap-1">
+                <input
+                  type="radio"
+                  id="searchKey"
+                  name="searchType"
+                  value="key"
+                  checked={searchType === 'key'}
+                  onChange={(e) => setSearchType('key')}
+                  className="h-4 w-4 text-primary border-border"
+                />
+                <label htmlFor="searchKey" className="text-sm">키</label>
+              </div>
+              <div className="flex gap-1">
+                <input
+                  type="radio"
+                  id="searchValue"
+                  name="searchType"
+                  value="value"
+                  checked={searchType === 'value'}
+                  onChange={(e) => setSearchType('value')}
+                  className="h-4 w-4 text-primary border-border"
+                />
+                <label htmlFor="searchValue" className="text-sm">값</label>
+              </div>
+              <input
+                type="text"
+                placeholder="검색..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="flex-1 px-3 py-2 bg-input border border-border rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </button>
+            )}
+            <div className="ml-4 text-sm text-muted-foreground">
+              {searchQuery ? (
+                <>
+                  {storageItems.length}개 중 {filteredItems.length}개
+                </>
+              ) : (
+                <>
+                  전체 {storageItems.length}개
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       
@@ -370,7 +473,7 @@ export default function LocalStorageManagerPage() {
                 {renderTableHeader()}
               </thead>
               <tbody className="divide-y divide-border">
-                {storageItems.map((item) => renderTableRow(item))}
+                {filteredItems.map((item) => renderTableRow(item))}
               </tbody>
             </table>
           </div>
