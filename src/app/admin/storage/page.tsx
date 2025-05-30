@@ -281,7 +281,6 @@ export default function LocalStorageManagerPage() {
     <tr className="border-b border-border">
       <th className="text-left p-3 w-1/4 font-medium text-foreground">키</th>
       <th className="text-left p-3 font-medium text-foreground">값</th>
-      <th className="text-right p-3 w-24 font-medium text-foreground">크기</th>
       <th className="text-right p-3 w-32 font-medium text-foreground">작업</th>
     </tr>
   );
@@ -307,39 +306,59 @@ export default function LocalStorageManagerPage() {
           </div>
         )}
       </td>
-      <td className="p-3 text-right text-sm text-muted-foreground align-top">
-        {formatBytes(item.size)}
-      </td>
+
       <td className="p-3 text-right align-top">
         <div className="flex justify-end gap-2">
           {editingKey === item.key ? (
             <>
               <button
                 onClick={handleUpdateItem}
-                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
+                className="p-1.5 text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                aria-label="저장"
+                title="저장"
               >
-                저장
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
               </button>
               <button
                 onClick={handleCancelEdit}
-                className="px-3 py-1.5 bg-muted text-muted-foreground rounded-md text-sm hover:bg-muted/80 transition-colors"
+                className="p-1.5 text-muted-foreground rounded-md hover:bg-muted/80 transition-colors"
+                aria-label="취소"
+                title="취소"
               >
-                취소
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
               </button>
             </>
           ) : (
             <>
               <button
                 onClick={() => handleStartEdit(item.key, item.value)}
-                className="px-3 py-1.5 bg-accent text-accent-foreground rounded-md text-sm hover:bg-accent/80 transition-colors"
+                className="p-1.5 text-accent-foreground rounded-md hover:bg-accent/80 transition-colors"
+                aria-label="편집"
+                title="편집"
               >
-                편집
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  <path d="m15 5 4 4" />
+                </svg>
               </button>
               <button
                 onClick={() => handleDeleteItem(item.key)}
-                className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 transition-colors"
+                className="p-1.5 text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+                aria-label="삭제"
+                title="삭제"
               >
-                삭제
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
               </button>
             </>
           )}
