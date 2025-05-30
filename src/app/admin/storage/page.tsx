@@ -234,7 +234,7 @@ export default function LocalStorageManagerPage() {
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        {storageQuota.percent.toFixed(1)}% 사용 중
+        {storageQuota.percent.toFixed(4)}% 사용 중
         {storageQuota.percent >= 90 && (
           <span className="ml-2 text-destructive font-medium">경고: 저장소가 거의 가득 찼습니다</span>
         )}

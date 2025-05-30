@@ -5,51 +5,60 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { persist } from 'zustand/middleware';
 
-// 관리자 모드 스토어 타입
+// 상태 타입 정의
 interface AdminModeStore {
   // 상태
   isEnabled: boolean;
-  
+
   // 액션
   isAdminMode: () => void;
   setAdminMode: (isEnabled: boolean) => void;
 }
 
+// 커스텀 localStorage 관리 함수
+const saveToLocalStorage = (isEnabled: boolean) => {
+  if (isEnabled) {
+    localStorage.setItem('isAdminMode', 'true');
+  } else {
+    localStorage.removeItem('isAdminMode');
+  }
+};
+
+const loadFromLocalStorage = (): boolean => {
+  return localStorage.getItem('isAdminMode') === 'true';
+};
+
 // 스토어 생성
 export const useAdminModeStore = create<AdminModeStore>()(
-  persist(
-    immer(
-      devtools(
-        (set) => ({
-          // 초기 상태
-          isEnabled: false,
+  immer(
+    devtools(
+      (set) => ({
+        // 초기 상태 - localStorage에서 값 로드
+        isEnabled: typeof window !== 'undefined' ? loadFromLocalStorage() : false,
 
-          // 액션들
-          isAdminMode: () => 
-            set(
-              (state) => {
-                state.isEnabled = !state.isEnabled;
-              },
-              false,
-              'isAdminMode'
-            ),
+        // 액션들
+        isAdminMode: () => 
+          set(
+            (state) => {
+              state.isEnabled = !state.isEnabled;
+              saveToLocalStorage(state.isEnabled);
+            },
+            false,
+            'isAdminMode'
+          ),
 
-          setAdminMode: (isEnabled: boolean) =>
-            set(
-              (state) => {
-                state.isEnabled = isEnabled;
-              },
-              false,
-              'setAdminMode'
-            ),
-        })
-      )
-    ),
-    {
-      name: 'admin-mode-storage',
-    }
+        setAdminMode: (isEnabled: boolean) =>
+          set(
+            (state) => {
+              state.isEnabled = isEnabled;
+              saveToLocalStorage(state.isEnabled);
+            },
+            false,
+            'setAdminMode'
+          ),
+      })
+    )
   )
 );
 
