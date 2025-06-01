@@ -104,7 +104,7 @@ export default function BybitTickersPage() {
         setFlashStates((s) => ({ ...s, [symbol]: flash }));
         setTimeout(() => {
           setFlashStates((s) => ({ ...s, [symbol]: 'none' }));
-        }, 200);
+        }, 100);
       }
       prevPrices.current[symbol] = ticker.lastPrice;
     });
@@ -183,15 +183,32 @@ export default function BybitTickersPage() {
         <div className="flex-1">
           <label className="block text-sm font-medium mb-2">카테고리</label>
           <div className="flex flex-col gap-2">
-            <select
-              className="w-full p-2 border rounded bg-background text-foreground"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as BybitCategoryType)}
-            >
-              <option value="spot">현물 (Spot)</option>
-              <option value="linear">선물 - USDT/USDC (Linear)</option>
-              <option value="inverse">선물 - 코인 마진 (Inverse)</option>
-            </select>
+            <div className="flex gap-2">
+  <button
+    type="button"
+    className={`flex-1 p-2 border rounded transition-colors text-sm font-medium ${selectedCategory === 'spot' ? 'bg-primary text-white' : 'bg-background text-foreground hover:bg-muted/50'}`}
+    onClick={() => setSelectedCategory('spot')}
+    aria-pressed={selectedCategory === 'spot'}
+  >
+    현물 (Spot)
+  </button>
+  <button
+    type="button"
+    className={`flex-1 p-2 border rounded transition-colors text-sm font-medium ${selectedCategory === 'linear' ? 'bg-primary text-white' : 'bg-background text-foreground hover:bg-muted/50'}`}
+    onClick={() => setSelectedCategory('linear')}
+    aria-pressed={selectedCategory === 'linear'}
+  >
+    선물 - USDT/USDC (Linear)
+  </button>
+  <button
+    type="button"
+    className={`flex-1 p-2 border rounded transition-colors text-sm font-medium ${selectedCategory === 'inverse' ? 'bg-primary text-white' : 'bg-background text-foreground hover:bg-muted/50'}`}
+    onClick={() => setSelectedCategory('inverse')}
+    aria-pressed={selectedCategory === 'inverse'}
+  >
+    선물 - 코인 마진 (Inverse)
+  </button>
+</div>
           </div>
         </div>
       </div>
