@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import styles from './page.module.css';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { BybitCategoryType, TickerInfo } from '@/packages/shared/types/exchange';
 import { BYBIT_CATEGORY_MAP } from '@/packages/shared/stores/createExchangeCoinsStore';
@@ -103,7 +104,7 @@ export default function BybitTickersPage() {
         setFlashStates((s) => ({ ...s, [symbol]: flash }));
         setTimeout(() => {
           setFlashStates((s) => ({ ...s, [symbol]: 'none' }));
-        }, 300);
+        }, 200);
       }
       prevPrices.current[symbol] = ticker.lastPrice;
     });
@@ -266,11 +267,6 @@ export default function BybitTickersPage() {
           }
 
           return filteredTickers.map((ticker: TickerInfo) => {
-            const borderClass =
-              flashStates[ticker.symbol] === 'up' ? 'border-l-4 border-l-green-500' :
-              flashStates[ticker.symbol] === 'down' ? 'border-l-4 border-l-red-500' :
-              'border-l-4 border-l-transparent';
-            
             const priceDecimals = symbolMaxDecimals.current[ticker.symbol] ?? 0;
             const priceColor = getPriceChangeColor(ticker.priceChange24h);
             const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-50/70 dark:bg-green-900/30' : ticker.priceChange24h < 0 ? 'bg-red-50/70 dark:bg-red-900/30' : 'bg-muted/10 dark:bg-muted/30';
@@ -280,9 +276,12 @@ export default function BybitTickersPage() {
             const formattedLastPrice = Number(ticker.lastPrice).toFixed(priceDecimals);
 
             return (
-              <div 
+              <div
                 key={`${ticker.category}-${ticker.symbol}`}
-                className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow ${borderClass} p-4`}
+                className={
+                  "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
+                }
+                style={{ borderRadius: '0rem' }}
               >
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
@@ -290,11 +289,25 @@ export default function BybitTickersPage() {
                     <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-bold text-lg ${priceColor}`}>
-                      {formattedLastPrice} <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor}`}>
-                        {formattedPriceChangePercent}
-                      </span>
-                    </div>
+                    <div className={`font-bold text-lg text-right`}>
+  <span
+    className={
+      `${styles["ticker-border"]} ` +
+      (flashStates[ticker.symbol] === "up"
+        ? styles["ticker-border-up"]
+        : flashStates[ticker.symbol] === "down"
+        ? styles["ticker-border-down"]
+        : styles["ticker-border-none"])
+      + ` ${priceColor}`
+    }
+    style={{ display: 'inline-block', borderRadius: '0rem', padding: '0.15em 0.5em' }}
+  >
+    {formattedLastPrice}
+  </span>
+  <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor} ml-2 ${priceColor}`}>
+    {formattedPriceChangePercent}
+  </span>
+</div>
                     <div className={`text-sm ${priceColor}`}>
                       {formattedPriceChange}
                     </div>
