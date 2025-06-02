@@ -60,6 +60,14 @@ const defaultMenuItems: MenuItemType[] = [
     isAdminOnly: false,
   },
   {
+    id: 'exchange-bybit-instrument',
+    label: '계측',
+    icon: '🛠️',
+    route: '/exchange/bybit/instrument',
+    description: 'Bybit Instrument 정보 조회',
+    isAdminOnly: false,
+  },
+  {
     id: 'storage',
     label: '저장소',
     icon: '📂️',
