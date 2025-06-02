@@ -49,8 +49,19 @@ const transformBybitTicker = (ticker: BybitTicker, category: BybitCategoryType):
   const priceChange = lastPrice - prevPrice;
   const priceChangePercent = parseFloat(ticker.price24hPcnt) || 0;
 
+  // 표시용 심볼 생성 (예: BTC/USDT)
+  let symbol = ticker.symbol;
+  // 기본적으로 base/quote 형식으로 변환 (예: BTCUSDT → BTC/USDT)
+  if (ticker.symbol.length > 6) {
+    // 예외 케이스(옵션 등)는 그대로 사용
+    symbol = ticker.symbol;
+  } else if (ticker.symbol.length === 6) {
+    symbol = `${ticker.symbol.slice(0, 3)}/${ticker.symbol.slice(3)}`;
+  }
+
   return {
-    symbol: ticker.symbol,
+    rawSymbol: ticker.symbol,
+    symbol,
     lastPrice,
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,

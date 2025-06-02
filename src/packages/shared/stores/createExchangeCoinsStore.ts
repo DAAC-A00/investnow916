@@ -5,6 +5,7 @@ import { devtools } from 'zustand/middleware';
 
 // 심볼 정보 타입 정의
 interface SymbolInfo {
+  rawSymbol: string;
   symbol: string;
   [key: string]: any; // 기타 추가 속성들
 }
@@ -54,9 +55,10 @@ const transformBybitData = (
   return data.result.list
     .filter(item => item.status === 'Trading') // 거래 가능한 코인만 필터링
     .map(item => ({
-      symbol: item.symbol,
-      baseCoin: item.baseCoin,
-      quoteCoin: item.quoteCoin,
+      rawSymbol: item.symbol,
+      symbol: `${item.baseCode}/${item.quoteCode}`,
+      baseCode: item.baseCode,
+      quoteCode: item.quoteCode,
       exchange: 'bybit' as ExchangeType,
       category,
     }));
@@ -70,12 +72,15 @@ const formatBybitSymbols = (
   return instruments
     .filter(item => item.status === 'Trading') // 거래 가능한 코인만 필터링
     .map(item => {
-      const { symbol, baseCoin, quoteCoin } = item;
-      // 심볼에서 baseCoin과 quoteCoin을 제외한 나머지 부분 추출
-      const baseQuotePattern = `${baseCoin}${quoteCoin}`;
-      const restOfSymbol = symbol.replace(baseQuotePattern, '');
-      
-      return `${baseCoin}/${quoteCoin}${restOfSymbol}=${symbol}`;
+      const { symbol: rawSymbol, baseCode, quoteCode } = item;
+      // 심볼에서 baseCode와 quoteCode를 제외한 나머지 부분 추출
+      const baseQuotePattern = `${baseCode}${quoteCode}`;
+      const restOfSymbol = rawSymbol.replace(baseQuotePattern, '');
+      // symbol: baseCode/quoteCode[-rest]
+      const symbol = restOfSymbol === ''
+        ? `${baseCode}/${quoteCode}`
+        : `${baseCode}/${quoteCode}-${restOfSymbol}`;
+      return `${symbol}=${rawSymbol}`;
     })
     .join(',');
 };
@@ -128,12 +133,12 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     const key = getStorageKey(exchange, category, isApiCategory);
     
     // 문자열 형식으로 변환하여 저장
-    // 형식: "baseCode/quoteCode-restOfSymbol=symbol,baseCode/quoteCode-restOfSymbol=symbol,..."
+    // 형식: "baseCode/quoteCode-restOfSymbol=rawSymbol,baseCode/quoteCode-restOfSymbol=rawSymbol,..."
     const stringData = symbols
-      .filter(item => item.displaySymbol && item.originalSymbol) // 유효한 심볼만 처리
+      .filter(item => item.symbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
-        // 저장 포맷: displaySymbol=originalSymbol
-        return `${item.displaySymbol}=${item.originalSymbol}`;
+        // 저장 포맷: symbol=rawSymbol
+        return `${item.symbol}=${item.rawSymbol}`;
       })
       .join(',');
     
@@ -175,20 +180,20 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
             
             // 심볼 데이터를 객체 배열로 변환
             const symbolObjects = instruments.map(item => {
-              const { symbol, baseCoin, quoteCoin } = item;
-              // 심볼에서 baseCoin과 quoteCoin을 제외한 나머지 부분 추출
-              const baseQuotePattern = `${baseCoin}${quoteCoin}`;
-              const restOfSymbol = symbol.replace(baseQuotePattern, '');
-              // displaySymbol: quoteCode/baseCode[-rest]
-              const displaySymbol = restOfSymbol === ''
-                ? `${baseCoin}/${quoteCoin}`
-                : `${baseCoin}/${quoteCoin}-${restOfSymbol}`;
+              const { symbol: rawSymbol, baseCode, quoteCode } = item;
+              // 심볼에서 baseCode와 quoteCode를 제외한 나머지 부분 추출
+              const baseQuotePattern = `${baseCode}${quoteCode}`;
+              const restOfSymbol = rawSymbol.replace(baseQuotePattern, '');
+              // symbol: baseCode/quoteCode[-rest]
+              const symbol = restOfSymbol === ''
+                ? `${baseCode}/${quoteCode}`
+                : `${baseCode}/${quoteCode}-${restOfSymbol}`;
               return {
-                displaySymbol,
-                baseCode: baseCoin,
-                quoteCode: quoteCoin,
+                symbol,
+                baseCode,
+                quoteCode,
                 restOfSymbol,
-                originalSymbol: symbol,
+                rawSymbol,
                 // 추가 정보 저장
                 status: item.status,
                 leverage: item.leverage,
@@ -317,50 +322,35 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
         getSymbolsForCategory: (exchange: ExchangeType, category: string): string[] => {
           const symbolsString = getStoredSymbols(exchange, category);
           if (!symbolsString) return [];
-          
-          return symbolsString.split(',').map(pair => pair.split('=')[1]);
+          // symbol=rawSymbol 포맷에서 symbol만 반환
+          return symbolsString.split(',').map(pair => pair.split('=')[0]);
         },
 
-        // 코인 정보 필터링 (baseCoin 또는 quoteCoin으로)
+        // 코인 정보 필터링 (baseCode 또는 quoteCode로)
         getFilteredCoins: (filter: {
           exchange?: ExchangeType;
           category?: string;
-          baseCoin?: string;
-          quoteCoin?: string;
+          baseCode?: string;
+          quoteCode?: string;
         }): CoinInfo[] => {
-          const { exchange, category, baseCoin, quoteCoin } = filter;
+          const { exchange, category, baseCode, quoteCode } = filter;
           
           // 로컬 스토리지에서 데이터 조회 (저장된 카테고리로 조회 시도)
           const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
-            // 먼저 저장된 카테고리로 시도
-            const storageKey = getStorageKey(ex, cat, false);
-            const apiKey = getStorageKey(ex, cat, true);
-            
             try {
-              // 저장된 카테고리로 먼저 시도
-              let data = localStorage.getItem(storageKey);
-              
-              // 없으면 API 카테고리로 시도 (이전 버전 호환성)
-              if (!data && apiKey !== storageKey) {
-                data = localStorage.getItem(apiKey);
-              }
-              
+              const data = getStoredSymbols(ex, cat);
               if (!data) return [];
-              
-              // 문자열 형태로 저장된 데이터 처리
               // 형식: "baseCode/quoteCode-restOfSymbol=rawSymbol,baseCode/quoteCode-restOfSymbol=rawSymbol,..."
               const symbolEntries = data.split(',');
               return symbolEntries.map(entry => {
-                const [symbolData, originalSymbol] = entry.split('=');
-                if (!symbolData || !originalSymbol) return null;
-                
-                const [baseQuote, restOfSymbol] = symbolData.split('-');
-                const [baseCoin, quoteCoin] = baseQuote.split('/');
-                
+                const [symbol, rawSymbol] = entry.split('=');
+                if (!symbol || !rawSymbol) return null;
+                const [baseQuote, restOfSymbol] = symbol.split('-');
                 return {
-                  symbol: originalSymbol,
-                  baseCoin,
-                  quoteCoin,
+                  symbol,
+                  rawSymbol,
+                  baseCode: baseQuote?.split('/')[0] || '',
+                  quoteCode: baseQuote?.split('/')[1] || '',
                   restOfSymbol: restOfSymbol || ''
                 };
               }).filter(Boolean) as SymbolInfo[];
@@ -403,8 +393,8 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
                 seenSymbols.add(symbolKey);
                 
                 // 필터링 조건 적용
-                if (baseCoin && base !== baseCoin) continue;
-                if (quoteCoin && quote !== quoteCoin) continue;
+                if (baseCode && base !== baseCode) continue;
+                if (quoteCode && quote !== quoteCode) continue;
                 
                 // 원본 카테고리 유지 (API 카테고리로 변환)
                 const originalCategory = toApiCategory(cat) || cat;
@@ -417,8 +407,8 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
                   exchange: ex,
                   category: originalCategory, // API 카테고리로 변환하여 반환
                   symbol: symbol.symbol,
-                  baseCoin: base,
-                  quoteCoin: quote
+                  baseCode: base,
+                  quoteCode: quote
                 });
               }
             }
@@ -427,28 +417,26 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
           return result;
         },
 
-        // 고유한 baseCoin 목록 가져오기
-        getUniqueBaseCoins: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
+        // 고유한 baseCode 목록 가져오기
+        getUniqueBaseCodes: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
           // 필터링된 코인 정보 가져오기
           const filteredCoins = get().getFilteredCoins({
             exchange: filter?.exchange,
             category: filter?.category
           });
-          
-          const baseCoins = new Set(filteredCoins.map(coin => coin.baseCoin));
-          return Array.from(baseCoins).sort();
+          const baseCodes = new Set(filteredCoins.map(coin => coin.baseCode));
+          return Array.from(baseCodes).sort();
         },
 
-        // 고유한 quoteCoin 목록 가져오기
-        getUniqueQuoteCoins: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
+        // 고유한 quoteCode 목록 가져오기
+        getUniqueQuoteCodes: (filter?: { exchange?: ExchangeType; category?: string }): string[] => {
           // 필터링된 코인 정보 가져오기
           const filteredCoins = get().getFilteredCoins({
             exchange: filter?.exchange,
             category: filter?.category
           });
-          
-          const quoteCoins = new Set(filteredCoins.map(coin => coin.quoteCoin));
-          return Array.from(quoteCoins).sort();
+          const quoteCodes = new Set(filteredCoins.map(coin => coin.quoteCode));
+          return Array.from(quoteCodes).sort();
         },
       }))
   )

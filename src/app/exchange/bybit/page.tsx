@@ -93,7 +93,7 @@ export default function BybitTickersPage() {
   // 가격 변동 감지 및 flash 상태 업데이트
   useEffect(() => {
     filteredTickers.forEach((ticker) => {
-      const symbol = ticker.symbol;
+      const symbol = ticker.rawSymbol;
       const prev = prevPrices.current[symbol];
       let flash: 'up' | 'down' | 'none' = 'none';
       if (prev !== undefined) {
@@ -109,7 +109,7 @@ export default function BybitTickersPage() {
       prevPrices.current[symbol] = ticker.lastPrice;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTickers.map(t => t.symbol + ':' + t.lastPrice).join(',')]);
+  }, [filteredTickers.map(t => t.rawSymbol + ':' + t.lastPrice).join(',')]);
 
   // 가격 변화율에 따른 색상 클래스
   const getPriceChangeColor = (changePercent: number) => {
@@ -119,13 +119,11 @@ export default function BybitTickersPage() {
   };
 
   // Bybit instrument 정보 로딩 및 매핑
-  // storage에서 "$displaySymbol=$symbol" 포맷을 파싱하여 symbol→displaySymbol 매핑
+  // storage에서 "$symbol=$rawSymbol" 포맷을 파싱하여 rawSymbol→symbol 매핑
   function loadInstrumentMap(category: string) {
     try {
       const storageKey = `bybit-${category}`;
-      console.log(storageKey);
       const value: string | null = localStorage.getItem(storageKey);
-      console.log(value);
       if (!value) return {};
       let list: string[];
       if (value.includes('=')) {
@@ -134,12 +132,12 @@ export default function BybitTickersPage() {
       } else {
         list = [];
       }
-      const map: Record<string, { displaySymbol: string }> = {};
+      const map: Record<string, { symbol: string }> = {};
       list.forEach((entry: string) => {
         if (entry.includes('=')) {
-          const [displaySymbol, symbol] = entry.split('=');
-          if (symbol && displaySymbol) {
-            map[symbol] = { displaySymbol };
+          const [symbol, rawSymbol] = entry.split('=');
+          if (rawSymbol && symbol) {
+            map[rawSymbol] = { symbol };
           }
         }
       });
@@ -154,11 +152,11 @@ export default function BybitTickersPage() {
   // storage 카테고리로 instrument map 생성
   const instrumentMap = loadInstrumentMap(storageCategory);
 
-  // 심볼을 baseCode-quoteCode-rest 형식으로 변환
-  function getDisplaySymbol(symbol: string) {
-    const info = instrumentMap[symbol];
-    if (!info) return symbol;
-    return info.displaySymbol || symbol;
+  // 심볼을 표시용 심볼로 변환
+  function getDisplaySymbol(rawSymbol: string) {
+    const info = instrumentMap[rawSymbol];
+    if (!info) return rawSymbol;
+    return info.symbol || rawSymbol;
   }
 
   // 숫자 포맷팅 함수
@@ -265,14 +263,14 @@ export default function BybitTickersPage() {
         {(() => {
           // symbol별 lastPrice의 최대 소수점 자리수 추적 (렌더 직전)
           filteredTickers.forEach(ticker => {
-            const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+            const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
             const current = (function getDecimals(num: number) {
               if (!isFinite(num)) return 0;
               const s = num.toString();
               if (s.includes('.')) return s.split('.')[1].length;
               return 0;
             })(ticker.lastPrice);
-            if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+            if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
           });
 
           if (filteredTickers.length === 0) {
@@ -284,7 +282,7 @@ export default function BybitTickersPage() {
           }
 
           return filteredTickers.map((ticker: TickerInfo) => {
-            const priceDecimals = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+            const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
             const priceColor = getPriceChangeColor(ticker.priceChange24h);
             const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-50/70 dark:bg-green-900/30' : ticker.priceChange24h < 0 ? 'bg-red-50/70 dark:bg-red-900/30' : 'bg-muted/10 dark:bg-muted/30';
             const formattedTurnover = formatNumber(ticker.turnover24h);
@@ -294,7 +292,7 @@ export default function BybitTickersPage() {
 
             return (
               <div
-                key={`${ticker.category}-${ticker.symbol}`}
+                key={`${ticker.category}-${ticker.rawSymbol}`}
                 className={
                   "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
                 }
@@ -302,7 +300,7 @@ export default function BybitTickersPage() {
               >
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <div className="font-semibold text-lg">{getDisplaySymbol(ticker.symbol)}</div>
+                    <div className="font-semibold text-lg">{getDisplaySymbol(ticker.rawSymbol)}</div>
                     <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
                   </div>
                   <div className="text-right">
@@ -310,9 +308,9 @@ export default function BybitTickersPage() {
   <span
     className={
       `${styles["ticker-border"]} ` +
-      (flashStates[ticker.symbol] === "up"
+      (flashStates[ticker.rawSymbol] === "up"
         ? styles["ticker-border-up"]
-        : flashStates[ticker.symbol] === "down"
+        : flashStates[ticker.rawSymbol] === "down"
         ? styles["ticker-border-down"]
         : styles["ticker-border-none"])
       + ` ${priceColor}`

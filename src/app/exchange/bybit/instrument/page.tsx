@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
   rawSymbol: string;  // 외부 API로부터 받은 원본 심볼
-  symbol: string;     // 내부 프로젝트용 표시 심볼 (baseCoin/quoteCoin)
+  symbol: string;     // 내부 프로젝트용 표시 심볼 (baseCode/quoteCode)
   name: string;
-  baseCoin: string;
-  quoteCoin: string;
+  baseCode: string;
+  quoteCode: string;
   category: string;
   restOfData?: string;
 }
@@ -28,29 +28,29 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
 
     const slashIndex = details.indexOf('/');
     if (slashIndex === -1) return null;
-    const baseCoin = details.substring(0, slashIndex);
+    const baseCode = details.substring(0, slashIndex);
     
     const rest = details.substring(slashIndex + 1);
     const hyphenIndex = rest.indexOf('-');
     
-    let quoteCoin = '';
+    let quoteCode = '';
     let restOfData = undefined;
 
     if (hyphenIndex !== -1) {
-      quoteCoin = rest.substring(0, hyphenIndex);
+      quoteCode = rest.substring(0, hyphenIndex);
       restOfData = rest.substring(hyphenIndex + 1);
     } else {
-      quoteCoin = rest;
+      quoteCode = rest;
     }
     
     const category = categoryKey.replace('bybit-', '');
 
     return {
       rawSymbol,
-      symbol: `${baseCoin}/${quoteCoin}`,  // 내부 프로젝트용 심볼 형식
-      name: `${baseCoin}/${quoteCoin}${restOfData ? `-${restOfData}` : ''}`,
-      baseCoin,
-      quoteCoin,
+      symbol: `${baseCode}/${quoteCode}`,
+      name: `${baseCode}/${quoteCode}${restOfData ? `-${restOfData}` : ''}`,
+      baseCode,
+      quoteCode,
       category,
       restOfData,
     };
@@ -113,13 +113,13 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['symbol', 'rawSymbol', 'baseCoin', 'quoteCoin', 'category', 'restOfData'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['symbol', 'rawSymbol', 'baseCode', 'quoteCode', 'category', 'restOfData'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
     symbol: '심볼',
     rawSymbol: '원본 심볼',
     name: '이름',
-    baseCoin: '베이스코인',
-    quoteCoin: '쿼트코인',
+    baseCode: '베이스코드',
+    quoteCode: '쿼트코드',
     category: '카테고리',
     restOfData: '추가정보'
   };

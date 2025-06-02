@@ -46,8 +46,8 @@ export type UpbitCategoryType = 'KRW' | 'BTC' | 'USDT';
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
   symbol: string;        // 심볼 (예: BTCUSDT)
-  baseCoin: string;      // 기본 코인 (예: BTC)
-  quoteCoin: string;     // 견적 코인 (예: USDT)
+  baseCode: string;      // 기본 코인 (예: BTC)
+  quoteCode: string;     // 견적 코인 (예: USDT)
   exchange: ExchangeType; // 거래소
   category: string;      // 카테고리
 }
@@ -66,8 +66,8 @@ export interface BybitInstrumentsResponse {
 
 export interface BybitInstrument {
   symbol: string;
-  baseCoin: string;
-  quoteCoin: string;
+  baseCode: string;
+  quoteCode: string;
   status: string;
   [key: string]: any;  // 기타 속성
 }
@@ -103,7 +103,8 @@ export interface BybitTicker {
 
 // 티커 정보 공통 인터페이스
 export interface TickerInfo {
-  symbol: string;
+  rawSymbol: string; // 원본 심볼(예: BTCUSDT)
+  symbol: string;    // 표시용 심볼(예: BTC/USDT)
   lastPrice: number;
   priceChange24h: number;
   priceChangePercent24h: number;
@@ -132,9 +133,9 @@ export interface ExchangeCoinsState {
   getFilteredCoins: (filter: {
     exchange?: ExchangeType;
     category?: string;
-    baseCoin?: string;
-    quoteCoin?: string;
+    baseCode?: string;
+    quoteCode?: string;
   }) => CoinInfo[];
-  getUniqueBaseCoins: (filter?: { exchange?: ExchangeType; category?: string }) => string[];
-  getUniqueQuoteCoins: (filter?: { exchange?: ExchangeType; category?: string }) => string[];
+  getUniqueBaseCodes: (filter?: { exchange?: ExchangeType; category?: string }) => string[];
+  getUniqueQuoteCodes: (filter?: { exchange?: ExchangeType; category?: string }) => string[];
 }
