@@ -348,7 +348,7 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
               if (!data) return [];
               
               // 문자열 형태로 저장된 데이터 처리
-              // 형식: "baseCode/quoteCode-restOfSymbol=symbol,baseCode/quoteCode-restOfSymbol=symbol,..."
+              // 형식: "baseCode/quoteCode-restOfSymbol=rawSymbol,baseCode/quoteCode-restOfSymbol=rawSymbol,..."
               const symbolEntries = data.split(',');
               return symbolEntries.map(entry => {
                 const [symbolData, originalSymbol] = entry.split('=');

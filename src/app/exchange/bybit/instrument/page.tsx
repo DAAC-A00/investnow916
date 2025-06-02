@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
-  symbol: string;
+  rawSymbol: string;  // 외부 API로부터 받은 원본 심볼
+  symbol: string;     // 내부 프로젝트용 표시 심볼 (baseCoin/quoteCoin)
   name: string;
   baseCoin: string;
   quoteCoin: string;
@@ -22,7 +23,7 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
   try {
     const parts = instrumentStr.split('=');
     if (parts.length !== 2) return null;
-    const symbol = parts[1];
+    const rawSymbol = parts[1];
     const details = parts[0];
 
     const slashIndex = details.indexOf('/');
@@ -45,7 +46,8 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     const category = categoryKey.replace('bybit-', '');
 
     return {
-      symbol,
+      rawSymbol,
+      symbol: `${baseCoin}/${quoteCoin}`,  // 내부 프로젝트용 심볼 형식
       name: `${baseCoin}/${quoteCoin}${restOfData ? `-${restOfData}` : ''}`,
       baseCoin,
       quoteCoin,
@@ -111,10 +113,11 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['name', 'symbol', 'baseCoin', 'quoteCoin', 'category', 'restOfData'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['symbol', 'rawSymbol', 'baseCoin', 'quoteCoin', 'category', 'restOfData'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
-    name: '이름',
     symbol: '심볼',
+    rawSymbol: '원본 심볼',
+    name: '이름',
     baseCoin: '베이스코인',
     quoteCoin: '쿼트코인',
     category: '카테고리',
@@ -143,7 +146,7 @@ const BybitInstrumentPage = () => {
             </thead>
             <tbody className="bg-background divide-y divide-border">
               {instrumentData.map((instrument, index) => (
-                <tr key={instrument.symbol ? `${instrument.symbol}-${instrument.category}-${index}` : index} className="hover:bg-muted/50">
+                <tr key={instrument.rawSymbol ? `${instrument.rawSymbol}-${instrument.category}-${index}` : index} className="hover:bg-muted/50">
                   {tableHeaders.map((header) => (
                     <td 
                       key={header} 
