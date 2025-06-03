@@ -166,7 +166,7 @@ export interface TickerInfo {
 }
 
 // 거래소 코인 정보 상태 타입
-export interface ExchangeCoinsState {
+export interface ExchangeInstrumentState {
   isLoading: boolean;
   error: string | null;
   

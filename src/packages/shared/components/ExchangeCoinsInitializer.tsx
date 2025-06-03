@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useExchangeCoinsStore } from '../stores/createExchangeCoinsStore';
+import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitCategoryType, ExchangeType } from '../types/exchange';
 
 interface ExchangeCoinsInitializerProps {

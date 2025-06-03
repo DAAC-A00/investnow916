@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import styles from './page.module.css';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { BybitCategoryType, TickerInfo } from '@/packages/shared/types/exchange';
-import { BYBIT_CATEGORY_MAP } from '@/packages/shared/stores/createExchangeCoinsStore';
+import { BYBIT_CATEGORY_MAP } from '@/packages/shared/stores/createExchangeInstrumentStore';
 import { log } from 'console';
 
 type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';

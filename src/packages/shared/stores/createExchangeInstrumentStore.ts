@@ -15,12 +15,12 @@ import {
   BybitInstrumentsResponse, 
   BybitInstrument,
   CoinInfo, 
-  ExchangeCoinsState, 
+  ExchangeInstrumentState, 
   ExchangeType 
 } from '../types/exchange';
 
 // 초기 상태에 포함될 데이터 부분
-type ExchangeCoinsStateData = Pick<ExchangeCoinsState, 'isLoading' | 'error'>;
+type ExchangeInstrumentStateData = Pick<ExchangeInstrumentState, 'isLoading' | 'error'>;
 
 // 초기 상태 정의
 // Bybit instrument 원본 데이터를 임시로 저장
@@ -31,7 +31,7 @@ interface BybitInstrumentRawState {
   fetchBybitInstrumentRaw: () => Promise<void>;
 }
 
-const initialState: ExchangeCoinsStateData = {
+const initialState: ExchangeInstrumentStateData = {
   isLoading: false,
   error: null,
 };
@@ -256,7 +256,7 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
 };
 
 // 거래소 코인 정보 스토어 생성
-export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
+export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
   devtools(
     immer((set, get) => ({
       ...initialState,
@@ -264,7 +264,7 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
         // Bybit 거래소의 코인 정보 가져오기
         fetchBybitCoins: async (apiCategory: BybitCategoryType) => {
           try {
-            set((state: ExchangeCoinsState) => {
+            set((state: ExchangeInstrumentState) => {
               state.isLoading = true;
               state.error = null;
             });
@@ -370,13 +370,13 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
             const storageCategory = toStorageCategory(apiCategory);
             storeSymbols('bybit', storageCategory, symbolObjects);
             
-            set((state: ExchangeCoinsState) => {
+            set((state: ExchangeInstrumentState) => {
               state.isLoading = false;
             });
             
             return true;
           } catch (error) {
-            set((state: ExchangeCoinsState) => {
+            set((state: ExchangeInstrumentState) => {
               state.isLoading = false;
               state.error = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
             });
