@@ -46,10 +46,55 @@ export type UpbitCategoryType = 'KRW' | 'BTC' | 'USDT';
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
   symbol: string;        // 심볼 (예: BTCUSDT)
+  rawSymbol?: string;    // 원본 심볼 (API에서 받은 그대로)
   baseCode: string;      // 기본 코인 (예: BTC)
   quoteCode: string;     // 견적 코인 (예: USDT)
   exchange: ExchangeType; // 거래소
-  category: string;      // 카테고리
+  category: string;      // 카테고리 (호환성을 위해 유지, displayCategory와 동일)
+  rawCategory?: string;  // API에서 사용하는 원본 카테고리 (예: linear, inverse)
+  displayCategory?: string; // 표시용 카테고리 (예: um, cm)
+  
+  // 원본 API 응답 데이터 (카테고리별로 다른 정보 포함)
+  rawInstrumentData?: any; // 전체 API 응답 데이터
+  
+  // 공통 필드들
+  status?: string;
+  
+  // Linear/Inverse 전용 필드들
+  contractType?: string;
+  launchTime?: string;
+  deliveryTime?: string;
+  deliveryFeeRate?: string;
+  priceScale?: string;
+  leverageFilter?: {
+    minLeverage?: string;
+    maxLeverage?: string;
+    leverageStep?: string;
+  };
+  priceFilter?: {
+    minPrice?: string;
+    maxPrice?: string;
+    tickSize?: string;
+  };
+  lotSizeFilter?: any; // 카테고리별로 구조가 다름
+  unifiedMarginTrade?: boolean;
+  fundingInterval?: number;
+  settleCoin?: string;
+  copyTrading?: string;
+  upperFundingRate?: string;
+  lowerFundingRate?: string;
+  isPreListing?: boolean;
+  preListingInfo?: any;
+  riskParameters?: any;
+  displayName?: string;
+  
+  // Spot 전용 필드들
+  innovation?: string;
+  marginTrading?: string;
+  stTag?: string;
+  
+  // Option 전용 필드들
+  optionsType?: string; // Put, Call
 }
 
 // Bybit API 응답 타입

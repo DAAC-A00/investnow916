@@ -23,6 +23,14 @@ import {
 type ExchangeCoinsStateData = Pick<ExchangeCoinsState, 'isLoading' | 'error'>;
 
 // 초기 상태 정의
+// Bybit instrument 원본 데이터를 임시로 저장
+interface BybitInstrumentRawState {
+  bybitInstrumentRaw: {
+    [category in BybitCategoryType]?: BybitInstrument[];
+  };
+  fetchBybitInstrumentRaw: () => Promise<void>;
+}
+
 const initialState: ExchangeCoinsStateData = {
   isLoading: false,
   error: null,
@@ -60,14 +68,75 @@ const transformBybitData = (
       const baseCode = item.baseCoin || item.baseCode || '';
       const quoteCode = item.quoteCoin || item.quoteCode || '';
       
-      return {
+      // 카테고리 정보 생성
+      const categoryInfo = getCategoryInfo('bybit', category);
+      
+      // 기본 CoinInfo 객체 생성
+      const coinInfo: CoinInfo = {
         rawSymbol: item.symbol,
         symbol: `${baseCode}/${quoteCode}`,
         baseCode,
         quoteCode,
         exchange: 'bybit' as ExchangeType,
-        category,
+        category: categoryInfo.category,
+        rawCategory: categoryInfo.rawCategory,
+        displayCategory: categoryInfo.displayCategory,
+        
+        // 원본 API 응답 데이터 저장
+        rawInstrumentData: item,
+        
+        // 공통 필드들
+        status: item.status,
       };
+      
+      // 카테고리별 특화 필드들 추가
+      if (category === 'linear' || category === 'inverse') {
+        // Linear/Inverse 전용 필드들
+        Object.assign(coinInfo, {
+          contractType: item.contractType,
+          launchTime: item.launchTime,
+          deliveryTime: item.deliveryTime,
+          deliveryFeeRate: item.deliveryFeeRate,
+          priceScale: item.priceScale,
+          leverageFilter: item.leverageFilter,
+          priceFilter: item.priceFilter,
+          lotSizeFilter: item.lotSizeFilter,
+          unifiedMarginTrade: item.unifiedMarginTrade,
+          fundingInterval: item.fundingInterval,
+          settleCoin: item.settleCoin,
+          copyTrading: item.copyTrading,
+          upperFundingRate: item.upperFundingRate,
+          lowerFundingRate: item.lowerFundingRate,
+          isPreListing: item.isPreListing,
+          preListingInfo: item.preListingInfo,
+          riskParameters: item.riskParameters,
+          displayName: item.displayName,
+        });
+      } else if (category === 'spot') {
+        // Spot 전용 필드들
+        Object.assign(coinInfo, {
+          innovation: item.innovation,
+          marginTrading: item.marginTrading,
+          stTag: item.stTag,
+          lotSizeFilter: item.lotSizeFilter,
+          priceFilter: item.priceFilter,
+          riskParameters: item.riskParameters,
+        });
+      } else if (category === 'option') {
+        // Option 전용 필드들
+        Object.assign(coinInfo, {
+          optionsType: item.optionsType,
+          launchTime: item.launchTime,
+          deliveryTime: item.deliveryTime,
+          deliveryFeeRate: item.deliveryFeeRate,
+          priceFilter: item.priceFilter,
+          lotSizeFilter: item.lotSizeFilter,
+          displayName: item.displayName,
+          settleCoin: item.settleCoin,
+        });
+      }
+      
+      return coinInfo;
     })
     .filter(item => item.baseCode && item.quoteCode); // baseCode, quoteCode가 있는 항목만 포함
 };
@@ -106,7 +175,7 @@ const formatBybitSymbols = (
 
 // Bybit 카테고리 매핑
 export const BYBIT_CATEGORY_MAP = {
-  // API 요청용 카테고리: 저장용 카테고리
+  // API 요청용 카테고리(rawCategory): 표시용 카테고리(displayCategory)
   'linear': 'um',
   'inverse': 'cm',
   // spot, option은 그대로 유지
@@ -116,12 +185,31 @@ export const BYBIT_CATEGORY_MAP = {
 
 type BybitApiCategory = keyof typeof BYBIT_CATEGORY_MAP;
 
-// 내부 저장용 카테고리로 변환
+// 거래소별 카테고리 정보를 반환하는 함수
+const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
+  if (exchange === 'bybit') {
+    const displayCategory = BYBIT_CATEGORY_MAP[rawCategory as BybitApiCategory] || rawCategory;
+    return {
+      rawCategory,
+      displayCategory,
+      category: displayCategory // 호환성을 위해 displayCategory와 동일
+    };
+  }
+  
+  // 다른 거래소의 경우 rawCategory와 displayCategory가 동일
+  return {
+    rawCategory,
+    displayCategory: rawCategory,
+    category: rawCategory
+  };
+};
+
+// 내부 저장용 카테고리로 변환 (displayCategory 반환)
 const toStorageCategory = (category: string): string => {
   return BYBIT_CATEGORY_MAP[category as BybitApiCategory] || category;
 };
 
-// API 요청용 카테고리로 변환
+// API 요청용 카테고리로 변환 (rawCategory 반환)
 const toApiCategory = (storageCategory: string): string => {
   return Object.entries(BYBIT_CATEGORY_MAP).find(
     ([_, value]) => value === storageCategory
@@ -207,19 +295,75 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
               const symbol = restOfSymbol === ''
                 ? `${baseCoin || baseCode}/${quoteCoin || quoteCode}`
                 : `${baseCoin || baseCode}/${quoteCoin || quoteCode}-${restOfSymbol}`;
-              return {
+              
+              // 카테고리 정보 생성
+              const categoryInfo = getCategoryInfo('bybit', apiCategory);
+              
+              // 기본 심볼 객체 생성
+              const symbolObj: any = {
                 symbol,
+                rawSymbol,
                 baseCode: baseCoin || baseCode,
                 quoteCode: quoteCoin || quoteCode,
                 restOfSymbol,
-                rawSymbol,
-                // 추가 정보 저장
+                // 카테고리 정보
+                category: categoryInfo.category,
+                rawCategory: categoryInfo.rawCategory,
+                displayCategory: categoryInfo.displayCategory,
+                // 원본 API 응답 데이터 저장
+                rawInstrumentData: item,
+                // 공통 필드들
                 status: item.status,
-                leverage: item.leverage,
-                price: item.lastPriceOnmarket,
-                fundingRate: item.fundingRate,
-                category: apiCategory
               };
+              
+              // 카테고리별 특화 필드들 추가
+              if (apiCategory === 'linear' || apiCategory === 'inverse') {
+                // Linear/Inverse 전용 필드들
+                Object.assign(symbolObj, {
+                  contractType: item.contractType,
+                  launchTime: item.launchTime,
+                  deliveryTime: item.deliveryTime,
+                  deliveryFeeRate: item.deliveryFeeRate,
+                  priceScale: item.priceScale,
+                  leverageFilter: item.leverageFilter,
+                  priceFilter: item.priceFilter,
+                  lotSizeFilter: item.lotSizeFilter,
+                  unifiedMarginTrade: item.unifiedMarginTrade,
+                  fundingInterval: item.fundingInterval,
+                  settleCoin: item.settleCoin,
+                  copyTrading: item.copyTrading,
+                  upperFundingRate: item.upperFundingRate,
+                  lowerFundingRate: item.lowerFundingRate,
+                  isPreListing: item.isPreListing,
+                  preListingInfo: item.preListingInfo,
+                  riskParameters: item.riskParameters,
+                  displayName: item.displayName,
+                });
+              } else if (apiCategory === 'spot') {
+                // Spot 전용 필드들
+                Object.assign(symbolObj, {
+                  innovation: item.innovation,
+                  marginTrading: item.marginTrading,
+                  stTag: item.stTag,
+                  lotSizeFilter: item.lotSizeFilter,
+                  priceFilter: item.priceFilter,
+                  riskParameters: item.riskParameters,
+                });
+              } else if (apiCategory === 'option') {
+                // Option 전용 필드들
+                Object.assign(symbolObj, {
+                  optionsType: item.optionsType,
+                  launchTime: item.launchTime,
+                  deliveryTime: item.deliveryTime,
+                  deliveryFeeRate: item.deliveryFeeRate,
+                  priceFilter: item.priceFilter,
+                  lotSizeFilter: item.lotSizeFilter,
+                  displayName: item.displayName,
+                  settleCoin: item.settleCoin,
+                });
+              }
+              
+              return symbolObj;
             });
             
             // 로컬 스토리지에 저장할 때는 변환된 카테고리 사용
@@ -418,13 +562,18 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
                 // 원본 카테고리 유지 (API 카테고리로 변환)
                 const originalCategory = toApiCategory(cat) || cat;
                 
+                // 카테고리 정보 생성
+                const categoryInfo = getCategoryInfo(ex, originalCategory);
+                
                 // symbol 속성 중복을 피하기 위해 나머지 속성을 먼저 펼치고 필요한 속성들을 덮어씁니다.
                 const { symbol: _, ...restSymbol } = symbol;
                 
                 result.push({
                   ...restSymbol,
                   exchange: ex,
-                  category: originalCategory, // API 카테고리로 변환하여 반환
+                  category: categoryInfo.category,
+                  rawCategory: categoryInfo.rawCategory,
+                  displayCategory: categoryInfo.displayCategory,
                   symbol: symbol.symbol,
                   baseCode: base,
                   quoteCode: quote
@@ -456,6 +605,33 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
           });
           const quoteCodes = new Set(filteredCoins.map(coin => coin.quoteCode));
           return Array.from(quoteCodes).sort();
+        },
+        
+        // Bybit instrument 원본 데이터 임시 저장 상태 및 fetch 함수 추가
+        bybitInstrumentRaw: {},
+        fetchBybitInstrumentRaw: async () => {
+          const categories: BybitCategoryType[] = ['linear', 'inverse', 'spot', 'option'];
+          const results: { [cat: string]: BybitInstrument[] } = {};
+          await Promise.all(
+            categories.map(async (cat) => {
+              try {
+                const url = API_URLS.bybit.getUrl(cat);
+                const res = await fetch(url);
+                const data = (await res.json()) as BybitInstrumentsResponse;
+                if (data.retCode === 0 && data.result?.list) {
+                  results[cat] = data.result.list;
+                } else {
+                  results[cat] = [];
+                }
+              } catch (e) {
+                results[cat] = [];
+              }
+            })
+          );
+          // set으로 상태 반영 (persist에는 저장하지 않음)
+          set((state: any) => {
+            state.bybitInstrumentRaw = results;
+          });
         },
       }))
   )
