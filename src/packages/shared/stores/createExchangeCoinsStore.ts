@@ -54,14 +54,22 @@ const transformBybitData = (
 
   return data.result.list
     .filter(item => item.status === 'Trading') // 거래 가능한 코인만 필터링
-    .map(item => ({
-      rawSymbol: item.symbol,
-      symbol: `${item.baseCode}/${item.quoteCode}`,
-      baseCode: item.baseCode,
-      quoteCode: item.quoteCode,
-      exchange: 'bybit' as ExchangeType,
-      category,
-    }));
+    .map(item => {
+      // API 응답에서 baseCoin, quoteCoin 사용 (linear, inverse 카테고리)
+      // 없으면 baseCode, quoteCode 사용 (spot 등 다른 카테고리)
+      const baseCode = item.baseCoin || item.baseCode || '';
+      const quoteCode = item.quoteCoin || item.quoteCode || '';
+      
+      return {
+        rawSymbol: item.symbol,
+        symbol: `${baseCode}/${quoteCode}`,
+        baseCode,
+        quoteCode,
+        exchange: 'bybit' as ExchangeType,
+        category,
+      };
+    })
+    .filter(item => item.baseCode && item.quoteCode); // baseCode, quoteCode가 있는 항목만 포함
 };
 
 // Bybit API 응답에서 심볼 데이터를 형식화하는 함수
@@ -72,7 +80,17 @@ const formatBybitSymbols = (
   return instruments
     .filter(item => item.status === 'Trading') // 거래 가능한 코인만 필터링
     .map(item => {
-      const { symbol: rawSymbol, baseCode, quoteCode } = item;
+      // API 응답에서 baseCoin, quoteCoin 사용 (linear, inverse 카테고리)
+      // 없으면 baseCode, quoteCode 사용 (spot 등 다른 카테고리)
+      const baseCode = item.baseCoin || item.baseCode || '';
+      const quoteCode = item.quoteCoin || item.quoteCode || '';
+      const { symbol: rawSymbol } = item;
+      
+      // baseCode나 quoteCode가 없으면 건너뜀
+      if (!baseCode || !quoteCode) {
+        return null;
+      }
+      
       // 심볼에서 baseCode와 quoteCode를 제외한 나머지 부분 추출
       const baseQuotePattern = `${baseCode}${quoteCode}`;
       const restOfSymbol = rawSymbol.replace(baseQuotePattern, '');
@@ -82,6 +100,7 @@ const formatBybitSymbols = (
         : `${baseCode}/${quoteCode}-${restOfSymbol}`;
       return `${symbol}=${rawSymbol}`;
     })
+    .filter(Boolean) // null 값 제거
     .join(',');
 };
 
@@ -180,18 +199,18 @@ export const useExchangeCoinsStore = create<ExchangeCoinsState>()(
             
             // 심볼 데이터를 객체 배열로 변환
             const symbolObjects = instruments.map(item => {
-              const { symbol: rawSymbol, baseCode, quoteCode } = item;
+              const { symbol: rawSymbol, baseCoin, baseCode, quoteCoin, quoteCode } = item;
               // 심볼에서 baseCode와 quoteCode를 제외한 나머지 부분 추출
-              const baseQuotePattern = `${baseCode}${quoteCode}`;
+              const baseQuotePattern = `${baseCoin || baseCode}${quoteCoin || quoteCode}`;
               const restOfSymbol = rawSymbol.replace(baseQuotePattern, '');
               // symbol: baseCode/quoteCode[-rest]
               const symbol = restOfSymbol === ''
-                ? `${baseCode}/${quoteCode}`
-                : `${baseCode}/${quoteCode}-${restOfSymbol}`;
+                ? `${baseCoin || baseCode}/${quoteCoin || quoteCode}`
+                : `${baseCoin || baseCode}/${quoteCoin || quoteCode}-${restOfSymbol}`;
               return {
                 symbol,
-                baseCode,
-                quoteCode,
+                baseCode: baseCoin || baseCode,
+                quoteCode: quoteCoin || quoteCode,
                 restOfSymbol,
                 rawSymbol,
                 // 추가 정보 저장

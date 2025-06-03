@@ -66,8 +66,10 @@ export interface BybitInstrumentsResponse {
 
 export interface BybitInstrument {
   symbol: string;
-  baseCode: string;
-  quoteCode: string;
+  baseCoin?: string;  // API 응답에서 사용하는 필드명
+  quoteCoin?: string; // API 응답에서 사용하는 필드명
+  baseCode?: string;  // 기존 호환성을 위해 유지
+  quoteCode?: string; // 기존 호환성을 위해 유지
   status: string;
   [key: string]: any;  // 기타 속성
 }
