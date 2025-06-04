@@ -292,7 +292,7 @@ export default function BybitTickersPage() {
 
             return (
               <div
-                key={`${ticker.category}-${ticker.rawSymbol}`}
+                key={`${ticker.rawCategory}-${ticker.rawSymbol}`}
                 className={
                   "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
                 }
@@ -313,9 +313,9 @@ export default function BybitTickersPage() {
         : flashStates[ticker.rawSymbol] === "down"
         ? styles["ticker-border-down"]
         : styles["ticker-border-none"])
-      + ` ${priceColor}`
+      + ` ${priceColor} px-1`
     }
-    style={{ display: 'inline-block', borderRadius: '0rem', padding: '0.15em 0.5em' }}
+    style={{ display: 'inline-block', borderRadius: '0rem' }}
   >
     {formattedLastPrice}
   </span>

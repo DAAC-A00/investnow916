@@ -38,7 +38,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## 개발 규칙 및 네이밍 컨벤션
 
 ### 1. Ticker 관련 네이밍
-- **rawSymbol**: 외부 API(예: Bybit)에서 받은 원본 심볼 (예: BTCUSDT)
+- **rawSymbol**: 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
 - **displaySymbol**: 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
 - **baseCode**: 거래쌍의 기준(기본) 코인 (예: BTC)
 - **quoteCode**: 거래쌍의 상대(견적) 코인 (예: USDT)

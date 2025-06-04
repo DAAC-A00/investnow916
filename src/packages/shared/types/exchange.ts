@@ -45,14 +45,13 @@ export type UpbitCategoryType = 'KRW' | 'BTC' | 'USDT';
 
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
-  symbol: string;        // 심볼 (예: BTCUSDT)
-  rawSymbol?: string;    // 원본 심볼 (API에서 받은 그대로)
-  baseCode: string;      // 기본 코인 (예: BTC)
-  quoteCode: string;     // 견적 코인 (예: USDT)
-  exchange: ExchangeType; // 거래소
-  category: string;      // 카테고리 (호환성을 위해 유지, displayCategory와 동일)
-  rawCategory?: string;  // API에서 사용하는 원본 카테고리 (예: linear, inverse)
-  displayCategory?: string; // 표시용 카테고리 (예: um, cm)
+  displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
+  rawSymbol: string;      // 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
+  baseCode: string;       // 거래쌍의 기준(기본) 코인 (예: BTC)
+  quoteCode: string;      // 거래쌍의 상대(견적) 코인 (예: USDT)
+  exchange: ExchangeType;  // 거래소
+  displayCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
+  rawCategory: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
   
   // 원본 API 응답 데이터 (카테고리별로 다른 정보 포함)
   rawInstrumentData?: any; // 전체 API 응답 데이터
@@ -150,8 +149,8 @@ export interface BybitTicker {
 
 // 티커 정보 공통 인터페이스
 export interface TickerInfo {
-  rawSymbol: string; // 원본 심볼(예: BTCUSDT)
-  symbol: string;    // 표시용 심볼(예: BTC/USDT)
+  rawSymbol: string;      // 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
+  displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
   lastPrice: number;
   priceChange24h: number;
   priceChangePercent24h: number;
@@ -162,7 +161,8 @@ export interface TickerInfo {
   bidPrice: number;
   askPrice: number;
   exchange: ExchangeType;
-  category: string;
+  displayCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
+  rawCategory: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
 }
 
 // 거래소 코인 정보 상태 타입
