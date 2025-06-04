@@ -7,20 +7,20 @@ export type TickerColorMode = 'global' | 'aisa' | 'nothing' | 'shadow';
  * 색상 모드별 라벨
  */
 export const TICKER_COLOR_MODE_LABELS: Record<TickerColorMode, string> = {
-  global: 'Global (기본)',
-  aisa: 'Aisa (상승=빨강/하락=파랑)',
-  nothing: 'Nothing (일반 글자색)',
-  shadow: 'Shadow (회색)',
+  global: '글로벌',
+  aisa: '아시아',
+  nothing: '색상 없음',
+  shadow: '그림자'
 };
 
 /**
  * 색상 모드별 설명
  */
 export const TICKER_COLOR_MODE_DESCRIPTIONS: Record<TickerColorMode, string> = {
-  global: '상승(초록) / 하락(빨강) / 보합(회색)',
-  aisa: '상승(빨강) / 하락(파랑) / 보합(회색)',
-  nothing: '모든 가격 변화에 대해 기본 텍스트 색상 사용',
-  shadow: '흐릿한 회색 스타일',
+  global: '상승: 녹색, 하락: 빨간색',
+  aisa: '상승: 빨간색, 하락: 파란색',
+  nothing: '모든 색상 동일',
+  shadow: '회색 톤 사용'
 };
 
 /**
@@ -45,7 +45,7 @@ export const getTickerBackgroundColor = (mode: TickerColorMode, change: number):
 /**
  * 가격 변화 애니메이션 관리를 위한 유틸리티
  */
-export const createPriceChangeAnimationManager = () => {
+export const createPriceChangeAnimationManager = (duration: BorderAnimationDuration = 150) => {
   const animationTimers = new Map<string, NodeJS.Timeout>();
   const animationStates = new Map<string, boolean>();
 
@@ -74,12 +74,12 @@ export const createPriceChangeAnimationManager = () => {
       animationStates.set(symbol, true);
       onAnimationChange(symbol, true);
 
-      // 100ms 후 애니메이션 종료
+      // 설정된 시간 후 애니메이션 종료
       const timer = setTimeout(() => {
         animationStates.set(symbol, false);
         onAnimationChange(symbol, false);
         animationTimers.delete(symbol);
-      }, 100);
+      }, duration);
 
       animationTimers.set(symbol, timer);
     },
@@ -103,30 +103,42 @@ export const createPriceChangeAnimationManager = () => {
 };
 
 /**
- * 테두리 스타일 설정 (애니메이션 포함)
+ * 티커 테두리 스타일 반환
+ * @param isAnimating 애니메이션 중인지 여부
+ * @param mode 색상 모드
+ * @param previousPrice 이전 가격
+ * @param currentPrice 현재 가격
+ * @param animationEnabled 애니메이션 활성화 여부
  */
 export const getTickerBorderStyle = (
-  isAnimating: boolean, 
-  mode: TickerColorMode, 
+  isAnimating: boolean,
+  mode: TickerColorMode,
   previousPrice: number,
-  currentPrice: number
-): { borderColor?: string; borderWidth?: string } => {
+  currentPrice: number,
+  animationEnabled: boolean = true
+): React.CSSProperties => {
+  // 애니메이션이 비활성화되어 있으면 투명 테두리 반환
+  if (!animationEnabled) {
+    return {
+      borderColor: 'transparent',
+      borderWidth: '1px'
+    };
+  }
+
+  // 애니메이션 중이 아니면 투명 테두리
   if (!isAnimating) {
-    return { 
+    return {
       borderColor: 'transparent',
       borderWidth: '1px'
     };
   }
   
-  // 가격 비교로 색상 결정
-  let priceChange = 0;
-  if (currentPrice > previousPrice) {
-    priceChange = 1; // 상승
-  } else if (currentPrice < previousPrice) {
-    priceChange = -1; // 하락
-  } else {
-    // 같을 때는 투명
-    return { 
+  // 가격 변화 계산
+  const priceChange = currentPrice - previousPrice;
+  
+  // 가격이 동일하면 투명 테두리
+  if (priceChange === 0) {
+    return {
       borderColor: 'transparent',
       borderWidth: '1px'
     };
@@ -190,16 +202,45 @@ export function getTickerColorClass(
   }
 }
 
+// 테두리 애니메이션 지속 시간 옵션
+export type BorderAnimationDuration = 100 | 150 | 200;
+
+// 테두리 애니메이션 지속 시간 옵션 라벨
+export const BORDER_ANIMATION_DURATION_LABELS: Record<BorderAnimationDuration, string> = {
+  100: '100ms (빠름)',
+  150: '150ms (보통)',
+  200: '200ms (느림)'
+};
+
 interface TickerSettingState {
   tickerColorMode: TickerColorMode;
-  setTickerColorMode: (mode: TickerColorMode) => void;
+  borderAnimationEnabled: boolean;
+  borderAnimationDuration: BorderAnimationDuration;
+  showPercentSymbol: boolean;
+  showPriceChange: boolean;
 }
 
-export const useTickerSettingStore = create<TickerSettingState>()(
+interface TickerSettingActions {
+  setTickerColorMode: (mode: TickerColorMode) => void;
+  setBorderAnimationEnabled: (enabled: boolean) => void;
+  setBorderAnimationDuration: (duration: BorderAnimationDuration) => void;
+  setShowPercentSymbol: (show: boolean) => void;
+  setShowPriceChange: (show: boolean) => void;
+}
+
+export const useTickerSettingStore = create<TickerSettingState & TickerSettingActions>()(
   persist(
     (set) => ({
       tickerColorMode: 'global',
+      borderAnimationEnabled: true,
+      borderAnimationDuration: 100,
+      showPercentSymbol: true,
+      showPriceChange: true,
       setTickerColorMode: (mode) => set({ tickerColorMode: mode }),
+      setBorderAnimationEnabled: (enabled) => set({ borderAnimationEnabled: enabled }),
+      setBorderAnimationDuration: (duration) => set({ borderAnimationDuration: duration }),
+      setShowPercentSymbol: (show) => set({ showPercentSymbol: show }),
+      setShowPriceChange: (show) => set({ showPriceChange: show }),
     }),
     {
       name: 'ticker-setting-store',

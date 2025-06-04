@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTickerSettingStore, getTickerColorClass, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerBackgroundColor, createPriceChangeAnimationManager } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, getTickerColorClass, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerBackgroundColor, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
+import { Toggle } from '@/packages/ui-kit/web/components';
 
 interface TickerData {
   symbol: string;
@@ -15,7 +16,18 @@ interface TickerData {
 }
 
 export default function TickerSettingPage() {
-  const { tickerColorMode, setTickerColorMode } = useTickerSettingStore();
+  const { 
+    tickerColorMode, 
+    setTickerColorMode,
+    borderAnimationEnabled,
+    setBorderAnimationEnabled,
+    borderAnimationDuration,
+    setBorderAnimationDuration,
+    showPercentSymbol,
+    setShowPercentSymbol,
+    showPriceChange,
+    setShowPriceChange
+  } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   
   // 실시간 티커 데이터 상태
@@ -58,8 +70,8 @@ export default function TickerSettingPage() {
   // 테두리 애니메이션 상태 관리
   const [borderAnimations, setBorderAnimations] = useState<{[key: string]: boolean}>({});
 
-  // 애니메이션 매니저 생성
-  const [animationManager] = useState(() => createPriceChangeAnimationManager());
+  // 애니메이션 매니저 생성 (설정된 지속 시간 사용)
+  const [animationManager, setAnimationManager] = useState(() => createPriceChangeAnimationManager(borderAnimationDuration));
 
   useEffect(() => {
     setMounted(true);
@@ -71,6 +83,11 @@ export default function TickerSettingPage() {
       animationManager.cleanup();
     };
   }, [animationManager]);
+
+  // 애니메이션 지속 시간이 변경되면 매니저 재생성
+  useEffect(() => {
+    setAnimationManager(createPriceChangeAnimationManager(borderAnimationDuration));
+  }, [borderAnimationDuration]);
 
   // COIN1: 0.7초마다 -0.2, -0.1, 0, +0.1, +0.2 중 무작위 변동
   useEffect(() => {
@@ -202,6 +219,116 @@ export default function TickerSettingPage() {
         </div>
       </div>
 
+      {/* 테두리 애니메이션 설정 */}
+      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+        <h2 className="text-lg font-semibold mb-4">테두리 애니메이션 설정</h2>
+        
+        {/* 애니메이션 활성화/비활성화 */}
+        <div className="mb-4">
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">테두리 애니메이션</span>
+              {borderAnimationEnabled && (
+                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                  활성화
+                </span>
+              )}
+            </div>
+            <Toggle
+              checked={borderAnimationEnabled}
+              onChange={() => setBorderAnimationEnabled(!borderAnimationEnabled)}
+            />
+          </label>
+          <p className="text-sm text-muted-foreground mt-1">
+            가격 변동 시 테두리 색상 강조 표시 여부
+          </p>
+        </div>
+
+        {/* 애니메이션 지속 시간 */}
+        <div className="mb-4">
+          <label className="block font-medium mb-2">
+            애니메이션 지속 시간
+            {borderAnimationEnabled && (
+              <span className="ml-2 text-xs text-muted-foreground">
+                (현재: {BORDER_ANIMATION_DURATION_LABELS[borderAnimationDuration]})
+              </span>
+            )}
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(BORDER_ANIMATION_DURATION_LABELS).map(([duration, label]) => {
+              const isActive = borderAnimationDuration === Number(duration);
+              return (
+                <button
+                  key={duration}
+                  type="button"
+                  onClick={() => setBorderAnimationDuration(Number(duration) as BorderAnimationDuration)}
+                  disabled={!borderAnimationEnabled}
+                  className={`p-2 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
+                    ${isActive && borderAnimationEnabled
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
+                      : borderAnimationEnabled
+                        ? 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'
+                        : 'border-border/50 bg-muted/50 text-muted-foreground'}
+                    ${!borderAnimationEnabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {label}
+                  {isActive && borderAnimationEnabled && (
+                    <span className="ml-1 text-xs">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 표시 옵션 설정 */}
+      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+        <h2 className="text-lg font-semibold mb-4">표시 옵션</h2>
+        
+        {/* 퍼센트 기호 표시 */}
+        <div className="mb-4">
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">퍼센트 기호 (%) 표시</span>
+              {showPercentSymbol && (
+                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                  활성화
+                </span>
+              )}
+            </div>
+            <Toggle
+              checked={showPercentSymbol}
+              onChange={() => setShowPercentSymbol(!showPercentSymbol)}
+            />
+          </label>
+          <p className="text-sm text-muted-foreground mt-1">
+            변동률 정보에 % 기호 표시 여부
+          </p>
+        </div>
+
+        {/* 가격 변동 정보 표시 */}
+        <div className="mb-4">
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">가격 변동 정보 표시</span>
+              {showPriceChange && (
+                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                  활성화
+                </span>
+              )}
+            </div>
+            <Toggle
+              checked={showPriceChange}
+              onChange={() => setShowPriceChange(!showPriceChange)}
+            />
+          </label>
+          <p className="text-sm text-muted-foreground mt-1">
+            가격 변동 금액 정보 표시 여부 (예: +100.00)
+          </p>
+        </div>
+      </div>
+
       {/* 예시 */}
       <div className="mb-6 p-4 bg-card rounded-lg border border-border">
         <h2 className="text-lg font-semibold mb-4">예시</h2>
@@ -218,14 +345,14 @@ export default function TickerSettingPage() {
               
               const formattedTurnover = formatNumber(ticker.turnover);
               const formattedPriceChange = `${ticker.priceChange >= 0 ? '+' : ''}${ticker.priceChange.toFixed(2)}`;
-              const formattedPriceChangePercent = `${ticker.priceChangePercent >= 0 ? '+' : ''}${ticker.priceChangePercent.toFixed(2)}%`;
+              const formattedPriceChangePercent = `${ticker.priceChangePercent >= 0 ? '+' : ''}${ticker.priceChangePercent.toFixed(2)}${showPercentSymbol ? '%' : ''}`;
               const formattedLastPrice = ticker.lastPrice.toFixed(ticker.lastPrice < 1 ? 4 : 2);
               
               // 스토어에서 색상 및 스타일 설정 가져오기
               const priceColor = getTickerColorClass(tickerColorMode, ticker.priceChange, 'text');
               const isAnimating = borderAnimations[ticker.symbol];
               const previousPrice = previousPrices[ticker.symbol] || ticker.initialPrice;
-              const borderStyle = getTickerBorderStyle(isAnimating, tickerColorMode, previousPrice, ticker.lastPrice);
+              const borderStyle = getTickerBorderStyle(isAnimating, tickerColorMode, previousPrice, ticker.lastPrice, borderAnimationEnabled);
               
               return (
                 <div 
@@ -260,9 +387,11 @@ export default function TickerSettingPage() {
                           {formattedPriceChangePercent}
                         </span>
                       </div>
-                      <div className={`text-sm ${priceColor} mt-1`}>
-                        {formattedPriceChange}
-                      </div>
+                      {showPriceChange && (
+                        <div className={`text-sm ${priceColor} mt-1`}>
+                          {formattedPriceChange}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
