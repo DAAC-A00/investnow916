@@ -60,6 +60,16 @@ const config: Config = {
     },
   },
   plugins: [],
+  // @ts-ignore - safelist is valid but not in the type definition
+  safelist: [
+    // 티커 색상 클래스
+    'text-green-500', 'border-green-500', 'bg-green-500',
+    'text-red-500', 'border-red-500', 'bg-red-500',
+    'text-blue-500', 'border-blue-500', 'bg-blue-500',
+    'text-muted-foreground', 'border-muted', 'bg-muted',
+    'text-foreground', 'border-foreground', 'bg-background',
+    'text-gray-400', 'border-gray-400', 'bg-gray-100'
+  ]
 };
 
 export default config;

@@ -10,7 +10,7 @@ import { log } from 'console';
 type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';
 type SortDirection = 'asc' | 'desc';
 
-import { useTickerSettingStore } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, getTickerColorClass, TickerColorMode } from '@/packages/shared/stores/createTickerSettingStore';
 
 export default function BybitTickersPage() {
   // 글로벌 티커 색상 모드 상태 사용
@@ -115,25 +115,6 @@ export default function BybitTickersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredTickers.map(t => t.rawSymbol + ':' + t.lastPrice).join(',')]);
 
-  // 가격 변화율에 따른 색상 클래스
-  const getPriceChangeColor = (change: number): string => {
-    switch (tickerColorMode) {
-      case 'global':
-        if (change > 0) return 'text-green-500';
-        if (change < 0) return 'text-red-500';
-        return 'text-muted-foreground';
-      case 'aisa':
-        if (change > 0) return 'text-red-500';
-        if (change < 0) return 'text-blue-500';
-        return 'text-muted-foreground';
-      case 'nothing':
-        return 'text-foreground';
-      case 'shadow':
-        return 'text-gray-400';
-      default:
-        return 'text-foreground';
-    }
-  };
 
   // Bybit instrument 정보 로딩 및 매핑
   // storage에서 "$symbol=$rawSymbol" 포맷을 파싱하여 rawSymbol→symbol 매핑
@@ -300,8 +281,22 @@ export default function BybitTickersPage() {
 
           return filteredTickers.map((ticker: TickerInfo) => {
             const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-            const priceColor = getPriceChangeColor(ticker.priceChange24h);
-            const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-900/80 dark:bg-green-900/50' : ticker.priceChange24h < 0 ? 'bg-red-900/80 dark:bg-red-900/50' : 'bg-muted/5 dark:bg-muted/5';
+            // Tailwind 색상 클래스 일원화
+            const priceColor = getTickerColorClass(tickerColorMode, ticker.priceChange24h, 'text');
+            const borderColorClass = getTickerColorClass(tickerColorMode, ticker.priceChange24h, 'border');
+            const priceBgColor = getTickerColorClass(tickerColorMode, ticker.priceChange24h, 'bg');
+            // flash 효과용 색상 (tickerColorMode에 따라)
+            const getFlashColorClass = (
+              mode: TickerColorMode,
+              flash: 'up' | 'down' | 'none',
+              type: 'text' | 'border' | 'bg' = 'bg'
+            ) => {
+              if (flash === 'up') return getTickerColorClass(mode, 1, type);
+              if (flash === 'down') return getTickerColorClass(mode, -1, type);
+              return '';
+            };
+            const flashBgClass = getFlashColorClass(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none', 'bg');
+            const flashBorderClass = getFlashColorClass(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none', 'border');
             const formattedTurnover = formatNumber(ticker.turnover24h);
             const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${Number(ticker.priceChange24h).toFixed(priceDecimals)}`;
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
@@ -322,24 +317,16 @@ export default function BybitTickersPage() {
                   </div>
                   <div className="text-right">
                     <div className={`font-bold text-lg text-right`}>
-  <span
-    className={
-      `${styles["ticker-border"]} ` +
-      (flashStates[ticker.rawSymbol] === "up"
-        ? styles["ticker-border-up"]
-        : flashStates[ticker.rawSymbol] === "down"
-        ? styles["ticker-border-down"]
-        : styles["ticker-border-none"])
-      + ` ${priceColor} px-1`
-    }
-    style={{ display: 'inline-block', borderRadius: '0rem' }}
-  >
-    {formattedLastPrice}
-  </span>
-  <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor} ml-1 ${priceColor}`}>
-    {formattedPriceChangePercent}
-  </span>
-</div>
+                      <span
+                        className={`border ${borderColorClass} ${flashBorderClass} ${priceColor} px-1 inline-block`}
+                        style={{ borderRadius: '0rem' }}
+                      >
+                        {formattedLastPrice}
+                      </span>
+                      <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor} ${flashBgClass} ml-1 ${priceColor}`}>
+                        {formattedPriceChangePercent}
+                      </span>
+                    </div>
                     <div className={`text-sm ${priceColor}`}>
                       {formattedPriceChange}
                     </div>
