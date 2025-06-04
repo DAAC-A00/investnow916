@@ -2,22 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { useExchangeRateActions } from '@/packages/shared/stores/createExchangeRateStore';
+import { useThemeStore } from '@/packages/shared/stores/createThemeStore';
+import { useApiKeyStatus, useApiKeyStatusActions } from '@/packages/shared/stores/createApiKeyStatusStore';
 
 /**
  * API 키 설정 페이지 컴포넌트
  */
 export default function ApiKeySettingsPage() {
   const { getApiKey, setApiKey } = useExchangeRateActions();
+  const theme = useThemeStore((state) => state.theme);
   const [apiKey, setApiKeyLocal] = useState('');
-  const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  // 컴포넌트 마운트 시 저장된 API 키 로드
+  const apiKeyStatus = useApiKeyStatus(apiKey);
+  const { checkApiKey, setStatus, getStatusIcon, getStatusText } = useApiKeyStatusActions();
+  
+  // 컴포넌트 마운트 시 저장된 API 키 로드 및 상태 확인
   useEffect(() => {
-    const loadApiKey = () => {
+    const loadAndCheckApiKey = async () => {
       try {
         const savedKey = getApiKey();
         setApiKeyLocal(savedKey || '');
+        
+        // 저장된 키가 있으면 상태 확인
+        if (savedKey) {
+          setStatus(savedKey, 'verifying');
+          await checkApiKey(savedKey);
+        }
       } catch (error) {
         console.error('API 키를 불러오는 중 오류 발생:', error);
       } finally {
@@ -25,22 +35,33 @@ export default function ApiKeySettingsPage() {
       }
     };
 
-    loadApiKey();
-  }, [getApiKey]);
-
-  const handleSave = () => {
-    try {
-      setApiKey(apiKey);
-      setIsSaved(true);
-      
-      // 3초 후 저장 완료 메시지 숨기기
-      setTimeout(() => {
-        setIsSaved(false);
-      }, 3000);
-    } catch (error) {
-      console.error('API 키 저장 중 오류 발생:', error);
+    loadAndCheckApiKey();
+  }, [getApiKey, checkApiKey, setStatus]);
+  
+  // API 키가 변경될 때마다 처리
+  useEffect(() => {
+    if (!apiKey) return;
+    
+    // 상태를 'verifying'으로 업데이트
+    setStatus(apiKey, 'verifying');
+    
+    // API 키를 로컬 스토리지에 즉시 저장 (유효성 검사 결과와 무관하게)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('apikey-exchangerate', apiKey);
+      setApiKey(apiKey); // 상태 업데이트
     }
-  };
+    
+    // 디바운싱을 사용하여 API 키 유효성 검사 (UI 피드백용)
+    const timer = setTimeout(async () => {
+      try {
+        await checkApiKey(apiKey);
+      } catch (error) {
+        console.error('API 키 검증 중 오류:', error);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [apiKey, checkApiKey, setApiKey, setStatus]);
 
   if (isLoading) {
     return (
@@ -52,7 +73,17 @@ export default function ApiKeySettingsPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">API 키 설정</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">API 키 설정</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{getStatusIcon(apiKeyStatus || 'unsaved', theme)}</span>
+          <div className="flex flex-col">
+            <span className="text-sm text-muted-foreground">
+              {getStatusText(apiKeyStatus || 'unsaved', apiKeyStatus === 'invalid' ? 'invalid' : undefined)}
+            </span>
+          </div>
+        </div>
+      </div>
       
       <div className="bg-card rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">ExchangeRate-API 키</h2>
@@ -73,23 +104,10 @@ export default function ApiKeySettingsPage() {
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKeyLocal(e.target.value)}
+                className="w-full p-2 border rounded bg-background text-foreground"
                 placeholder="API 키를 입력하세요"
-                className="flex-1 px-4 py-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               />
-              <button
-                onClick={handleSave}
-                disabled={!apiKey.trim()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                저장
-              </button>
             </div>
-            
-            {isSaved && (
-              <p className="text-sm text-green-600 mt-2">
-                API 키가 성공적으로 저장되었습니다.
-              </p>
-            )}
             
             <p className="text-sm text-muted-foreground mt-2">
               ExchangeRate-API에서 발급받은 API 키를 입력하세요. API 키는 브라우저에 저장됩니다.

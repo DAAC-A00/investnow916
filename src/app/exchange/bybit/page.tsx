@@ -292,7 +292,7 @@ export default function BybitTickersPage() {
 
             return (
               <div
-                key={`${ticker.rawCategory}-${ticker.rawSymbol}`}
+                key={`${ticker.category}-${ticker.rawSymbol}`}
                 className={
                   "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
                 }
