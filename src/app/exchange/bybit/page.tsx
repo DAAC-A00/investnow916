@@ -10,7 +10,11 @@ import { log } from 'console';
 type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';
 type SortDirection = 'asc' | 'desc';
 
+import { useTickerSettingStore } from '@/packages/shared/stores/createTickerSettingStore';
+
 export default function BybitTickersPage() {
+  // 글로벌 티커 색상 모드 상태 사용
+  const tickerColorMode = useTickerSettingStore((s) => s.tickerColorMode);
   // 가격 변동 효과: 상승/하락/없음 상태 관리 (컴포넌트 전체에서 관리)
   const [flashStates, setFlashStates] = useState<Record<string, 'up' | 'down' | 'none'>>({});
   const prevPrices = useRef<Record<string, number>>({});
@@ -112,10 +116,23 @@ export default function BybitTickersPage() {
   }, [filteredTickers.map(t => t.rawSymbol + ':' + t.lastPrice).join(',')]);
 
   // 가격 변화율에 따른 색상 클래스
-  const getPriceChangeColor = (changePercent: number) => {
-    if (changePercent > 0) return 'text-green-600';
-    if (changePercent < 0) return 'text-red-600';
-    return 'text-gray-600';
+  const getPriceChangeColor = (change: number): string => {
+    switch (tickerColorMode) {
+      case 'global':
+        if (change > 0) return 'text-green-500';
+        if (change < 0) return 'text-red-500';
+        return 'text-muted-foreground';
+      case 'aisa':
+        if (change > 0) return 'text-red-500';
+        if (change < 0) return 'text-blue-500';
+        return 'text-muted-foreground';
+      case 'nothing':
+        return 'text-foreground';
+      case 'shadow':
+        return 'text-gray-400';
+      default:
+        return 'text-foreground';
+    }
   };
 
   // Bybit instrument 정보 로딩 및 매핑
@@ -284,7 +301,7 @@ export default function BybitTickersPage() {
           return filteredTickers.map((ticker: TickerInfo) => {
             const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
             const priceColor = getPriceChangeColor(ticker.priceChange24h);
-            const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-50/70 dark:bg-green-900/30' : ticker.priceChange24h < 0 ? 'bg-red-50/70 dark:bg-red-900/30' : 'bg-muted/10 dark:bg-muted/30';
+            const priceBgColor = ticker.priceChange24h > 0 ? 'bg-green-900/80 dark:bg-green-900/50' : ticker.priceChange24h < 0 ? 'bg-red-900/80 dark:bg-red-900/50' : 'bg-muted/5 dark:bg-muted/5';
             const formattedTurnover = formatNumber(ticker.turnover24h);
             const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${Number(ticker.priceChange24h).toFixed(priceDecimals)}`;
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
@@ -292,7 +309,7 @@ export default function BybitTickersPage() {
 
             return (
               <div
-                key={`${ticker.category}-${ticker.rawSymbol}`}
+                key={`${ticker.displayCategory}-${ticker.rawSymbol}`}
                 className={
                   "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
                 }
@@ -319,7 +336,7 @@ export default function BybitTickersPage() {
   >
     {formattedLastPrice}
   </span>
-  <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor} ml-2 ${priceColor}`}>
+  <span className={`text-sm px-1.5 py-0.5 rounded ${priceBgColor} ml-1 ${priceColor}`}>
     {formattedPriceChangePercent}
   </span>
 </div>

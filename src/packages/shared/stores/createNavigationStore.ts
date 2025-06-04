@@ -61,7 +61,7 @@ const defaultMenuItems: MenuItemType[] = [
   {
     id: 'exchange-bybit',
     label: 'Bybit',
-    icon: '📊',
+    icon: '🏢',
     route: '/exchange/bybit',
     description: '바이빗 거래소 코인 정보 조회',
     isAdminOnly: false,
@@ -90,7 +90,14 @@ const defaultMenuItems: MenuItemType[] = [
     description: '앱 설정 관리',
     isAdminOnly: false,
   },
-
+  {
+    id: 'setting-ticker',
+    label: '티커 설정',
+    icon: '📊',
+    route: '/setting/ticker',
+    description: 'Ticker 설정 관리',
+    isAdminOnly: false,
+  },
   {
     id: 'api-key',
     label: 'API 키 설정',

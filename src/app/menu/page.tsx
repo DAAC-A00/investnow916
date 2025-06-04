@@ -7,12 +7,14 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMenuItems, useNavigationActions, useCurrentRoute } from '../../packages/shared/stores/createNavigationStore';
+import { useIsAdminModeEnabled } from '../../packages/shared/stores/createAdminModeStore';
 
 export default function MenuPage() {
   const router = useRouter();
   const menuItems = useMenuItems();
   const currentRoute = useCurrentRoute();
   const { initializeDefaultMenus, setCurrentRoute } = useNavigationActions();
+  const adminMode = useIsAdminModeEnabled();
 
   // 참고: 기본 메뉴 초기화는 AppLayout에서 처리됩니다
 
@@ -33,7 +35,7 @@ export default function MenuPage() {
           <h1 className="text-4xl font-bold text-foreground mb-4">
             ☰ 전체 메뉴
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mb-4">
             사용 가능한 모든 기능을 확인하고 이동할 수 있습니다
           </p>
         </div>
@@ -41,6 +43,7 @@ export default function MenuPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {menuItems.map((item) => {
             const isActive = currentRoute === item.route;
+            const isDisabled = item.isAdminOnly && !adminMode;
             
             return (
               <div
@@ -51,12 +54,12 @@ export default function MenuPage() {
                     ? 'ring-2 ring-primary bg-accent' 
                     : 'hover:scale-105'
                   }
-                  ${item.isDisabled 
+                  ${isDisabled 
                     ? 'opacity-50 cursor-not-allowed' 
                     : ''
                   }
                 `}
-                onClick={() => !item.isDisabled && handleMenuClick(item.route)}
+                onClick={() => !isDisabled && handleMenuClick(item.route)}
               >
                 <div className="text-center">
                   {item.icon && (
