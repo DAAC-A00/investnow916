@@ -7,6 +7,13 @@ import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import type { MenuItemType, NavigationState } from '../types/navigation';
 
+// 메뉴 아이템 타입에 children 속성 추가
+declare module '../types/navigation' {
+  interface MenuItemType {
+    children?: MenuItemType[];
+  }
+}
+
 // 디바이스 타입 정의
 export type DeviceType = 'mobile' | 'desktop';
 
@@ -81,6 +88,15 @@ const defaultMenuItems: MenuItemType[] = [
     icon: '⚙️',
     route: '/setting',
     description: '앱 설정 관리',
+    isAdminOnly: false,
+  },
+
+  {
+    id: 'api-key',
+    label: 'API 키 설정',
+    icon: '🔑',
+    route: '/setting/apikey',
+    description: 'ExchangeRate-API 키 관리',
     isAdminOnly: false,
   },
   {

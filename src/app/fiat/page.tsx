@@ -9,7 +9,7 @@ import {
   useIsLoading, 
   useError,
   useExchangeRateActions 
-} from '@/packages/shared/stores/createExchangeTickerStore';
+} from '@/packages/shared/stores/createExchangeRateStore';
 
 // 주요 통화 목록
 const POPULAR_CURRENCIES = ['USD', 'EUR', 'JPY', 'KRW', 'GBP', 'CNY', 'HKD', 'CAD', 'AUD', 'SGD'];

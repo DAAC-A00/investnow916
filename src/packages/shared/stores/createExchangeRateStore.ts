@@ -8,13 +8,27 @@ import { immer } from 'zustand/middleware/immer';
 import type { ExchangeRateResponse, ExchangeRateState } from '../types/exchange';
 
 // API 키 및 기본 URL
-const API_KEY = '842f9ce049b12b202bc6932f';
+let API_KEY = '';
+
+// 초기 로드 시 로컬 스토리지에서 API 키 로드
+if (typeof window !== 'undefined') {
+  try {
+    const savedKey = localStorage.getItem('apikey-exchangerate');
+    if (savedKey) {
+      API_KEY = savedKey;
+    }
+  } catch (error) {
+    console.error('로컬 스토리지에서 API 키를 불러오는 중 오류 발생:', error);
+  }
+}
 const BASE_URL = 'https://v6.exchangerate-api.com/v6';
 
 // 환율 정보 액션 인터페이스
 interface ExchangeRateActions {
   fetchRates: (baseCode?: string) => Promise<void>;
   changeBaseCurrency: (baseCode: string) => Promise<void>;
+  setApiKey: (key: string) => void;
+  getApiKey: () => string;
 }
 
 // 전체 스토어 타입
@@ -34,8 +48,48 @@ const exchangeRateStoreCreator: StateCreator<
   isLoading: false,
   error: null,
 
+  // API 키 설정
+  setApiKey: (key: string) => {
+    API_KEY = key;
+    // 로컬 스토리지에 API 키 저장
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('apikey-exchangerate', key);
+      } catch (error) {
+        console.error('API 키를 로컬 스토리지에 저장하는 중 오류 발생:', error);
+      }
+    }
+  },
+
+  // API 키 가져오기
+  getApiKey: () => {
+    // 로컬 스토리지에서 API 키 로드 (없으면 전역 변수 반환)
+    if (typeof window !== 'undefined') {
+      try {
+        const savedKey = localStorage.getItem('apikey-exchangerate');
+        if (savedKey) {
+          API_KEY = savedKey;
+        }
+      } catch (error) {
+        console.error('로컬 스토리지에서 API 키를 불러오는 중 오류 발생:', error);
+      }
+    }
+    return API_KEY;
+  },
+
   // 환율 정보 가져오기
   fetchRates: async (baseCode?: string) => {
+    if (!API_KEY) {
+      set(
+        (state) => {
+          state.error = 'API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.';
+          state.isLoading = false;
+        },
+        false,
+        'fetchRates/error'
+      );
+      throw new Error('API 키가 설정되지 않았습니다.');
+    }
     const currentBaseCode = baseCode || get().baseCode;
     
     set(
@@ -107,4 +161,6 @@ export const useError = () => useExchangeRateStore((state) => state.error);
 export const useExchangeRateActions = () => useExchangeRateStore((state) => ({
   fetchRates: state.fetchRates,
   changeBaseCurrency: state.changeBaseCurrency,
+  setApiKey: state.setApiKey,
+  getApiKey: state.getApiKey,
 }));
