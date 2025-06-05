@@ -420,7 +420,6 @@ export default function ColorPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="palette">색상 팔레트</TabsTrigger>
           <TabsTrigger value="components">컴포넌트 예시</TabsTrigger>
-          <TabsTrigger value="financial">금융 앱 예시</TabsTrigger>
         </TabsList>
 
         <TabsContent value="palette" className="space-y-8">
@@ -579,82 +578,418 @@ export default function ColorPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="financial" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Stock Card Example */}
+            {/* Tertiary Colors */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Stock Card</CardTitle>
-                <CardDescription>주식 정보 카드 예시</CardDescription>
+                <CardTitle className="text-sm">Tertiary Elements</CardTitle>
+                <CardDescription>민트 색상 활용</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">AAPL</h3>
-                    <p className="text-sm text-muted-foreground">Apple Inc.</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">$150.25</p>
-                    <p 
-                      className="text-sm flex items-center gap-1"
-                      style={{ color: `hsl(${themeColors.success[600]})` }}
-                    >
-                      <TrendingUp className="w-3 h-3" />
-                      +2.5%
-                    </p>
+              <CardContent className="space-y-3">
+                <div 
+                  className="p-3 rounded-lg text-sm"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.tertiary[100]})`,
+                    color: `hsl(${themeColors.tertiary[800]})`
+                  }}
+                >
+                  Fresh Mint Background
+                </div>
+                <Badge 
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.tertiary[500]})`,
+                    color: `hsl(${themeColors.tertiary.foreground})`
+                  }}
+                >
+                  New Feature
+                </Badge>
+                <Button
+                  style={{
+                    backgroundColor: `hsl(${themeColors.tertiary[600]})`,
+                    color: `hsl(${themeColors.tertiary.foreground})`
+                  }}
+                >
+                  Tertiary Action
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Navigation Menu */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Navigation Menu</CardTitle>
+                <CardDescription>네비게이션 컴포넌트</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div 
+                  className="p-2 rounded"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.primary[50]})`,
+                    borderLeft: `3px solid hsl(${themeColors.primary[500]})`
+                  }}
+                >
+                  <div 
+                    className="text-sm font-medium"
+                    style={{ color: `hsl(${themeColors.primary[700]})` }}
+                  >
+                    Active Menu Item
                   </div>
                 </div>
                 <div 
-                  className="p-3 rounded"
+                  className="p-2 rounded hover:bg-opacity-50 cursor-pointer transition-colors"
                   style={{ 
-                    backgroundColor: `hsl(${themeColors.primary[50]})`,
-                    border: `1px solid hsl(${themeColors.primary[200]})`
+                    color: `hsl(${themeColors.neutral[600]})`,
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = `hsl(${themeColors.neutral[100]})`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <p className="text-sm font-medium">Portfolio Weight</p>
-                  <p className="text-lg font-bold" style={{ color: `hsl(${themeColors.primary[700]})` }}>
-                    15.3%
-                  </p>
+                  <div className="text-sm">Inactive Menu Item</div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Portfolio Summary */}
+            {/* Progress Indicators */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Portfolio Summary</CardTitle>
-                <CardDescription>포트폴리오 요약</CardDescription>
+                <CardTitle className="text-sm">Progress Indicators</CardTitle>
+                <CardDescription>진행률 표시 컴포넌트</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div 
-                    className="p-3 rounded text-center"
-                    style={{ 
-                      backgroundColor: `hsl(${themeColors.accent[100]})`,
-                      color: `hsl(${themeColors.accent[800]})`
-                    }}
-                  >
-                    <p className="text-xs font-medium">Total Value</p>
-                    <p className="text-lg font-bold">$125,430</p>
+                <div>
+                  <div className="text-xs mb-1" style={{ color: `hsl(${themeColors.neutral[600]})` }}>
+                    Loading Progress (75%)
                   </div>
                   <div 
-                    className="p-3 rounded text-center"
+                    className="w-full h-2 rounded-full"
+                    style={{ backgroundColor: `hsl(${themeColors.neutral[200]})` }}
+                  >
+                    <div 
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: '75%',
+                        backgroundColor: `hsl(${themeColors.primary[500]})`
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs mb-1" style={{ color: `hsl(${themeColors.neutral[600]})` }}>
+                    Success Rate (90%)
+                  </div>
+                  <div 
+                    className="w-full h-2 rounded-full"
+                    style={{ backgroundColor: `hsl(${themeColors.neutral[200]})` }}
+                  >
+                    <div 
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: '90%',
+                        backgroundColor: `hsl(${themeColors.success[500]})`
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Input Forms */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Form Elements</CardTitle>
+                <CardDescription>입력 폼 컴포넌트</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <label 
+                    className="text-sm font-medium mb-1 block"
+                    style={{ color: `hsl(${themeColors.neutral[700]})` }}
+                  >
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    className="w-full p-2 rounded border text-sm focus:outline-none focus:ring-2 transition-colors"
+                    style={{
+                      borderColor: `hsl(${themeColors.neutral[300]})`,
+                      backgroundColor: `hsl(${themeColors.neutral[50]})`,
+                      color: `hsl(${themeColors.neutral[900]})`
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = `hsl(${themeColors.primary[500]})`;
+                      e.target.style.boxShadow = `0 0 0 2px hsl(${themeColors.primary[500]} / 0.2)`;
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = `hsl(${themeColors.neutral[300]})`;
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+                <div>
+                  <label 
+                    className="text-sm font-medium mb-1 block"
+                    style={{ color: `hsl(${themeColors.neutral[700]})` }}
+                  >
+                    Message
+                  </label>
+                  <textarea
+                    placeholder="Enter your message"
+                    rows={3}
+                    className="w-full p-2 rounded border text-sm focus:outline-none focus:ring-2 transition-colors resize-none"
+                    style={{
+                      borderColor: `hsl(${themeColors.neutral[300]})`,
+                      backgroundColor: `hsl(${themeColors.neutral[50]})`,
+                      color: `hsl(${themeColors.neutral[900]})`
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = `hsl(${themeColors.primary[500]})`;
+                      e.target.style.boxShadow = `0 0 0 2px hsl(${themeColors.primary[500]} / 0.2)`;
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = `hsl(${themeColors.neutral[300]})`;
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Data Cards */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Data Display Cards</CardTitle>
+                <CardDescription>데이터 표시 카드</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div 
+                  className="p-4 rounded-lg border"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.neutral[50]})`,
+                    borderColor: `hsl(${themeColors.neutral[200]})`
+                  }}
+                >
+                  <div 
+                    className="text-2xl font-bold mb-1"
+                    style={{ color: `hsl(${themeColors.primary[600]})` }}
+                  >
+                    $12,345
+                  </div>
+                  <div 
+                    className="text-sm"
+                    style={{ color: `hsl(${themeColors.neutral[600]})` }}
+                  >
+                    Total Revenue
+                  </div>
+                  <div 
+                    className="text-xs mt-1 flex items-center"
+                    style={{ color: `hsl(${themeColors.success[600]})` }}
+                  >
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    +12.5% from last month
+                  </div>
+                </div>
+                <div 
+                  className="p-4 rounded-lg border"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.accent[50]})`,
+                    borderColor: `hsl(${themeColors.accent[200]})`
+                  }}
+                >
+                  <div 
+                    className="text-2xl font-bold mb-1"
+                    style={{ color: `hsl(${themeColors.accent[600]})` }}
+                  >
+                    1,234
+                  </div>
+                  <div 
+                    className="text-sm"
+                    style={{ color: `hsl(${themeColors.neutral[600]})` }}
+                  >
+                    Premium Users
+                  </div>
+                  <Badge 
+                    className="mt-2"
                     style={{ 
-                      backgroundColor: `hsl(${themeColors.success[100]})`,
-                      color: `hsl(${themeColors.success[800]})`
+                      backgroundColor: `hsl(${themeColors.accent[500]})`,
+                      color: `hsl(${themeColors.accent.foreground})`
                     }}
                   >
-                    <p className="text-xs font-medium">Today's Gain</p>
-                    <p className="text-lg font-bold">+$1,234</p>
+                    VIP
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notification Toast */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Notification Toasts</CardTitle>
+                <CardDescription>알림 토스트 컴포넌트</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div 
+                  className="p-3 rounded-lg border-l-4 flex items-start space-x-3"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.success[50]})`,
+                    borderLeftColor: `hsl(${themeColors.success[500]})`
+                  }}
+                >
+                  <div 
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ 
+                      backgroundColor: `hsl(${themeColors.success[500]})`,
+                      color: `hsl(${themeColors.success.foreground})`
+                    }}
+                  >
+                    ✓
+                  </div>
+                  <div>
+                    <div 
+                      className="text-sm font-medium"
+                      style={{ color: `hsl(${themeColors.success[800]})` }}
+                    >
+                      Success!
+                    </div>
+                    <div 
+                      className="text-xs"
+                      style={{ color: `hsl(${themeColors.success[600]})` }}
+                    >
+                      Your changes have been saved successfully.
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  className="p-3 rounded-lg border-l-4 flex items-start space-x-3"
+                  style={{ 
+                    backgroundColor: `hsl(${themeColors.warning[50]})`,
+                    borderLeftColor: `hsl(${themeColors.warning[500]})`
+                  }}
+                >
+                  <div 
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ 
+                      backgroundColor: `hsl(${themeColors.warning[500]})`,
+                      color: `hsl(${themeColors.warning.foreground})`
+                    }}
+                  >
+                    !
+                  </div>
+                  <div>
+                    <div 
+                      className="text-sm font-medium"
+                      style={{ color: `hsl(${themeColors.warning[800]})` }}
+                    >
+                      Warning
+                    </div>
+                    <div 
+                      className="text-xs"
+                      style={{ color: `hsl(${themeColors.warning[600]})` }}
+                    >
+                      Please review your settings before proceeding.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Interactive Elements */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Interactive Elements</CardTitle>
+                <CardDescription>상호작용 컴포넌트</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
+                    Toggle Switch
+                  </div>
+                  <div 
+                    className="w-12 h-6 rounded-full p-1 cursor-pointer transition-colors"
+                    style={{ backgroundColor: `hsl(${themeColors.primary[500]})` }}
+                    onClick={(e) => {
+                      const isActive = e.currentTarget.dataset.active === 'true';
+                      e.currentTarget.dataset.active = (!isActive).toString();
+                      e.currentTarget.style.backgroundColor = !isActive 
+                        ? `hsl(${themeColors.primary[500]})` 
+                        : `hsl(${themeColors.neutral[300]})`;
+                      const circle = e.currentTarget.querySelector('div') as HTMLElement;
+                      circle.style.transform = !isActive ? 'translateX(24px)' : 'translateX(0)';
+                    }}
+                    data-active="true"
+                  >
+                    <div 
+                      className="w-4 h-4 bg-white rounded-full transition-transform"
+                      style={{ transform: 'translateX(24px)' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
+                    Rating Stars
+                  </div>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <div
+                        key={star}
+                        className="w-5 h-5 cursor-pointer transition-colors"
+                        style={{ 
+                          color: star <= 4 ? `hsl(${themeColors.accent[500]})` : `hsl(${themeColors.neutral[300]})`
+                        }}
+                        onClick={(e) => {
+                          const parent = e.currentTarget.parentElement;
+                          const stars = parent?.querySelectorAll('div');
+                          stars?.forEach((s, index) => {
+                            s.style.color = index < star 
+                              ? `hsl(${themeColors.accent[500]})` 
+                              : `hsl(${themeColors.neutral[300]})`;
+                          });
+                        }}
+                      >
+                        ★
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
+                    Chip Selection
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['React', 'TypeScript', 'Tailwind', 'Next.js'].map((tech) => (
+                      <div
+                        key={tech}
+                        className="px-3 py-1 rounded-full text-xs cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: `hsl(${themeColors.tertiary[100]})`,
+                          color: `hsl(${themeColors.tertiary[700]})`,
+                          border: `1px solid hsl(${themeColors.tertiary[300]})`
+                        }}
+                        onClick={(e) => {
+                          const isSelected = e.currentTarget.dataset.selected === 'true';
+                          e.currentTarget.dataset.selected = (!isSelected).toString();
+                          e.currentTarget.style.backgroundColor = !isSelected 
+                            ? `hsl(${themeColors.tertiary[500]})` 
+                            : `hsl(${themeColors.tertiary[100]})`;
+                          e.currentTarget.style.color = !isSelected 
+                            ? `hsl(${themeColors.tertiary.foreground})` 
+                            : `hsl(${themeColors.tertiary[700]})`;
+                        }}
+                      >
+                        {tech}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
+
       </Tabs>
     </div>
   );
