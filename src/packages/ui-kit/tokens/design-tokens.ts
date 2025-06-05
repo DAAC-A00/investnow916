@@ -133,26 +133,82 @@ export const colorTokens = {
     foreground: '0 0% 100%',
   },
 
-  // 📊 금융 전용 색상
-  financial: {
-    up: '142 71% 45%',      // success-500
-    down: '0 84% 60%',      // error-500
-    unchanged: '220 9% 46%', // gray-500
-    volume: '217 91% 60%',  // primary-500
-    profit: '142 71% 45%',  // success-500
-    loss: '0 84% 60%',      // error-500
-  },
-
-  // 🎨 차트 색상 팔레트
-  chart: {
-    1: '217 91% 60%',  // primary
-    2: '142 71% 45%',  // success
-    3: '0 84% 60%',    // error
-    4: '32 95% 53%',   // warning
-    5: '270 91% 65%',  // secondary
-    6: '174 80% 45%',  // accent
+  // 🎯 티커 색상 시스템 (금융 서비스 특화)
+  ticker: {
+    light: {
+      // Global 모드: 상승 녹색, 하락 빨간색, 보합 회색
+      global: {
+        up: '142 71% 45%',      // 상승: 녹색 (success-500)
+        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
+        unchanged: '220 9% 46%', // 보합: 회색 (gray-500)
+      },
+      // Asia 모드: 상승 빨간색, 하락 파란색, 보합 회색
+      asia: {
+        up: '0 84% 60%',        // 상승: 빨간색 (error-500)
+        down: '217 91% 60%',    // 하락: 파란색 (primary-500)
+        unchanged: '220 9% 46%', // 보합: 회색 (gray-500)
+      },
+      // Nothing 모드: 라이트 모드 일반 텍스트 색상
+      nothing: {
+        up: '221 39% 11%',      // 라이트 모드 foreground
+        down: '221 39% 11%',    // 라이트 모드 foreground
+        unchanged: '221 39% 11%', // 라이트 모드 foreground
+      },
+      // Gray 모드: 모든 색상 회색
+      gray: {
+        up: '220 9% 46%',       // 회색 (gray-500)
+        down: '220 9% 46%',     // 회색 (gray-500)
+        unchanged: '220 9% 46%', // 회색 (gray-500)
+      },
+    },
+    dark: {
+      // Global 모드: 상승 녹색, 하락 빨간색, 보합 회색 (라이트와 동일)
+      global: {
+        up: '142 71% 45%',      // 상승: 녹색 (success-500)
+        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
+        unchanged: '220 9% 46%', // 보합: 회색 (gray-500)
+      },
+      // Asia 모드: 상승 빨간색, 하락 파란색, 보합 회색 (라이트와 동일)
+      asia: {
+        up: '0 84% 60%',        // 상승: 빨간색 (error-500)
+        down: '217 91% 60%',    // 하락: 파란색 (primary-500)
+        unchanged: '220 9% 46%', // 보합: 회색 (gray-500)
+      },
+      // Nothing 모드: 다크 모드 일반 텍스트 색상
+      nothing: {
+        up: '210 20% 98%',      // 다크 모드 foreground
+        down: '210 20% 98%',    // 다크 모드 foreground
+        unchanged: '210 20% 98%', // 다크 모드 foreground
+      },
+      // Gray 모드: 모든 색상 회색 (라이트와 동일)
+      gray: {
+        up: '220 9% 46%',       // 회색 (gray-500)
+        down: '220 9% 46%',     // 회색 (gray-500)
+        unchanged: '220 9% 46%', // 회색 (gray-500)
+      },
+    },
   },
 } as const;
+
+/**
+ * 색상 모드별 배경색 설정 (퍼센트 표시용) - 디자인 토큰 기반
+ */
+export const getTickerBackgroundColor = (
+  mode: TickerColorMode,
+  change: number
+): string => {
+  if (change === 0) {
+    const unchangedColor = getTickerColor(mode, 'unchanged');
+    return `hsla(${unchangedColor}, 0.2)`;
+  }
+  if (change > 0) {
+    const upColor = getTickerColor(mode, 'up');
+    return `hsla(${upColor}, 0.2)`;
+  } else {
+    const downColor = getTickerColor(mode, 'down');
+    return `hsla(${downColor}, 0.2)`;
+  }
+};
 
 // ===== 📝 타이포그래피 =====
 // 반응형 텍스트 스케일과 폰트 설정
@@ -337,13 +393,6 @@ export const breakpoints = {
 // 디자인 토큰을 활용한 헬퍼 함수들
 
 /**
- * HSL 색상 값을 CSS 변수 형태로 변환
- */
-export const hslToCssVar = (colorValue: string, varName: string) => {
-  return `--${varName}: ${colorValue};`;
-};
-
-/**
  * 색상 팔레트에서 특정 색상 추출
  */
 export const getColor = (color: keyof typeof colorTokens, shade?: string | number): string => {
@@ -364,17 +413,25 @@ export const getColor = (color: keyof typeof colorTokens, shade?: string | numbe
 };
 
 /**
- * 금융 데이터 색상 반환 (상승/하락/변동없음)
+ * 티커 색상 모드 타입 정의
  */
-export const getFinancialColor = (type: 'up' | 'down' | 'unchanged' | 'volume' | 'profit' | 'loss') => {
-  return colorTokens.financial[type];
-};
+export type TickerColorMode = 'global' | 'asia' | 'nothing' | 'gray';
 
 /**
- * 차트 색상 반환
+ * 티커 색상을 반환
  */
-export const getChartColor = (index: 1 | 2 | 3 | 4 | 5 | 6) => {
-  return colorTokens.chart[index];
+export const getTickerColor = (
+  mode: TickerColorMode, 
+  changeStatus: 'up' | 'down' | 'unchanged'
+): string => {
+  // 현재 테마 감지 (DOM에서 dark 클래스 확인)
+  let currentTheme: 'light' | 'dark' = 'light';
+  if (typeof window !== 'undefined') {
+    currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  }
+  
+  const colorValue = colorTokens.ticker[currentTheme][mode][changeStatus];
+  return colorValue;
 };
 
 // ===== 📤 타입 정의 내보내기 =====

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTickerSettingStore, getTickerColorClass, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerBackgroundColor, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerPriceStyle, getTickerBackgroundColor, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
+import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
 
 interface TickerData {
   symbol: string;
@@ -26,7 +27,9 @@ export default function TickerSettingPage() {
     showPercentSymbol,
     setShowPercentSymbol,
     showPriceChange,
-    setShowPriceChange
+    setShowPriceChange,
+    showPercentBackground,
+    setShowPercentBackground
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   
@@ -48,19 +51,19 @@ export default function TickerSettingPage() {
       lastPrice: 4900.00,
       priceChange: -100.00,
       priceChangePercent: -2.00,
-      turnover: 1560000000,
+      turnover: 15600000,
       label: '하락 예시',
       initialPrice: 5000.00
     },
     {
       symbol: 'COIN3/USDT',
       displaySymbol: 'COIN3/USDT', 
-      lastPrice: 0.4567,
+      lastPrice: 73.19,
       priceChange: 0.00,
       priceChangePercent: 0.00,
-      turnover: 890000000,
+      turnover: 890000,
       label: '보합 예시',
-      initialPrice: 0.4567
+      initialPrice: 73.19
     }
   ]);
 
@@ -182,13 +185,13 @@ export default function TickerSettingPage() {
       <div className="mb-8 p-4 bg-card rounded-lg border border-border">
         <h2 className="text-lg font-semibold mb-4">색상 모드 선택</h2>
         <div className="grid grid-cols-1 gap-3">
-          {Object.entries(TICKER_COLOR_MODE_LABELS).map(([mode, label]) => {
+          {(Object.entries(TICKER_COLOR_MODE_LABELS) as [TickerColorMode, string][]).map(([mode, label]) => {
             const isActive = tickerColorMode === mode;
             return (
               <button
                 key={mode}
                 type="button"
-                onClick={() => setTickerColorMode(mode as TickerColorMode)}
+                onClick={() => setTickerColorMode(mode)}
                 className={`p-4 rounded-lg border-2 transition-all text-left
                   ${isActive 
                     ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
@@ -198,17 +201,26 @@ export default function TickerSettingPage() {
                   <div>
                     <span className="font-medium text-base">{label}</span>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {TICKER_COLOR_MODE_DESCRIPTIONS[mode as TickerColorMode]}
+                      {TICKER_COLOR_MODE_DESCRIPTIONS[mode]}
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getTickerColorClass(mode as TickerColorMode, 1, 'text')}`}>
+                    <span 
+                      className="px-2 py-1 rounded text-xs font-semibold"
+                      style={{ color: `hsl(${getTickerColor(mode, 'up')})` }}
+                    >
                       ▲
                     </span>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getTickerColorClass(mode as TickerColorMode, -1, 'text')}`}>
+                    <span 
+                      className="px-2 py-1 rounded text-xs font-semibold"
+                      style={{ color: `hsl(${getTickerColor(mode, 'down')})` }}
+                    >
                       ▼
                     </span>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getTickerColorClass(mode as TickerColorMode, 0, 'text')}`}>
+                    <span 
+                      className="px-2 py-1 rounded text-xs font-semibold"
+                      style={{ color: `hsl(${getTickerColor(mode, 'unchanged')})` }}
+                    >
                       ━
                     </span>
                   </div>
@@ -327,6 +339,27 @@ export default function TickerSettingPage() {
             가격 변동 금액 정보 표시 여부 (예: +100.00)
           </p>
         </div>
+
+        {/* 변동률 배경색 표시 */}
+        <div className="mb-4">
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">변동률 배경색 표시</span>
+              {showPercentBackground && (
+                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                  활성화
+                </span>
+              )}
+            </div>
+            <Toggle
+              checked={showPercentBackground}
+              onChange={() => setShowPercentBackground(!showPercentBackground)}
+            />
+          </label>
+          <p className="text-sm text-muted-foreground mt-1">
+            변동률 퍼센트 표시에 배경색 적용 여부
+          </p>
+        </div>
       </div>
 
       {/* 예시 */}
@@ -349,10 +382,10 @@ export default function TickerSettingPage() {
               const formattedLastPrice = ticker.lastPrice.toFixed(ticker.lastPrice < 1 ? 4 : 2);
               
               // 스토어에서 색상 및 스타일 설정 가져오기
-              const priceColor = getTickerColorClass(tickerColorMode, ticker.priceChange, 'text');
+              const priceStyle = getTickerPriceStyle(tickerColorMode, ticker.priceChange);
+              const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, ticker.priceChange, showPercentBackground);
               const isAnimating = borderAnimations[ticker.symbol];
-              const previousPrice = previousPrices[ticker.symbol] || ticker.initialPrice;
-              const borderStyle = getTickerBorderStyle(isAnimating, tickerColorMode, previousPrice, ticker.lastPrice, borderAnimationEnabled);
+              const borderStyle = getTickerBorderStyle(isAnimating, tickerColorMode, previousPrices[ticker.symbol] || ticker.initialPrice, ticker.lastPrice, borderAnimationEnabled);
               
               return (
                 <div 
@@ -370,25 +403,30 @@ export default function TickerSettingPage() {
                     <div className="text-right">
                       <div className="font-bold text-lg text-right">
                         <span
-                          className={`px-1 inline-block ${priceColor}`}
+                          className="px-1 inline-block"
                           style={{ 
                             ...borderStyle,
+                            ...priceStyle,
                             borderRadius: '0rem' 
                           }}
                         >
                           {formattedLastPrice}
                         </span>
                         <span 
-                          className={`text-sm px-1.5 py-0.5 rounded ml-1 font-semibold ${priceColor}`}
+                          className="text-sm px-1.5 py-0.5 rounded ml-1 font-semibold"
                           style={{ 
-                            backgroundColor: getTickerBackgroundColor(tickerColorMode, ticker.priceChange)
+                            ...priceStyle,
+                            ...percentBackgroundStyle
                           }}
                         >
                           {formattedPriceChangePercent}
                         </span>
                       </div>
                       {showPriceChange && (
-                        <div className={`text-sm ${priceColor} mt-1`}>
+                        <div 
+                          className="text-sm mt-1"
+                          style={priceStyle}
+                        >
                           {formattedPriceChange}
                         </div>
                       )}

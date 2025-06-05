@@ -1,16 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { 
+  TickerColorMode, 
+  getTickerColor
+} from '@/packages/ui-kit/tokens/design-tokens';
 
-export type TickerColorMode = 'global' | 'aisa' | 'nothing' | 'shadow';
+// 디자인 토큰에서 import한 타입을 re-export
+export type { TickerColorMode };
 
 /**
  * 색상 모드별 라벨
  */
 export const TICKER_COLOR_MODE_LABELS: Record<TickerColorMode, string> = {
   global: '글로벌',
-  aisa: '아시아',
+  asia: '아시아',
   nothing: '색상 없음',
-  shadow: '그림자'
+  gray: '회색'
 };
 
 /**
@@ -18,27 +23,26 @@ export const TICKER_COLOR_MODE_LABELS: Record<TickerColorMode, string> = {
  */
 export const TICKER_COLOR_MODE_DESCRIPTIONS: Record<TickerColorMode, string> = {
   global: '상승: 녹색, 하락: 빨간색',
-  aisa: '상승: 빨간색, 하락: 파란색',
+  asia: '상승: 빨간색, 하락: 파란색',
   nothing: '모든 색상 동일',
-  shadow: '회색 톤 사용'
+  gray: '회색 톤 사용'
 };
 
 /**
- * 색상 모드별 배경색 설정 (퍼센트 표시용)
+ * 색상 모드별 배경색 설정 (퍼센트 표시용) - 디자인 토큰 기반
  */
 export const getTickerBackgroundColor = (mode: TickerColorMode, change: number): string => {
-  if (change === 0) return 'rgba(156, 163, 175, 0.2)'; // 보합: 회색
+  if (change === 0) {
+    const unchangedColor = getTickerColor(mode, 'unchanged');
+    return `hsla(${unchangedColor}, 0.2)`;
+  }
   
-  switch (mode) {
-    case 'global':
-      return change > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'; // 상승: 초록, 하락: 빨강
-    case 'aisa':
-      return change > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)'; // 상승: 빨강, 하락: 파랑
-    case 'nothing':
-    case 'shadow':
-      return 'rgba(156, 163, 175, 0.2)'; // 회색
-    default:
-      return 'rgba(156, 163, 175, 0.2)';
+  if (change > 0) {
+    const upColor = getTickerColor(mode, 'up');
+    return `hsla(${upColor}, 0.2)`;
+  } else {
+    const downColor = getTickerColor(mode, 'down');
+    return `hsla(${downColor}, 0.2)`;
   }
 };
 
@@ -145,62 +149,77 @@ export const getTickerBorderStyle = (
   }
   
   // 애니메이션 중일 때는 모드에 따른 색상 적용
-  const borderColor = getBorderColorByMode(mode, priceChange);
+  let borderColor;
+  if (priceChange > 0) {
+    borderColor = getTickerColor(mode, 'up');
+  } else if (priceChange < 0) {
+    borderColor = getTickerColor(mode, 'down');
+  } else {
+    borderColor = getTickerColor(mode, 'unchanged');
+  }
   return { 
-    borderColor,
+    borderColor: 'hsl(' + borderColor + ')',
     borderWidth: '1px'
   };
 };
 
 /**
- * 모드별 테두리 색상 반환
+ * 티커 가격 텍스트 스타일 반환
+ * @param mode 색상 모드
+ * @param priceChange 가격 변동량 (양수/음수/0)
  */
-const getBorderColorByMode = (mode: TickerColorMode, change: number): string => {
-  switch (mode) {
-    case 'global':
-      return change > 0 ? '#22c55e' : '#ef4444'; // 상승: 초록, 하락: 빨강
-    case 'aisa':
-      return change > 0 ? '#ef4444' : '#3b82f6'; // 상승: 빨강, 하락: 파랑
-    case 'nothing':
-      return 'hsl(var(--foreground))'; // 기본 전경색
-    case 'shadow':
-      return '#9ca3af'; // 회색
-    default:
-      return 'transparent';
+export const getTickerPriceStyle = (
+  mode: TickerColorMode,
+  priceChange: number
+): React.CSSProperties => {
+  // 가격 변동량에 따른 색상 결정
+  let color;
+  if (priceChange > 0) {
+    color = getTickerColor(mode, 'up');
+  } else if (priceChange < 0) {
+    color = getTickerColor(mode, 'down');
+  } else {
+    color = getTickerColor(mode, 'unchanged');
   }
+  
+  return { 
+    color: 'hsl(' + color + ')'
+  };
 };
 
 /**
- * 티커 등락률에 따라 Tailwind 색상 클래스를 반환하는 유틸리티
- * @param mode 현재 색상 모드
- * @param change 등락률 (양수/음수/0)
- * @param type 'text' | 'border' | 'bg' (기본값: 'text')
+ * 티커 변동률 배경 스타일 반환
+ * @param mode 색상 모드
+ * @param priceChange 가격 변동값
+ * @param showBackground 배경색 표시 여부
  */
-export function getTickerColorClass(
+export const getTickerPercentBackgroundStyle = (
   mode: TickerColorMode,
-  change: number,
-  type: 'text' | 'border' | 'bg' = 'text'
-): string {
-  const prefix = type === 'text' ? 'text-' : type === 'border' ? 'border-' : 'bg-';
-  const suffix = (color: string) => `${prefix}${color}`;
-  
-  switch (mode) {
-    case 'global':
-      if (change > 0) return suffix('green-500');
-      if (change < 0) return suffix('red-500');
-      return suffix('gray-400'); // 보합은 회색
-    case 'aisa':
-      if (change > 0) return suffix('red-500');
-      if (change < 0) return suffix('blue-500');
-      return suffix('gray-400'); // 보합은 회색
-    case 'nothing':
-      return type === 'text' ? 'text-foreground' : type === 'border' ? 'border-foreground' : 'bg-background';
-    case 'shadow':
-      return type === 'text' ? 'text-gray-400' : type === 'border' ? 'border-gray-400' : 'bg-gray-100';
-    default:
-      return type === 'text' ? 'text-foreground' : type === 'border' ? 'border-foreground' : 'bg-background';
+  priceChange: number,
+  showBackground: boolean = true
+): React.CSSProperties => {
+  if (!showBackground) {
+    return {
+      backgroundColor: 'transparent'
+    };
   }
-}
+
+  let backgroundColor;
+  if (priceChange > 0) {
+    const upColor = getTickerColor(mode, 'up');
+    backgroundColor = upColor;
+  } else if (priceChange < 0) {
+    const downColor = getTickerColor(mode, 'down');
+    backgroundColor = downColor;
+  } else {
+    const unchangedColor = getTickerColor(mode, 'unchanged');
+    backgroundColor = unchangedColor;
+  }
+  
+  return { 
+    backgroundColor: 'hsla(' + backgroundColor + ', 0.2)'
+  };
+};
 
 // 테두리 애니메이션 지속 시간 옵션
 export type BorderAnimationDuration = 100 | 150 | 200;
@@ -218,6 +237,7 @@ interface TickerSettingState {
   borderAnimationDuration: BorderAnimationDuration;
   showPercentSymbol: boolean;
   showPriceChange: boolean;
+  showPercentBackground: boolean;
 }
 
 interface TickerSettingActions {
@@ -226,6 +246,7 @@ interface TickerSettingActions {
   setBorderAnimationDuration: (duration: BorderAnimationDuration) => void;
   setShowPercentSymbol: (show: boolean) => void;
   setShowPriceChange: (show: boolean) => void;
+  setShowPercentBackground: (show: boolean) => void;
 }
 
 export const useTickerSettingStore = create<TickerSettingState & TickerSettingActions>()(
@@ -236,11 +257,13 @@ export const useTickerSettingStore = create<TickerSettingState & TickerSettingAc
       borderAnimationDuration: 100,
       showPercentSymbol: true,
       showPriceChange: true,
+      showPercentBackground: true,
       setTickerColorMode: (mode) => set({ tickerColorMode: mode }),
       setBorderAnimationEnabled: (enabled) => set({ borderAnimationEnabled: enabled }),
       setBorderAnimationDuration: (duration) => set({ borderAnimationDuration: duration }),
       setShowPercentSymbol: (show) => set({ showPercentSymbol: show }),
       setShowPriceChange: (show) => set({ showPriceChange: show }),
+      setShowPercentBackground: (show) => set({ showPercentBackground: show }),
     }),
     {
       name: 'ticker-setting-store',
