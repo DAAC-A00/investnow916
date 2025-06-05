@@ -107,6 +107,14 @@ const defaultMenuItems: MenuItemType[] = [
     isAdminOnly: false,
   },
   {
+    id: 'admin-color',
+    label: '색상',
+    icon: '🎨',
+    route: '/admin/color',
+    description: '기본 색상 확인',
+    isAdminOnly: true,
+  },
+  {
     id: 'menu',
     label: '메뉴',
     icon: '☰',

@@ -1,76 +1,194 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+```markdown
+# 📦 Monorepo 기반 크로스플랫폼 프로젝트
 
-First, run the development server:
+## 📁 프로젝트 구조
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+src/
+├── app/                            # Next.js (App Router) 기반 웹앱
+├── app\_mobile/                     # React Native (Expo) 앱 - PWA 또는 앱 스토어 배포용
+├── packages/
+│   ├── shared/                     # 공통 로직 모듈 (웹/모바일 공용)
+│   │   ├── components/             # UI 컴포넌트 (Tamagui/Shadcn 기반)
+│   │   ├── hooks/                  # 커스텀 훅
+│   │   ├── stores/                 # Zustand 상태 관리
+│   │   ├── types/                  # 타입 정의 (DTO, 상태 등)
+│   │   ├── utils/                  # 유틸 함수
+│   │   └── websocket/              # 실시간 통신 모듈
+│   ├── ui-kit/
+│   │   ├── tokens/                 # Tailwind + Tamagui 기반 디자인 토큰
+│   │   ├── web/                    # 웹 전용 Shadcn 컴포넌트
+│   │   └── native/                 # 모바일 전용 Tamagui 컴포넌트
+│   ├── data-client/                # 서버 통신 계층 (React Query 기반)
+│   │   ├── queries/                # API 조회
+│   │   ├── mutations/              # API 생성/수정
+│   │   ├── subscribers/            # 실시간 구독
+│   │   └── cache/                  # 캐싱 전략
+│   └── dev-tools/
+│       ├── storybook/              # 웹/모바일 Storybook 설정
+│       ├── mock-server/            # MSW 기반 Mock 서버
+│       └── performance/            # 성능 측정 도구
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## 개발 규칙 및 네이밍 컨벤션
-
-### 1. Ticker 관련 네이밍
-- **rawSymbol**: 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
-- **displaySymbol**: 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
-- **baseCode**: 거래쌍의 기준(기본) 코인 (예: BTC)
-- **quoteCode**: 거래쌍의 상대(견적) 코인 (예: USDT)
-- **rawCategory**: 외부 API에서 받은 카테고리 (예: linear, inverse)
-- **displayCategory**: 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
-
-### 2. Instrument/티커 데이터 파싱 및 저장
-- 로컬 스토리지 저장 포맷 & Instrument 정보 파싱
-    - baseCode, quoteCode 외에 추가 정보가 없는 경우 : `baseCode/quoteCode=rawSymbol` (예: BTC/USDT=BTCUSDT)
-    - baseCode, quoteCode 외에 추가 정보가 있는 경우 : `baseCode/quoteCode-restOfData=rawSymbol` (예: ETH/USDT-06JUN25=ETHUSDT-06JUN25)
-- 모든 화면, 스토어, 타입에서 위 네이밍을 일관되게 사용
-
-### 3. 타입/인터페이스 규칙
-- 외부 API에서 받은 데이터는 원본 필드명을 그대로 사용하되, 내부 로직에서는 위 네이밍 컨벤션에 맞게 변환하여 사용
-- 예시:
-  ```ts
-  interface InstrumentInfo {
-    rawSymbol: string;
-    displaySymbol: string;
-    baseCode: string;
-    quoteCode: string;
-    rawCategory: string;
-    displayCategory: string;
-    restOfData?: string;
-  }
-  ```
-
-### 5. 기타
-- baseCoin, quoteCoin 등 과거 네이밍은 모두 baseCode, quoteCode로 통일
-- displaySymbol, originalSymbol 등 혼용하지 않고, 반드시 symbol/rawSymbol로 구분
-- 모든 화면, 스토어, 타입, 파싱, 저장, 불러오기 등에서 위 규칙을 반드시 준수
+````
 
 ---
 
-> ⚠️ 앞으로 프롬프트로 개발 요청 시, 위 규칙을 반드시 참고하여 일관된 네이밍과 데이터 구조를 유지해 주세요.
+## 🧠 상태관리 - Zustand
+
+| 항목              | 내용 |
+|-------------------|------|
+| 상태 구조         | Flat 구조 유지 필수 |
+| 파일 네이밍       | `createXXXStore.ts` 사용 |
+| 미들웨어          | `devtools`, `immer` 적용 |
+| 타입 정의         | `StateCreator<T>` 제네릭 사용 필수 |
+| 위치              | `packages/shared/stores/` 하위 구성 |
+| 접근 방식         | `selector` 기반 + `shallow` 비교 권장 |
+
+> 모바일 성능 최적화: `React.memo`, `Tamagui` 속성 바인딩 필수
+
+```tsx
+<Button variant={isActive ? "solid" : "outline"} disabled={!isAvailable}>
+  주문하기
+</Button>
+````
+
+---
+
+## 🎨 디자인 시스템 - Tailwind + Tamagui 토큰 기반
+
+| 플랫폼    | 웹 (Next.js)             | 모바일 (Expo)          | 공통 지침                        |
+| ------ | ----------------------- | ------------------- | ---------------------------- |
+| 도구     | Tailwind CSS            | Tamagui             | `tokens.ts` 기준 공통 디자인 시스템 구성 |
+| 설정 파일  | `tailwind.config.ts`    | `tamagui.config.ts` | `ui-kit/tokens/` 디렉토리에서만 관리  |
+| 스타일 작성 | `@layer components`, 유틸 | `styled()`, `theme` | 반드시 토큰 기반으로 작성               |
+
+---
+
+## 🔌 실시간 통신 - WebSocket
+
+| 단계       | 설명                                   |
+| -------- | ------------------------------------ |
+| 연결 수립    | `socket.connect()`                   |
+| 심볼 구독    | `subscribe(symbol)`                  |
+| 상태 반영    | Zustand/Valtio 활용                    |
+| UI 구독 방식 | selector로 구독                         |
+| 구독 최적화   | 필요한 심볼만 구독 유지                        |
+| 에러 복구 전략 | 자동 재연결 + 지수적 backoff, Toast 알림 구성 필수 |
+
+---
+
+## 🔁 React Query 전략
+
+| 항목                    | 설명                     |
+| --------------------- | ---------------------- |
+| `staleTime` 설정        | 종목 목록: 10초, 주문내역: 1분 등 |
+| `errorBoundary` 활용    | 컴포넌트 경계 기반 fallback 처리 |
+| `invalidateQueries()` | 주문 완료 시 강제 갱신          |
+| `select()`            | 필요한 필드만 추출하여 메모리 최적화   |
+
+---
+
+## 🧪 테스트 전략
+
+| 구분     | 웹                           | 모바일                                    | 공통                  |
+| ------ | --------------------------- | -------------------------------------- | ------------------- |
+| 단위 테스트 | Jest + Testing Library      | Jest + `@testing-library/react-native` | `*.spec.tsx` 기준     |
+| 통합 테스트 | Playwright, Vitest          | Detox, Expo Preview                    | 상태 흐름 + UI 반응       |
+| 성능 측정  | Chrome DevTools, Lighthouse | Reanimated DevTools, FPS 추적            | `performance.ts` 활용 |
+
+---
+
+## 📚 UI 문서화 & 디자인 시스템 확인
+
+| 항목     | 웹                     | 모바일                  | 공통               |
+| ------ | --------------------- | -------------------- | ---------------- |
+| 문서화 도구 | Storybook             | Expo Storybook       | 모든 컴포넌트 문서화 필수   |
+| 등록 방식  | Shadcn 자동 등록          | Tamagui 자동 등록        | `stories/` 경로 통일 |
+| 시각화 도구 | Tailwind Theme Viewer | Tamagui Theme Viewer | tokens 기반 시각화    |
+
+---
+
+## 🚀 배포 및 모니터링
+
+| 항목      | 설명                             |
+| ------- | ------------------------------ |
+| 웹 배포    | Vercel (ISR + Edge Runtime)    |
+| 모바일 배포  | Expo EAS + CodePush 핫픽스        |
+| 에러 모니터링 | Sentry 연동 필수                   |
+| UX 측정   | Web Vitals (LCP, CLS 등)        |
+| FPS 분석  | `performance.ts` + DevTools 활용 |
+
+---
+
+## 🎛 디자인 토큰 동기화 자동화
+
+### `sync-tokens.ts`
+
+* `packages/ui-kit/tokens/`의 내용을 기준으로 다음 파일 자동 동기화:
+
+  * `tailwind.config.ts`
+  * `tamagui.config.ts`
+* 스크립트 실행:
+
+  ```bash
+  pnpm sync-tokens
+  ```
+
+### Storybook 자동 등록
+
+* `stories/` 하위에 위치한 컴포넌트 자동 등록
+* 필요 시 `autogen.ts` 활용 가능
+
+---
+
+## 📌 네이밍 컨벤션 (티커 및 심볼 처리)
+
+| 키                                 | 설명                                                             |
+| --------------------------------- | -------------------------------------------------------------- |
+| `rawSymbol`                       | 외부 API 심볼 (ex: BTCUSDT)                                        |
+| `displaySymbol`                   | 내부 표시용 (ex: BTC/USDT)                                          |
+| `baseCode` / `quoteCode`          | 기준/견적 화폐 코드                                                    |
+| `rawCategory` / `displayCategory` | API 원본 카테고리 / UI 표시용                                           |
+| 파싱/저장 규칙                          | `BTC/USDT=BTCUSDT` 또는 `ETH/USDT-06JUN25=ETHUSDT-06JUN25` 형식 저장 |
+| 타입 예시                             |                                                                |
+
+```ts
+interface InstrumentInfo {
+  rawSymbol: string;
+  displaySymbol: string;
+  baseCode: string;
+  quoteCode: string;
+  rawCategory: string;
+  displayCategory: string;
+  restOfData?: string;
+}
+```
+
+---
+
+## 🧪 개발 시작
+
+개발 서버 실행:
+
+```bash
+pnpm dev
+```
+
+로컬에서 [http://localhost:3000](http://localhost:3000) 확인 가능
+
+초기 페이지는 `app/page.tsx` 파일로 수정 가능하며, 실시간 반영됩니다.
+
+---
+
+## 📚 Next.js 참고 자료
+
+* [Next.js 공식 문서](https://nextjs.org/docs)
+* [Next.js 튜토리얼](https://nextjs.org/learn)
+* [Next.js GitHub](https://github.com/vercel/next.js)
+* [Vercel 배포 문서](https://nextjs.org/docs/app/building-your-application/deploying)
+
+```
+
+---
