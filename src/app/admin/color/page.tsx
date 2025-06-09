@@ -239,7 +239,7 @@ const Palette = ({ className = '' }: { className?: string }) => (
 
 export default function ColorPage() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
-  const [tickerMode, setTickerMode] = useState<TickerColorMode>('semantic');
+  const [tickerMode, setTickerMode] = useState<TickerColorMode>('global');
   const [activeTab, setActiveTab] = useState('palette');
 
   // 테마 감지 및 변경 감지

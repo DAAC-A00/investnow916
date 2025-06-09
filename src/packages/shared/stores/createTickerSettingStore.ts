@@ -216,8 +216,14 @@ export const getTickerPercentBackgroundStyle = (
     backgroundColor = unchangedColor;
   }
   
+  // HSL 값을 HSLA 형식으로 변환 (예: '142 71% 45%' -> 'hsla(142, 71%, 45%, 0.2)')
+  const hslValues = backgroundColor.split(' ');
+  const hue = hslValues[0];
+  const saturation = hslValues[1];
+  const lightness = hslValues[2];
+  
   return { 
-    backgroundColor: 'hsla(' + backgroundColor + ', 0.2)'
+    backgroundColor: `hsla(${hue}, ${saturation}, ${lightness}, 0.2)`
   };
 };
 

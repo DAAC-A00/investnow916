@@ -435,7 +435,7 @@ export const getColor = (color: keyof typeof colorTokens.light, shade?: string |
 /**
  * 티커 색상 모드 타입 정의
  */
-export type TickerColorMode = 'global' | 'asia' | 'nothing' | 'gray' | 'semantic' | 'traditional' | 'accessible';
+export type TickerColorMode = 'global' | 'asia' | 'nothing' | 'gray';
 
 /**
  * 티커 색상을 반환
