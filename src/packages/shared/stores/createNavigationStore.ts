@@ -107,11 +107,11 @@ const defaultMenuItems: MenuItemType[] = [
     isAdminOnly: false,
   },
   {
-    id: 'admin-color',
-    label: '색상',
+    id: 'admin-design',
+    label: '디자인',
     icon: '🎨',
-    route: '/admin/color',
-    description: '기본 색상 확인',
+    route: '/admin/design',
+    description: '기본 디자인 확인',
     isAdminOnly: true,
   },
   {

@@ -240,7 +240,7 @@ const Palette = ({ className = '' }: { className?: string }) => (
 export default function ColorPage() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [tickerMode, setTickerMode] = useState<TickerColorMode>('global');
-  const [activeTab, setActiveTab] = useState('palette');
+  const [activeTab, setActiveTab] = useState('components');
 
   // 테마 감지 및 변경 감지
   useEffect(() => {
@@ -419,8 +419,8 @@ export default function ColorPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="palette">색상 팔레트</TabsTrigger>
           <TabsTrigger value="components">컴포넌트 예시</TabsTrigger>
+          <TabsTrigger value="palette">색상 팔레트</TabsTrigger>
         </TabsList>
 
         <TabsContent value="palette" className="space-y-8">

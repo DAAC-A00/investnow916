@@ -346,24 +346,6 @@ export const colorTokens = {
         down: '220 9% 46%',     // 회색 (neutral-500)
         unchanged: '220 9% 46%', // 회색 (neutral-500)
       },
-      // Semantic 모드: 의미론적 색상 (상승: 녹색, 하락: 빨간색, 보합: 회색)
-      semantic: {
-        up: '142 71% 45%',      // 상승: 녹색 (success-500)
-        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
-      },
-      // Traditional 모드: 전통적인 색상 (상승: 빨간색, 하락: 파란색, 보합: 회색)
-      traditional: {
-        up: '0 84% 60%',        // 상승: 빨간색 (error-500)
-        down: '217 91% 60%',    // 하락: 파란색 (primary-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
-      },
-      // Accessible 모드: 접근성 색상 (상승: 녹색, 하락: 빨간색, 보합: 회색)
-      accessible: {
-        up: '142 71% 45%',      // 상승: 녹색 (success-500)
-        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
-      },
     },
     dark: {
       // Global 모드: 상승 녹색, 하락 빨간색, 보합 회색 (라이트와 동일)
@@ -389,24 +371,6 @@ export const colorTokens = {
         up: '220 9% 46%',       // 회색 (neutral-500)
         down: '220 9% 46%',     // 회색 (neutral-500)
         unchanged: '220 9% 46%', // 회색 (neutral-500)
-      },
-      // Semantic 모드: 의미론적 색상 (상승: 녹색, 하락: 빨간색, 보합: 회색)
-      semantic: {
-        up: '142 71% 45%',      // 상승: 녹색 (success-500)
-        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
-      },
-      // Traditional 모드: 전통적인 색상 (상승: 빨간색, 하락: 파란색, 보합: 회색)
-      traditional: {
-        up: '0 84% 60%',        // 상승: 빨간색 (error-500)
-        down: '217 91% 60%',    // 하락: 파란색 (primary-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
-      },
-      // Accessible 모드: 접근성 색상 (상승: 녹색, 하락: 빨간색, 보합: 회색)
-      accessible: {
-        up: '142 71% 45%',      // 상승: 녹색 (success-500)
-        down: '0 84% 60%',      // 하락: 빨간색 (error-500)
-        unchanged: '220 9% 46%', // 보합: 회색 (neutral-500)
       },
     },
   },
