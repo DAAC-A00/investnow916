@@ -8,6 +8,7 @@ import {
   getTickerBackgroundColor,
   type TickerColorMode 
 } from '@/packages/ui-kit/tokens/design-tokens';
+import { Toggle, RatingStars, ChipSelection } from '@/components/ui';
 
 // Simple UI components to replace missing imports
 const Button = ({ 
@@ -497,7 +498,7 @@ export default function ColorPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div 
-                  className="p-3 rounded-md text-sm font-medium"
+                  className="p-3 rounded-lg text-sm font-medium"
                   style={{ 
                     backgroundColor: `hsl(${themeColors.accent[100]})`,
                     color: `hsl(${themeColors.accent[800]})`
@@ -897,149 +898,76 @@ export default function ColorPage() {
               </CardContent>
             </Card>
 
-            {/* Interactive Elements */}
+            {/* Interactive Elements - Toggle Components */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Interactive Elements</CardTitle>
-                <CardDescription>상호작용 컴포넌트</CardDescription>
+                <CardTitle className="text-sm">Toggle Components</CardTitle>
+                <CardDescription>토글 스위치 컴포넌트</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-6">
-                  <div>
-                    <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-                      Toggle (Usable - On/Off)
-                    </div>
-                    <div 
-                      className="w-16 h-8 rounded-full p-1 cursor-pointer transition-all duration-300 flex items-center relative"
-                      style={{ 
-                        backgroundColor: (e => {
-                          const isActive = e?.currentTarget?.dataset?.active === 'true';
-                          return isActive
-                            ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
-                            : `hsl(${themeColors.primary[50]})`; // Secondary Action 배경색 (off)
-                        })({ currentTarget: { dataset: { active: 'false' } } }),
-                        border: `2px solid hsl(${themeColors.primary[700]})`, // 기본(off) 테두리색
-                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-                      }}
-                      onClick={(e) => {
-                        const toggle = e.currentTarget;
-                        const isActive = toggle.dataset.active === 'true';
-                        const isDisabled = toggle.dataset.disabled === 'true';
-                        if (isDisabled) return;
-                        const newActiveState = !isActive;
-                        toggle.dataset.active = newActiveState.toString();
-                        // 배경색 동적 적용
-                        toggle.style.backgroundColor = newActiveState
-                          ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
-                          : `hsl(${themeColors.primary[50]})`; // Secondary Action 배경색 (off)
-                        // 테두리색 동적 적용
-                        toggle.style.border = newActiveState
-                          ? `2px solid hsl(${themeColors.primary[900]})` // on: 배경색과 동일
-                          : `2px solid hsl(${themeColors.primary[700]})`; // off: Secondary Action 글자색
-                        const circle = toggle.querySelector('div:first-child') as HTMLElement;
-                        circle.style.transform = newActiveState ? 'translateX(32px)' : 'translateX(0px)';
-                        // 버튼(원) 색상 동적 적용
-                        circle.style.backgroundColor = newActiveState
-                          ? `hsl(${themeColors.primary.foreground})` // Primary Action 글자색 (on)
-                          : `hsl(${themeColors.primary[700]})`; // Secondary Action 글자색 (off)
-                      }}
-                      data-active="false"
-                      data-disabled="false"
-                    >
-                      <div 
-                        className="w-6 h-6 rounded-full transition-all duration-300 absolute border"
-                        style={{ 
-                          transform: 'translateX(0px)',
-                          backgroundColor: `hsl(${themeColors.primary[700]})`, // Secondary Action 글자색(초기 off)
-                          borderColor: 'transparent'
-                        }}
-                      />
-                    </div>
-                  </div>
+                  {/* Usable Toggle - Default Off */}
+                  <Toggle
+                    label="Toggle (Usable - Default Off)"
+                    defaultActive={false}
+                    disabled={false}
+                    themeColors={themeColors}
+                    currentTheme={currentTheme}
+                    onChange={(active) => console.log('Toggle (Off) changed:', active)}
+                  />
                   
-                  <div>
-                    <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-                      Toggle (Unusable)
-                    </div>
-                    <div 
-                      className="w-16 h-8 rounded-full p-1 transition-all duration-300 flex items-center relative cursor-not-allowed opacity-70"
-                      style={{ 
-                        backgroundColor: `hsl(${themeColors.neutral[300]})`,
-                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-                      }}
-                      data-active="false"
-                      data-disabled="true"
-                    >
-                      <div 
-                        className="w-6 h-6 rounded-full transition-all duration-300 absolute border"
-                        style={{ 
-                          transform: 'translateX(4px)',
-                          backgroundColor: `hsl(${themeColors.neutral[100]})`,
-                          borderColor: 'transparent'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-                    Rating Stars
-                  </div>
-                  <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <div
-                        key={star}
-                        className="w-5 h-5 cursor-pointer transition-colors"
-                        style={{ 
-                          color: star <= 4 ? `hsl(${themeColors.accent[500]})` : `hsl(${themeColors.neutral[300]})`
-                        }}
-                        onClick={(e) => {
-                          const parent = e.currentTarget.parentElement;
-                          const stars = parent?.querySelectorAll('div');
-                          stars?.forEach((s, index) => {
-                            s.style.color = index < star 
-                              ? `hsl(${themeColors.accent[500]})` 
-                              : `hsl(${themeColors.neutral[300]})`;
-                          });
-                        }}
-                      >
-                        ★
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-                    Chip Selection
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {['React', 'TypeScript', 'Tailwind', 'Next.js'].map((tech) => (
-                      <div
-                        key={tech}
-                        className="px-3 py-1 rounded-full text-xs cursor-pointer transition-colors"
-                        style={{
-                          backgroundColor: `hsl(${themeColors.tertiary[100]})`,
-                          color: `hsl(${themeColors.tertiary[700]})`,
-                          border: `1px solid hsl(${themeColors.tertiary[300]})`
-                        }}
-                        onClick={(e) => {
-                          const isSelected = e.currentTarget.dataset.selected === 'true';
-                          e.currentTarget.dataset.selected = (!isSelected).toString();
-                          e.currentTarget.style.backgroundColor = !isSelected 
-                            ? `hsl(${themeColors.tertiary[500]})` 
-                            : `hsl(${themeColors.tertiary[100]})`;
-                          e.currentTarget.style.color = !isSelected 
-                            ? `hsl(${themeColors.tertiary.foreground})` 
-                            : `hsl(${themeColors.tertiary[700]})`;
-                        }}
-                      >
-                        {tech}
-                      </div>
-                    ))}
-                  </div>
+                  {/* Usable Toggle - Default On */}
+                  <Toggle
+                    label="Toggle (Usable - Default On)"
+                    defaultActive={true}
+                    disabled={false}
+                    themeColors={themeColors}
+                    currentTheme={currentTheme}
+                    onChange={(active) => console.log('Toggle (On) changed:', active)}
+                  />
+                  
+                  {/* Unusable Toggle */}
+                  <Toggle
+                    label="Toggle (Unusable)"
+                    defaultActive={false}
+                    disabled={true}
+                    themeColors={themeColors}
+                    currentTheme={currentTheme}
+                  />
                 </div>
               </CardContent>
             </Card>
+
+            {/* Interactive Elements - Other Components */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Interactive Components</CardTitle>
+                <CardDescription>기타 상호작용 컴포넌트</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Rating Stars */}
+                <RatingStars
+                  label="Rating Stars"
+                  maxStars={5}
+                  defaultRating={4}
+                  themeColors={themeColors}
+                  currentTheme={currentTheme}
+                  onChange={(rating) => console.log('Rating changed:', rating)}
+                />
+                
+                {/* Chip Selection */}
+                <ChipSelection
+                  label="Chip Selection"
+                  options={['React', 'TypeScript', 'Tailwind', 'Next.js']}
+                  defaultSelected={[]}
+                  multiple={true}
+                  themeColors={themeColors}
+                  currentTheme={currentTheme}
+                  onChange={(selected) => console.log('Chips selected:', selected)}
+                />
+              </CardContent>
+            </Card>
+
           </div>
         </TabsContent>
 
