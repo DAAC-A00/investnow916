@@ -904,28 +904,81 @@ export default function ColorPage() {
                 <CardDescription>상호작용 컴포넌트</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-                    Toggle Switch
-                  </div>
-                  <div 
-                    className="w-12 h-6 rounded-full p-1 cursor-pointer transition-colors"
-                    style={{ backgroundColor: `hsl(${themeColors.primary[500]})` }}
-                    onClick={(e) => {
-                      const isActive = e.currentTarget.dataset.active === 'true';
-                      e.currentTarget.dataset.active = (!isActive).toString();
-                      e.currentTarget.style.backgroundColor = !isActive 
-                        ? `hsl(${themeColors.primary[500]})` 
-                        : `hsl(${themeColors.neutral[300]})`;
-                      const circle = e.currentTarget.querySelector('div') as HTMLElement;
-                      circle.style.transform = !isActive ? 'translateX(24px)' : 'translateX(0)';
-                    }}
-                    data-active="true"
-                  >
+                <div className="space-y-6">
+                  <div>
+                    <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
+                      Toggle (Usable - On/Off)
+                    </div>
                     <div 
-                      className="w-4 h-4 bg-white rounded-full transition-transform"
-                      style={{ transform: 'translateX(24px)' }}
-                    />
+                      className="w-16 h-8 rounded-full p-1 cursor-pointer transition-all duration-300 flex items-center relative"
+                      style={{ 
+                        backgroundColor: (e => {
+                          const isActive = e?.currentTarget?.dataset?.active === 'true';
+                          return isActive
+                            ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
+                            : `hsl(${themeColors.primary[50]})`; // Secondary Action 배경색 (off)
+                        })({ currentTarget: { dataset: { active: 'false' } } }),
+                        border: `2px solid hsl(${themeColors.primary[700]})`, // 기본(off) 테두리색
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                      onClick={(e) => {
+                        const toggle = e.currentTarget;
+                        const isActive = toggle.dataset.active === 'true';
+                        const isDisabled = toggle.dataset.disabled === 'true';
+                        if (isDisabled) return;
+                        const newActiveState = !isActive;
+                        toggle.dataset.active = newActiveState.toString();
+                        // 배경색 동적 적용
+                        toggle.style.backgroundColor = newActiveState
+                          ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
+                          : `hsl(${themeColors.primary[50]})`; // Secondary Action 배경색 (off)
+                        // 테두리색 동적 적용
+                        toggle.style.border = newActiveState
+                          ? `2px solid hsl(${themeColors.primary[900]})` // on: 배경색과 동일
+                          : `2px solid hsl(${themeColors.primary[700]})`; // off: Secondary Action 글자색
+                        const circle = toggle.querySelector('div:first-child') as HTMLElement;
+                        circle.style.transform = newActiveState ? 'translateX(32px)' : 'translateX(0px)';
+                        // 버튼(원) 색상 동적 적용
+                        circle.style.backgroundColor = newActiveState
+                          ? `hsl(${themeColors.primary.foreground})` // Primary Action 글자색 (on)
+                          : `hsl(${themeColors.primary[700]})`; // Secondary Action 글자색 (off)
+                      }}
+                      data-active="false"
+                      data-disabled="false"
+                    >
+                      <div 
+                        className="w-6 h-6 rounded-full transition-all duration-300 absolute border"
+                        style={{ 
+                          transform: 'translateX(0px)',
+                          backgroundColor: `hsl(${themeColors.primary[700]})`, // Secondary Action 글자색(초기 off)
+                          borderColor: 'transparent'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
+                      Toggle (Unusable)
+                    </div>
+                    <div 
+                      className="w-16 h-8 rounded-full p-1 transition-all duration-300 flex items-center relative cursor-not-allowed opacity-70"
+                      style={{ 
+                        backgroundColor: `hsl(${themeColors.neutral[300]})`,
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                      data-active="false"
+                      data-disabled="true"
+                    >
+                      <div 
+                        className="w-6 h-6 rounded-full transition-all duration-300 absolute border"
+                        style={{ 
+                          transform: 'translateX(4px)',
+                          backgroundColor: `hsl(${themeColors.neutral[100]})`,
+                          borderColor: 'transparent'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div>
