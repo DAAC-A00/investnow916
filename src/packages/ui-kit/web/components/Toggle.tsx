@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 export interface ToggleProps {
   /** 토글의 초기 활성 상태 */
@@ -28,7 +28,27 @@ export function Toggle({
   themeColors,
   currentTheme = 'light'
 }: ToggleProps) {
-  const isActive = active !== undefined ? active : defaultActive;
+  // React 상태 기반으로 완전히 리팩토링
+  const [internalActive, setInternalActive] = useState(defaultActive);
+  
+  // controlled vs uncontrolled 모드 처리
+  const isControlled = active !== undefined;
+  const isActive = isControlled ? active : internalActive;
+
+  const handleToggle = () => {
+    if (disabled) return;
+    
+    const newActiveState = !isActive;
+    
+    if (isControlled) {
+      // Controlled mode: 부모 컴포넌트가 상태 관리
+      onChange?.(newActiveState);
+    } else {
+      // Uncontrolled mode: 내부 상태 관리
+      setInternalActive(newActiveState);
+      onChange?.(newActiveState);
+    }
+  };
 
   return (
     <div>
@@ -52,41 +72,7 @@ export function Toggle({
             : `2px solid hsl(${isActive ? themeColors.primary[900] : themeColors.primary[700]})`,
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
         }}
-        onClick={(e) => {
-          if (disabled) return;
-          
-          if (active !== undefined) {
-            // Controlled mode: onChange를 통해 상태 변경
-            onChange?.(!isActive);
-            return;
-          }
-          
-          // Uncontrolled mode: 내부 상태 관리
-          const toggle = e.currentTarget;
-          const newActiveState = !isActive;
-          toggle.dataset.active = newActiveState.toString();
-          
-          // 배경색 동적 적용
-          toggle.style.backgroundColor = newActiveState
-            ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
-            : `hsl(${themeColors.primary[50]})`; // Secondary Action 배경색 (off)
-          
-          // 테두리색 동적 적용
-          toggle.style.border = newActiveState
-            ? `2px solid hsl(${themeColors.primary[900]})` // on: 배경색과 동일
-            : `2px solid hsl(${themeColors.primary[700]})`; // off: Secondary Action 글자색
-          
-          // 핸들 위치 동적 적용
-          const handle = toggle.querySelector('div') as HTMLElement;
-          if (handle) {
-            handle.style.transform = newActiveState ? 'translateX(32px)' : 'translateX(0px)';
-            handle.style.backgroundColor = newActiveState 
-              ? `hsl(${themeColors.primary.foreground})` 
-              : `hsl(${themeColors.primary[700]})`;
-          }
-          
-          onChange?.(newActiveState);
-        }}
+        onClick={handleToggle}
         data-active={isActive.toString()}
         data-disabled={disabled.toString()}
       >
