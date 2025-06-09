@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerPriceStyle, getTickerBackgroundColor, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
-import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
+import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
 
 interface TickerData {
   symbol: string;
@@ -32,7 +32,33 @@ export default function TickerSettingPage() {
     setShowPercentBackground
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   
+  // 테마 감지
+  useEffect(() => {
+    const detectTheme = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setCurrentTheme(isDark ? 'dark' : 'light');
+    };
+
+    detectTheme();
+    const observer = new MutationObserver(detectTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // 컴포넌트 마운트 상태 설정
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 현재 테마의 색상 토큰
+  const themeColors = colorTokens[currentTheme];
+
   // 실시간 티커 데이터 상태
   const [tickerData, setTickerData] = useState<TickerData[]>([
     {
@@ -75,10 +101,6 @@ export default function TickerSettingPage() {
 
   // 애니메이션 매니저 생성 (설정된 지속 시간 사용)
   const [animationManager, setAnimationManager] = useState(() => createPriceChangeAnimationManager(borderAnimationDuration));
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // 컴포넌트 언마운트 시 애니메이션 정리
   useEffect(() => {
@@ -173,7 +195,8 @@ export default function TickerSettingPage() {
   }, [animationManager]);
 
 
-  if (!mounted) {
+  // 컴포넌트가 마운트되지 않았거나 테마 색상이 로드되지 않은 경우
+  if (!mounted || !themeColors) {
     return <div className="p-6">로딩 중...</div>;
   }
 
@@ -247,8 +270,10 @@ export default function TickerSettingPage() {
               )}
             </div>
             <Toggle
-              checked={borderAnimationEnabled}
-              onChange={() => setBorderAnimationEnabled(!borderAnimationEnabled)}
+              active={borderAnimationEnabled}
+              onChange={(active) => setBorderAnimationEnabled(active)}
+              themeColors={themeColors}
+              currentTheme={currentTheme}
             />
           </label>
           <p className="text-sm text-muted-foreground mt-1">
@@ -310,8 +335,10 @@ export default function TickerSettingPage() {
               )}
             </div>
             <Toggle
-              checked={showPercentSymbol}
-              onChange={() => setShowPercentSymbol(!showPercentSymbol)}
+              active={showPercentSymbol}
+              onChange={(active) => setShowPercentSymbol(active)}
+              themeColors={themeColors}
+              currentTheme={currentTheme}
             />
           </label>
           <p className="text-sm text-muted-foreground mt-1">
@@ -331,8 +358,10 @@ export default function TickerSettingPage() {
               )}
             </div>
             <Toggle
-              checked={showPriceChange}
-              onChange={() => setShowPriceChange(!showPriceChange)}
+              active={showPriceChange}
+              onChange={(active) => setShowPriceChange(active)}
+              themeColors={themeColors}
+              currentTheme={currentTheme}
             />
           </label>
           <p className="text-sm text-muted-foreground mt-1">
@@ -352,8 +381,10 @@ export default function TickerSettingPage() {
               )}
             </div>
             <Toggle
-              checked={showPercentBackground}
-              onChange={() => setShowPercentBackground(!showPercentBackground)}
+              active={showPercentBackground}
+              onChange={(active) => setShowPercentBackground(active)}
+              themeColors={themeColors}
+              currentTheme={currentTheme}
             />
           </label>
           <p className="text-sm text-muted-foreground mt-1">

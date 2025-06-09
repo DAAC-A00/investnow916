@@ -8,7 +8,7 @@ import {
   getTickerBackgroundColor,
   type TickerColorMode 
 } from '@/packages/ui-kit/tokens/design-tokens';
-import { Toggle, RatingStars, ChipSelection } from '@/components/ui';
+import { Toggle, RatingStars, ChipSelection } from '@/packages/ui-kit/web/components';
 
 // Simple UI components to replace missing imports
 const Button = ({ 
