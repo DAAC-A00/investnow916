@@ -34,6 +34,45 @@ export default function TickerSettingPage() {
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   
+  // localStorage에서 설정값 초기화 (하이드레이션 문제 해결)
+  useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== 'undefined') {
+      const store = useTickerSettingStore.getState();
+      
+      // localStorage에서 각 설정값 읽어와서 스토어 업데이트
+      const savedTickerColorMode = localStorage.getItem('ticker-setting-tickerColorMode');
+      if (savedTickerColorMode && savedTickerColorMode !== store.tickerColorMode) {
+        setTickerColorMode(savedTickerColorMode as TickerColorMode);
+      }
+      
+      const savedBorderAnimation = localStorage.getItem('ticker-setting-isBorderAnimation');
+      if (savedBorderAnimation !== null && (savedBorderAnimation === 'true') !== store.borderAnimationEnabled) {
+        setBorderAnimationEnabled(savedBorderAnimation === 'true');
+      }
+      
+      const savedBorderDuration = localStorage.getItem('ticker-setting-borderDuration');
+      if (savedBorderDuration && parseInt(savedBorderDuration) !== store.borderAnimationDuration) {
+        setBorderAnimationDuration(parseInt(savedBorderDuration) as BorderAnimationDuration);
+      }
+      
+      const savedShowPercentSymbol = localStorage.getItem('ticker-setting-showChangePercentSign');
+      if (savedShowPercentSymbol !== null && (savedShowPercentSymbol === 'true') !== store.showPercentSymbol) {
+        setShowPercentSymbol(savedShowPercentSymbol === 'true');
+      }
+      
+      const savedShowPriceChange = localStorage.getItem('ticker-setting-showPriceChange');
+      if (savedShowPriceChange !== null && (savedShowPriceChange === 'true') !== store.showPriceChange) {
+        setShowPriceChange(savedShowPriceChange === 'true');
+      }
+      
+      const savedShowPercentBackground = localStorage.getItem('ticker-setting-showPercentBackground');
+      if (savedShowPercentBackground !== null && (savedShowPercentBackground === 'true') !== store.showPercentBackground) {
+        setShowPercentBackground(savedShowPercentBackground === 'true');
+      }
+    }
+  }, []);
+  
   // 테마 감지
   useEffect(() => {
     const detectTheme = () => {

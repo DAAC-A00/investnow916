@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { 
   TickerColorMode, 
   getTickerColor
@@ -227,6 +226,53 @@ export const getTickerPercentBackgroundStyle = (
   };
 };
 
+// localStorage 키 상수
+const STORAGE_KEYS = {
+  tickerColorMode: 'ticker-setting-tickerColorMode',
+  borderAnimationEnabled: 'ticker-setting-isBorderAnimation',
+  borderAnimationDuration: 'ticker-setting-borderDuration',
+  showPercentSymbol: 'ticker-setting-showChangePercentSign',
+  showPriceChange: 'ticker-setting-showPriceChange',
+  showPercentBackground: 'ticker-setting-showPercentBackground'
+} as const;
+
+// localStorage 유틸리티 함수들
+const getStorageValue = <T>(key: string, defaultValue: T): T => {
+  if (typeof window === 'undefined') return defaultValue;
+  
+  try {
+    const item = localStorage.getItem(key);
+    if (item === null) return defaultValue;
+    
+    // boolean 값 처리
+    if (typeof defaultValue === 'boolean') {
+      return (item === 'true') as T;
+    }
+    
+    // number 값 처리
+    if (typeof defaultValue === 'number') {
+      const parsed = parseInt(item, 10);
+      return (isNaN(parsed) ? defaultValue : parsed) as T;
+    }
+    
+    // string 값 처리
+    return item as T;
+  } catch (error) {
+    console.error(`Error reading localStorage key "${key}":`, error);
+    return defaultValue;
+  }
+};
+
+const setStorageValue = <T>(key: string, value: T): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(key, String(value));
+  } catch (error) {
+    console.error(`Error setting localStorage key "${key}":`, error);
+  }
+};
+
 // 테두리 애니메이션 지속 시간 옵션
 export type BorderAnimationDuration = 100 | 150 | 200;
 
@@ -255,24 +301,38 @@ interface TickerSettingActions {
   setShowPercentBackground: (show: boolean) => void;
 }
 
-export const useTickerSettingStore = create<TickerSettingState & TickerSettingActions>()(
-  persist(
-    (set) => ({
-      tickerColorMode: 'global',
-      borderAnimationEnabled: true,
-      borderAnimationDuration: 100,
-      showPercentSymbol: true,
-      showPriceChange: true,
-      showPercentBackground: true,
-      setTickerColorMode: (mode) => set({ tickerColorMode: mode }),
-      setBorderAnimationEnabled: (enabled) => set({ borderAnimationEnabled: enabled }),
-      setBorderAnimationDuration: (duration) => set({ borderAnimationDuration: duration }),
-      setShowPercentSymbol: (show) => set({ showPercentSymbol: show }),
-      setShowPriceChange: (show) => set({ showPriceChange: show }),
-      setShowPercentBackground: (show) => set({ showPercentBackground: show }),
-    }),
-    {
-      name: 'ticker-setting-store',
-    }
-  )
-);
+export const useTickerSettingStore = create<TickerSettingState & TickerSettingActions>()((set, get) => ({
+  // 초기값 설정 - localStorage에서 읽어오거나 기본값 사용
+  tickerColorMode: getStorageValue(STORAGE_KEYS.tickerColorMode, 'global' as TickerColorMode),
+  borderAnimationEnabled: getStorageValue(STORAGE_KEYS.borderAnimationEnabled, true),
+  borderAnimationDuration: getStorageValue(STORAGE_KEYS.borderAnimationDuration, 150 as BorderAnimationDuration),
+  showPercentSymbol: getStorageValue(STORAGE_KEYS.showPercentSymbol, true),
+  showPriceChange: getStorageValue(STORAGE_KEYS.showPriceChange, false),
+  showPercentBackground: getStorageValue(STORAGE_KEYS.showPercentBackground, true),
+  
+  // 액션들 - 상태 업데이트와 동시에 localStorage에 저장
+  setTickerColorMode: (mode) => {
+    setStorageValue(STORAGE_KEYS.tickerColorMode, mode);
+    set({ tickerColorMode: mode });
+  },
+  setBorderAnimationEnabled: (enabled) => {
+    setStorageValue(STORAGE_KEYS.borderAnimationEnabled, enabled);
+    set({ borderAnimationEnabled: enabled });
+  },
+  setBorderAnimationDuration: (duration) => {
+    setStorageValue(STORAGE_KEYS.borderAnimationDuration, duration);
+    set({ borderAnimationDuration: duration });
+  },
+  setShowPercentSymbol: (show) => {
+    setStorageValue(STORAGE_KEYS.showPercentSymbol, show);
+    set({ showPercentSymbol: show });
+  },
+  setShowPriceChange: (show) => {
+    setStorageValue(STORAGE_KEYS.showPriceChange, show);
+    set({ showPriceChange: show });
+  },
+  setShowPercentBackground: (show) => {
+    setStorageValue(STORAGE_KEYS.showPercentBackground, show);
+    set({ showPercentBackground: show });
+  },
+}));

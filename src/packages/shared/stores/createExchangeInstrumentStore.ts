@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 
@@ -74,11 +73,10 @@ const transformBybitData = (
       // 기본 CoinInfo 객체 생성
       const coinInfo: CoinInfo = {
         rawSymbol: item.symbol,
-        symbol: `${baseCode}/${quoteCode}`,
+        displaySymbol: `${baseCode}/${quoteCode}`,
         baseCode,
         quoteCode,
         exchange: 'bybit' as ExchangeType,
-        category: categoryInfo.category,
         rawCategory: categoryInfo.rawCategory,
         displayCategory: categoryInfo.displayCategory,
         
@@ -571,10 +569,9 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
                 result.push({
                   ...restSymbol,
                   exchange: ex,
-                  category: categoryInfo.category,
                   rawCategory: categoryInfo.rawCategory,
                   displayCategory: categoryInfo.displayCategory,
-                  symbol: symbol.symbol,
+                  displaySymbol: symbol.symbol,
                   baseCode: base,
                   quoteCode: quote
                 });
