@@ -1,20 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, getTickerBorderStyle, getTickerPriceStyle, getTickerBackgroundColor, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
 import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
-
-interface TickerData {
-  symbol: string;
-  displaySymbol: string;
-  lastPrice: number;
-  priceChange: number;
-  priceChangePercent: number;
-  turnover: number;
-  label: string;
-  initialPrice: number;
-}
+import { Ticker, TickerData } from '@/packages/shared/components';
 
 export default function TickerSettingPage() {
   const { 
@@ -103,40 +93,37 @@ export default function TickerSettingPage() {
     {
       symbol: 'COIN1/USDT',
       displaySymbol: 'COIN1/USDT',
-      lastPrice: 5100.00,
+      price: 5100.00,
       priceChange: 100.00,
       priceChangePercent: 2.00,
       turnover: 2340000000,
       label: '상승 예시',
-      initialPrice: 5000.00
+      initialPrice: 5000.00,
+      prevPrice: 5000.00
     },
     {
       symbol: 'COIN2/USDT', 
       displaySymbol: 'COIN2/USDT',
-      lastPrice: 4900.00,
+      price: 4900.00,
       priceChange: -100.00,
       priceChangePercent: -2.00,
       turnover: 15600000,
       label: '하락 예시',
-      initialPrice: 5000.00
+      initialPrice: 5000.00,
+      prevPrice: 5000.00
     },
     {
       symbol: 'COIN3/USDT',
       displaySymbol: 'COIN3/USDT', 
-      lastPrice: 73.19,
+      price: 73.19,
       priceChange: 0.00,
       priceChangePercent: 0.00,
       turnover: 890000,
       label: '보합 예시',
-      initialPrice: 73.19
+      initialPrice: 73.19,
+      prevPrice: 73.19
     }
   ]);
-
-  // 이전 가격 저장 (애니메이션 트리거용)
-  const [previousPrices, setPreviousPrices] = useState<Record<string, number>>({});
-
-  // 테두리 애니메이션 상태 관리
-  const [borderAnimations, setBorderAnimations] = useState<{[key: string]: boolean}>({});
 
   // 애니메이션 매니저 생성 (설정된 지속 시간 사용)
   const [animationManager, setAnimationManager] = useState(() => createPriceChangeAnimationManager(borderAnimationDuration));
@@ -163,30 +150,17 @@ export default function TickerSettingPage() {
         const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
         const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
         
-        // 변동 전 가격 저장
-        const previousPrice = ticker.lastPrice; 
         // 변동 후 가격 계산 (최소 0.01)
-        const newPrice = Math.max(ticker.lastPrice + change, 0.05); 
+        const newPrice = Math.max(ticker.price + change, 0.05); 
         
-        // 가격 변동 여부와 관계없이 무조건 애니메이션 트리거
-        animationManager.triggerPriceChangeAnimation(
-          ticker.symbol,
-          previousPrice,
-          newPrice,
-          (symbol, isAnimating) => {
-            setBorderAnimations(prev => ({ ...prev, [symbol]: isAnimating }));
-          }
-        );
-        
-        // 이전 가격 저장
-        setPreviousPrices(prev => ({ ...prev, [ticker.symbol]: previousPrice }));
         // 가격 변동 및 퍼센트 계산
         const priceChange = newPrice - ticker.initialPrice;
         const priceChangePercent = (priceChange / ticker.initialPrice) * 100;
         
         return {
           ...ticker,
-          lastPrice: newPrice,
+          prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
+          price: newPrice,
           priceChange,
           priceChangePercent,
         };
@@ -205,26 +179,15 @@ export default function TickerSettingPage() {
         const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
         const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
         
-        const previousPrice = ticker.lastPrice; // 변동 전 가격
-        const newPrice = Math.max(ticker.lastPrice + change, 0.05); // 변동 후 가격
+        const newPrice = Math.max(ticker.price + change, 0.05); // 변동 후 가격
         
-        // 가격 변동 여부와 관계없이 무조건 애니메이션 트리거
-        animationManager.triggerPriceChangeAnimation(
-          ticker.symbol,
-          previousPrice,
-          newPrice,
-          (symbol, isAnimating) => {
-            setBorderAnimations(prev => ({ ...prev, [symbol]: isAnimating }));
-          }
-        );
-        
-        setPreviousPrices(prev => ({ ...prev, [ticker.symbol]: previousPrice }));
         const priceChange = newPrice - ticker.initialPrice;
         const priceChangePercent = (priceChange / ticker.initialPrice) * 100;
         
         return {
           ...ticker,
-          lastPrice: newPrice,
+          prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
+          price: newPrice,
           priceChange,
           priceChangePercent,
         };
@@ -437,74 +400,15 @@ export default function TickerSettingPage() {
         <h2 className="text-lg font-semibold mb-4">예시</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            {tickerData.map((ticker) => {
-              // 숫자 포맷팅 함수
-              const formatNumber = (num: number) => {
-                if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-                if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-                if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-                return num.toFixed(2);
-              };
-              
-              const formattedTurnover = formatNumber(ticker.turnover);
-              const formattedPriceChange = `${ticker.priceChange >= 0 ? '+' : ''}${ticker.priceChange.toFixed(2)}`;
-              const formattedPriceChangePercent = `${ticker.priceChangePercent >= 0 ? '+' : ''}${ticker.priceChangePercent.toFixed(2)}${showPercentSymbol ? '%' : ''}`;
-              const formattedLastPrice = ticker.lastPrice.toFixed(ticker.lastPrice < 1 ? 4 : 2);
-              
-              // 스토어에서 색상 및 스타일 설정 가져오기
-              const priceStyle = getTickerPriceStyle(tickerColorMode, ticker.priceChange);
-              const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, ticker.priceChange, showPercentBackground);
-              const isAnimating = borderAnimations[ticker.symbol];
-              const borderStyle = getTickerBorderStyle(isAnimating, tickerColorMode, previousPrices[ticker.symbol] || ticker.initialPrice, ticker.lastPrice, borderAnimationEnabled);
-              
-              return (
-                <div 
-                  key={ticker.symbol}
-                  className="bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-border"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="font-semibold text-lg">{ticker.displaySymbol}</div>
-                      <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
-                      <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
-                        {ticker.label}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-lg text-right">
-                        <span
-                          className="px-1 inline-block"
-                          style={{ 
-                            ...borderStyle,
-                            ...priceStyle,
-                            borderRadius: '0rem' 
-                          }}
-                        >
-                          {formattedLastPrice}
-                        </span>
-                        <span 
-                          className="text-sm px-1.5 py-0.5 rounded ml-1 font-semibold"
-                          style={{ 
-                            ...priceStyle,
-                            ...percentBackgroundStyle
-                          }}
-                        >
-                          {formattedPriceChangePercent}
-                        </span>
-                      </div>
-                      {showPriceChange && (
-                        <div 
-                          className="text-sm mt-1"
-                          style={priceStyle}
-                        >
-                          {formattedPriceChange}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {tickerData.map((ticker) => (
+              <Ticker
+                key={ticker.symbol}
+                data={ticker}
+                onPriceChange={(symbol, oldPrice, newPrice) => {
+                  console.log(`${symbol}: ${oldPrice} → ${newPrice}`);
+                }}
+              />
+            ))}
           </div>
           
           <div className="mt-6 p-3 bg-muted/30 rounded-md">
