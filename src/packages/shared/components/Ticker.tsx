@@ -101,10 +101,25 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
     return num.toFixed(2);
   };
 
+  // 가격 포맷팅 함수 (1000 이상인 경우 콤마 추가)
+  const formatPrice = (price: number) => {
+    const decimals = price < 1 ? 4 : 2;
+    const formattedPrice = price.toFixed(decimals);
+    
+    // 1000 이상인 경우 콤마 추가
+    if (price >= 1000) {
+      const [integerPart, decimalPart] = formattedPrice.split('.');
+      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    }
+    
+    return formattedPrice;
+  };
+
   const formattedTurnover = formatNumber(data.turnover);
   const formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${data.priceChange.toFixed(2)}`;
   const formattedPriceChangePercent = `${data.priceChangePercent >= 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}${showPercentSymbol ? '%' : ''}`;
-  const formattedLastPrice = data.price.toFixed(data.price < 1 ? 4 : 2);
+  const formattedLastPrice = formatPrice(data.price);
 
   // 스토어에서 색상 및 스타일 설정 가져오기
   const priceStyle = getTickerPriceStyle(tickerColorMode, data.priceChange);
