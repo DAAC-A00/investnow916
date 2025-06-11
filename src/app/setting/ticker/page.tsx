@@ -98,7 +98,7 @@ export default function TickerSettingPage() {
       priceChangePercent: 2.00,
       turnover: 2340000000,
       label: '상승 예시',
-      initialPrice: 5000.00,
+      prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
     {
@@ -109,7 +109,7 @@ export default function TickerSettingPage() {
       priceChangePercent: -2.00,
       turnover: 15600000,
       label: '하락 예시',
-      initialPrice: 5000.00,
+      prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
     {
@@ -120,7 +120,7 @@ export default function TickerSettingPage() {
       priceChangePercent: 0.00,
       turnover: 890000,
       label: '보합 예시',
-      initialPrice: 73.19,
+      prevPrice24h: 73.19,
       prevPrice: 73.19
     }
   ]);
@@ -154,8 +154,8 @@ export default function TickerSettingPage() {
         const newPrice = Math.max(ticker.price + change, 0.05); 
         
         // 가격 변동 및 퍼센트 계산
-        const priceChange = newPrice - ticker.initialPrice;
-        const priceChangePercent = (priceChange / ticker.initialPrice) * 100;
+        const priceChange = newPrice - ticker.prevPrice24h;
+        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
         
         return {
           ...ticker,
@@ -181,8 +181,8 @@ export default function TickerSettingPage() {
         
         const newPrice = Math.max(ticker.price + change, 0.05); // 변동 후 가격
         
-        const priceChange = newPrice - ticker.initialPrice;
-        const priceChangePercent = (priceChange / ticker.initialPrice) * 100;
+        const priceChange = newPrice - ticker.prevPrice24h;
+        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
         
         return {
           ...ticker,

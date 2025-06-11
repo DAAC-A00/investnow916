@@ -11,7 +11,7 @@ export interface TickerData {
   priceChangePercent: number;
   turnover: number;
   label?: string;
-  initialPrice: number;
+  prevPrice24h: number;
   prevPrice?: number; // 이전 가격 (애니메이션용)
 }
 
@@ -65,7 +65,7 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
     
     // 가격이 실제로 변경되었는지 확인
     if (data.price !== prevData.price) {
-      const oldPrice = data.prevPrice ?? prevData.price ?? previousPrice;
+      const oldPrice = data.prevPrice24h ?? prevData.price ?? previousPrice;
       const newPrice = data.price;
       
       // 가격 변동 콜백 호출

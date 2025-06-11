@@ -22,7 +22,7 @@ export default function HomePage() {
       priceChange: 1250.50,
       priceChangePercent: 2.98,
       turnover: 1250000000,
-      initialPrice: 42000.00,
+      prevPrice24h: 42000.00,
       prevPrice: 42000.00
     },
     {
@@ -32,17 +32,17 @@ export default function HomePage() {
       priceChange: -45.25,
       priceChangePercent: -1.72,
       turnover: 850000000,
-      initialPrice: 2626.00,
+      prevPrice24h: 2626.00,
       prevPrice: 2626.00
     },
     {
       symbol: 'ADA/USDT',
       displaySymbol: 'ADA/USDT',
       price: 0.4521,
-      priceChange: 0.0000,
+      priceChange: 0.00,
       priceChangePercent: 0.00,
       turnover: 125000000,
-      initialPrice: 0.4521,
+      prevPrice24h: 0.4521,
       prevPrice: 0.4521
     }
   ]);
