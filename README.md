@@ -1,5 +1,3 @@
-
-```markdown
 # 📦 Monorepo 기반 크로스플랫폼 프로젝트
 
 ## 📁 프로젝트 구조
@@ -145,24 +143,93 @@ src/
 
 ## 📌 네이밍 컨벤션 (티커 및 심볼 처리)
 
+### 기본 속성
+
 | 키                                 | 설명                                                             |
 | --------------------------------- | -------------------------------------------------------------- |
-| `rawSymbol`                       | 외부 API 심볼 (ex: BTCUSDT)                                        |
-| `displaySymbol`                   | 내부 표시용 (ex: BTC/USDT)                                          |
-| `baseCode` / `quoteCode`          | 기준/견적 화폐 코드                                                    |
+| `rawSymbol`                       | 외부 API 원본 심볼 (ex: BTCUSDT, 1000SHIBUSDT)                        |
+| `displaySymbol`                   | 내부 표시용 심볼 (조건부 포맷)                                            |
+| `baseCode` / `quoteCode`          | 기준/견적 화폐 코드 (quantity 제거된 실제 코드)                              |
+| `quantity`                        | 수량 정보 (10 이상일 때만 유효, 기본값: 1)                                 |
+| `settlementCode`                  | 정산 화폐 코드 (조건부 결정)                                             |
+| `restOfSymbol`                    | 기타 심볼 정보 (만료일, 옵션 정보 등)                                       |
 | `rawCategory` / `displayCategory` | API 원본 카테고리 / UI 표시용                                           |
-| 파싱/저장 규칙                          | `BTC/USDT=BTCUSDT` 또는 `ETH/USDT-06JUN25=ETHUSDT-06JUN25` 형식 저장 |
-| 타입 예시                             |                                                                |
+
+### displaySymbol 조건부 포맷
+
+#### quantity >= 10인 경우:
+- **restOfSymbol 있음**: `${quantity}${baseCode}/${quoteCode}-${restOfSymbol}`
+- **restOfSymbol 없음**: `${quantity}${baseCode}/${quoteCode}`
+- **예시**: `100BTC/USDT`, `50ETH/USDT-25DEC24`
+
+#### quantity < 10인 경우 (기존 형식):
+- **restOfSymbol 있음**: `${baseCode}/${quoteCode}-${restOfSymbol}`
+- **restOfSymbol 없음**: `${baseCode}/${quoteCode}`
+- **예시**: `BTC/USDT`, `ETH/USDT-25DEC24`
+
+### quantity 추출 로직
+
+1. **baseCoin 우선 처리**: `baseCoin`의 왼쪽 숫자가 10 이상인 경우
+   - 해당 숫자를 `quantity`로 사용
+   - 숫자 제거 후 나머지를 `baseCode`로 사용
+   - **예시**: `"100BTC"` → quantity: `100`, baseCode: `"BTC"`
+
+2. **fallback 처리**: baseCoin에서 추출 실패 시
+   - `restOfSymbol`에서 왼쪽 숫자 추출
+   - 10 이상인 경우만 유효한 quantity로 간주
+
+### settlementCode 결정 로직
+
+- **cm 카테고리 + USD 견적**: `settlementCode = baseCode`
+- **기타 모든 경우**: `settlementCode = quoteCode`
+
+### 저장 형식 (localStorage)
+
+#### settlementCode와 quoteCode가 동일한 경우 (간소화):
+- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
+- **quantity = 1**: `${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
+
+#### settlementCode와 quoteCode가 다른 경우 (확장):
+- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}=${settlementCode}-${restOfSymbol}=${rawSymbol}`
+- **quantity = 1**: `${baseCode}/${quoteCode}=${settlementCode}-${restOfSymbol}=${rawSymbol}`
+
+### 타입 정의
 
 ```ts
-interface InstrumentInfo {
-  rawSymbol: string;
-  displaySymbol: string;
-  baseCode: string;
-  quoteCode: string;
-  rawCategory: string;
-  displayCategory: string;
-  restOfData?: string;
+interface SymbolInfo {
+  rawSymbol: string;              // API 원본 심볼
+  displaySymbol: string;          // 조건부 포맷 표시 심볼
+  baseCode: string;               // 기준 화폐 (quantity 제거됨)
+  quoteCode: string;              // 견적 화폐
+  restOfSymbol?: string;          // 추가 심볼 정보
+  quantity?: number;              // 수량 (기본값: 1)
+  settlementCode?: string;        // 정산 화폐
+  category?: string;              // 내부 카테고리
+  rawCategory?: string;           // API 원본 카테고리
+  displayCategory?: string;       // UI 표시 카테고리
+  [key: string]: any;             // 추가 필드 허용
+}
+```
+
+### 파싱 예시
+
+```ts
+// API 응답 예시
+{
+  baseCoin: "100BTC",
+  quoteCoin: "USDT", 
+  symbol: "100BTCUSDT25DEC24"
+}
+
+// 파싱 결과
+{
+  rawSymbol: "100BTCUSDT25DEC24",
+  displaySymbol: "100BTC/USDT-25DEC24",
+  baseCode: "BTC",
+  quoteCode: "USDT",
+  quantity: 100,
+  restOfSymbol: "25DEC24",
+  settlementCode: "USDT"
 }
 ```
 
@@ -188,7 +255,3 @@ pnpm dev
 * [Next.js 튜토리얼](https://nextjs.org/learn)
 * [Next.js GitHub](https://github.com/vercel/next.js)
 * [Vercel 배포 문서](https://nextjs.org/docs/app/building-your-application/deploying)
-
-```
-
----
