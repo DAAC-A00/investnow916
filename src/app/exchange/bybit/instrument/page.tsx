@@ -3,13 +3,15 @@
 import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
-  rawSymbol: string;  // 외부 API로부터 받은 원본 심볼
-  symbol: string;     // 내부 프로젝트용 표시 심볼 (baseCode/quoteCode)
-  name: string;
+  rawSymbol: string;
+  displaySymbol: string;
   baseCode: string;
   quoteCode: string;
-  category: string;
-  restOfData?: string;
+  rawCategory: string;
+  displayCategory: keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP;
+  quantity: number;
+  settlementCode: string;
+  restOfSymbol?: string;
 }
 
 const BYBIT_INSTRUMENT_KEYS = [
@@ -19,40 +21,43 @@ const BYBIT_INSTRUMENT_KEYS = [
   'bybit-um',
 ];
 
+// Bybit 카테고리 매핑
+export const BYBIT_CATEGORY_DISPLAYTORAW_MAP = {
+  // 표시용 카테고리(displayCategory): API 요청용 카테고리(rawCategory)
+  'um': 'linear',
+  'cm': 'inverse',
+  // spot, option은 그대로 유지
+  'spot': 'spot',
+  'option': 'option'
+} as const;
 const parseInstrumentString = (instrumentStr: string, categoryKey: string): InstrumentInfo | null => {
   try {
     const parts = instrumentStr.split('=');
     if (parts.length !== 2) return null;
     const rawSymbol = parts[1];
-    const details = parts[0];
+    const displaySymbol = parts[0];
 
-    const slashIndex = details.indexOf('/');
-    if (slashIndex === -1) return null;
-    const baseCode = details.substring(0, slashIndex);
+    // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
+    const pattern = /^(\d+)?\*?([^/]+)\/([^(]+)(?:\(([^)]+)\))?(?:-(.*))?$/;
+    const match = displaySymbol.match(pattern);
     
-    const rest = details.substring(slashIndex + 1);
-    const hyphenIndex = rest.indexOf('-');
-    
-    let quoteCode = '';
-    let restOfData = undefined;
+    if (!match) return null;
 
-    if (hyphenIndex !== -1) {
-      quoteCode = rest.substring(0, hyphenIndex);
-      restOfData = rest.substring(hyphenIndex + 1);
-    } else {
-      quoteCode = rest;
-    }
-    
-    const category = categoryKey.replace('bybit-', '');
+    const [, quantityStr = '1', baseCode, quoteCode, settlementCode, restOfSymbol] = match;
+    const quantity = quantityStr ? parseInt(quantityStr, 10) : 1;
+
+    const displayCategory = categoryKey.replace('bybit-', '');
 
     return {
       rawSymbol,
-      symbol: `${baseCode}/${quoteCode}`,
-      name: `${baseCode}/${quoteCode}${restOfData ? `-${restOfData}` : ''}`,
+      displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
       baseCode,
       quoteCode,
-      category,
-      restOfData,
+      rawCategory: BYBIT_CATEGORY_DISPLAYTORAW_MAP[displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP] || displayCategory,
+      displayCategory: displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP,
+      quantity,
+      settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
+      restOfSymbol: restOfSymbol || undefined
     };
   } catch (e) {
     console.error('Error parsing instrument string:', instrumentStr, e);
@@ -113,15 +118,17 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['symbol', 'rawSymbol', 'baseCode', 'quoteCode', 'category', 'restOfData'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['rawSymbol', 'displaySymbol', 'baseCode', 'quoteCode', 'rawCategory', 'displayCategory', 'quantity', 'settlementCode', 'restOfSymbol'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
-    symbol: '심볼',
     rawSymbol: '원본 심볼',
-    name: '이름',
+    displaySymbol: '표시용 심볼',
     baseCode: '베이스코드',
     quoteCode: '쿼트코드',
-    category: '카테고리',
-    restOfData: '추가정보'
+    rawCategory: '원본 카테고리',
+    displayCategory: '표시용 카테고리',
+    quantity: '수량',
+    settlementCode: '정산 화폐',
+    restOfSymbol: '추가정보'
   };
 
   return (
@@ -146,7 +153,7 @@ const BybitInstrumentPage = () => {
             </thead>
             <tbody className="bg-background divide-y divide-border">
               {instrumentData.map((instrument, index) => (
-                <tr key={instrument.rawSymbol ? `${instrument.rawSymbol}-${instrument.category}-${index}` : index} className="hover:bg-muted/50">
+                <tr key={instrument.rawSymbol ? `${instrument.rawSymbol}-${instrument.rawCategory}-${index}` : index} className="hover:bg-muted/50">
                   {tableHeaders.map((header) => (
                     <td 
                       key={header} 
