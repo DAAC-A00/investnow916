@@ -45,10 +45,7 @@ export type ExchangeRateAction =
  */
 
 // 지원하는 거래소 타입
-export type ExchangeType = 'bybit' | 'binance' | 'upbit';
-
-// 지원하는 카테고리 타입
-export type UpbitRawCategoryType = 'KRW' | 'BTC' | 'USDT';
+export type ExchangeType = 'bybit' | 'binance' | 'upbit' | 'bithumb';
 
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
@@ -152,6 +149,19 @@ export interface BybitTicker {
   [key: string]: any;  // 기타 속성
 }
 
+// Bithumb API 응답 타입
+export interface BithumbInstrument {
+  market: string;         // 예: "KRW-BTC", "BTC-ETH"
+  korean_name: string;    // 예: "비트코인"
+  english_name: string;   // 예: "Bitcoin"
+}
+
+export type BithumbInstrumentsResponse = BithumbInstrument[];
+
+// Bithumb 카테고리 타입 (spot만 지원)
+export type BithumbRawCategory = 'spot';
+export type BithumbDisplayCategory = 'spot';
+
 // 티커 정보 공통 인터페이스
 export interface TickerInfo {
   rawSymbol: string;      // 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
@@ -178,6 +188,8 @@ export interface ExchangeInstrumentState {
   // 함수 타입 정의
   fetchBybitCoins: (rawCategory: BybitRawCategory) => Promise<boolean>;
   fetchAllBybitCoins: () => Promise<boolean>;
+  fetchBithumbCoins: (rawCategory: BithumbRawCategory) => Promise<boolean>;
+  fetchAllBithumbCoins: () => Promise<boolean>;
   fetchExchangeCoins: (exchange: ExchangeType) => Promise<boolean>;
   fetchAllExchangeCoins: () => Promise<boolean>;
   clearSymbols: (exchange?: ExchangeType, category?: string) => void;
