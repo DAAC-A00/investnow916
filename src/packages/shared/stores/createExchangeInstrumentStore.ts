@@ -15,7 +15,16 @@ interface SymbolInfo {
 }
 
 import { 
-  BybitCategoryType, 
+  BybitRawCategory, 
+  BybitDisplayCategory,
+  toDisplayCategory,
+  toRawCategory,
+  isValidRawCategory,
+  isValidDisplayCategory,
+  ALL_DISPLAY_CATEGORIES
+} from '@/packages/shared/constants/bybitCategories';
+
+import { 
   BybitInstrumentsResponse, 
   BybitInstrument,
   CoinInfo, 
@@ -30,7 +39,7 @@ type ExchangeInstrumentStateData = Pick<ExchangeInstrumentState, 'isLoading' | '
 // Bybit instrument 원본 데이터를 임시로 저장
 interface BybitInstrumentRawState {
   bybitInstrumentRaw: {
-    [category in BybitCategoryType]?: BybitInstrument[];
+    [rawCategory in BybitRawCategory]?: BybitInstrument[];
   };
   fetchBybitInstrumentRaw: () => Promise<void>;
 }
@@ -44,7 +53,7 @@ const initialState: ExchangeInstrumentStateData = {
 const API_URLS = {
   bybit: {
     base: 'https://api.bybit.com/v5/market/instruments-info',
-    getUrl: (category: BybitCategoryType) => `${API_URLS.bybit.base}?category=${category}`,
+    getUrl: (category: BybitRawCategory) => `${API_URLS.bybit.base}?category=${category}`,
   },
   binance: {
     // 추후 구현
@@ -54,22 +63,10 @@ const API_URLS = {
   },
 };
 
-// Bybit 카테고리 매핑
-export const BYBIT_CATEGORY_RAWTODISPLAY_MAP = {
-  // API 요청용 카테고리(rawCategory): 표시용 카테고리(displayCategory)
-  'linear': 'um',
-  'inverse': 'cm',
-  // spot, option은 그대로 유지
-  'spot': 'spot',
-  'option': 'option'
-} as const;
-
-type BybitRawCategory = keyof typeof BYBIT_CATEGORY_RAWTODISPLAY_MAP;
-
 // 거래소별 카테고리 정보를 반환하는 함수
 const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   if (exchange === 'bybit') {
-    const displayCategory = BYBIT_CATEGORY_RAWTODISPLAY_MAP[rawCategory as BybitRawCategory] || rawCategory;
+    const displayCategory = toDisplayCategory(rawCategory as BybitRawCategory) || rawCategory;
     return {
       rawCategory,
       displayCategory,
@@ -85,14 +82,7 @@ const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
 
 // 내부 저장용 카테고리로 변환 (displayCategory 반환)
 const toStorageCategory = (category: string): string => {
-  return BYBIT_CATEGORY_RAWTODISPLAY_MAP[category as BybitRawCategory] || category;
-};
-
-// API 요청용 카테고리로 변환 (rawCategory 반환)
-const toRawCategory = (storageCategory: string): string => {
-  return Object.entries(BYBIT_CATEGORY_RAWTODISPLAY_MAP).find(
-    ([_, value]) => value === storageCategory
-  )?.[0] || storageCategory;
+  return toDisplayCategory(category as BybitRawCategory) || category;
 };
 
 // 로컬 스토리지 접근 함수
@@ -175,7 +165,7 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
 };
 
 // Bybit 거래소의 코인 정보 가져오기
-const fetchBybitCoins = async (rawCategory: BybitCategoryType, set: any, get: any): Promise<boolean> => {
+const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any): Promise<boolean> => {
   try {
     set((state: ExchangeInstrumentState) => {
       state.isLoading = true;
@@ -413,13 +403,13 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
       ...initialState,
 
         // Bybit 거래소의 코인 정보 가져오기
-        fetchBybitCoins: async (rawCategory: BybitCategoryType) => {
+        fetchBybitCoins: async (rawCategory: BybitRawCategory) => {
           return await fetchBybitCoins(rawCategory, set, get);
         },
 
         // 모든 Bybit 카테고리의 코인 정보 가져오기
         fetchAllBybitCoins: async () => {
-          const categories: BybitCategoryType[] = ['spot', 'linear', 'inverse', 'option'];
+          const categories: BybitRawCategory[] = ['spot', 'linear', 'inverse', 'option'];
           const results = await Promise.all(
             categories.map(category => get().fetchBybitCoins(category))
           );
@@ -475,7 +465,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           } else if (!category) {
             // 특정 거래소의 모든 카테고리 심볼 데이터 초기화
             const categories = exchange === 'bybit' ? 
-              [...Object.values(BYBIT_CATEGORY_RAWTODISPLAY_MAP), 'um', 'cm'] : // um, cm도 함께 삭제
+              [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 삭제
               exchange === 'binance' ? ['spot', 'futures', 'options'] :
               exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
             
@@ -493,7 +483,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 특정 거래소와 카테고리의 심볼 데이터 초기화
             // API 카테고리와 저장용 카테고리 모두 삭제
             const storageCategory = toStorageCategory(category);
-            const rawCategory = toRawCategory(category);
+            const rawCategory = toRawCategory(category as BybitDisplayCategory);
             
             const keysToRemove = new Set([
               getStorageKey(exchange, storageCategory),
@@ -649,12 +639,12 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           // 카테고리 필터가 없으면 모든 카테고리 사용
           if (!category) {
             categories = exchange === 'bybit' ? 
-              [...Object.values(BYBIT_CATEGORY_RAWTODISPLAY_MAP), 'um', 'cm'] : // um, cm도 함께 검색
+              [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 검색
               exchange === 'binance' ? ['spot', 'futures', 'options'] :
               exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
           } else {
             // 카테고리 필터가 있으면 해당 카테고리와 변환된 카테고리 모두 검색
-            categories = [category, toStorageCategory(category), toRawCategory(category)];
+            categories = [category, toStorageCategory(category), toRawCategory(category as BybitDisplayCategory)];
             // 중복 제거
             categories = [...new Set(categories)];
           }
@@ -679,7 +669,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
                 if (quoteCode && quote !== quoteCode) continue;
                 
                 // 원본 카테고리 유지 (API 카테고리로 변환)
-                const originalCategory = toRawCategory(cat) || cat;
+                const originalCategory = toRawCategory(cat as BybitDisplayCategory) || cat;
                 
                 // 카테고리 정보 생성
                 const categoryInfo = getCategoryInfo(ex, originalCategory);
@@ -728,7 +718,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
         // Bybit instrument 원본 데이터 임시 저장 상태 및 fetch 함수 추가
         bybitInstrumentRaw: {},
         fetchBybitInstrumentRaw: async () => {
-          const categories: BybitCategoryType[] = ['linear', 'inverse', 'spot', 'option'];
+          const categories: BybitRawCategory[] = ['linear', 'inverse', 'spot', 'option'];
           const results: { [cat: string]: BybitInstrument[] } = {};
           await Promise.all(
             categories.map(async (cat) => {

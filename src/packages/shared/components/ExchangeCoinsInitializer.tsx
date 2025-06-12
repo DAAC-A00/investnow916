@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
-import { BybitCategoryType, ExchangeType } from '../types/exchange';
+import { BybitRawCategory, ExchangeType } from '../types/exchange';
 
 interface ExchangeCoinsInitializerProps {
   exchange?: ExchangeType;
-  category?: BybitCategoryType;
+  category?: BybitRawCategory;
   autoFetch?: boolean;
 }
 
@@ -51,7 +51,7 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
           }
         } else {
           // Bybit의 모든 카테고리 데이터 가져오기
-          const categories: BybitCategoryType[] = ['spot', 'linear', 'inverse', 'option'];
+          const categories: BybitRawCategory[] = ['spot', 'linear', 'inverse', 'option'];
           for (const cat of categories) {
             // 해당 카테고리의 심볼 데이터가 있는지 확인
             const symbols = getSymbolsForCategory(exchange, cat);

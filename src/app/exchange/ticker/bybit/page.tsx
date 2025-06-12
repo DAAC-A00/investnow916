@@ -2,14 +2,18 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
-import { BybitCategoryType, TickerInfo } from '@/packages/shared/types/exchange';
-import { BYBIT_CATEGORY_RAWTODISPLAY_MAP } from '@/packages/shared/stores/createExchangeInstrumentStore';
+import { 
+  BybitRawCategory, 
+  toDisplayCategory,
+  ALL_RAW_CATEGORIES 
+} from '@/packages/shared/constants/bybitCategories';
 
 type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';
 type SortDirection = 'asc' | 'desc';
 
 import { useTickerSettingStore, TickerColorMode } from '@/packages/shared/stores/createTickerSettingStore';
 import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
+import { TickerInfo } from '@/packages/shared/types/exchange';
 
 export default function BybitTickersPage() {
   // 글로벌 티커 색상 모드 상태 사용
@@ -20,7 +24,7 @@ export default function BybitTickersPage() {
   // symbol별 lastPrice 최대 소수점 자리수 추적
   const symbolMaxDecimals = useRef<Record<string, number>>({});
 
-  const [selectedCategory, setSelectedCategory] = useState<BybitCategoryType>('linear');
+  const [selectedCategory, setSelectedCategory] = useState<BybitRawCategory>('linear');
   const [symbolFilter, setSymbolFilter] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('turnover24h');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -145,7 +149,7 @@ export default function BybitTickersPage() {
   }
 
   // selectedCategory를 storage용 카테고리로 변환
-  const storageCategory = BYBIT_CATEGORY_RAWTODISPLAY_MAP[selectedCategory] || selectedCategory;
+  const storageCategory = toDisplayCategory(selectedCategory);
   // storage 카테고리로 instrument map 생성
   const instrumentMap = loadInstrumentMap(storageCategory);
 

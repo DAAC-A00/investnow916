@@ -2,6 +2,15 @@
  * 환율 및 거래소 정보 관련 타입 정의
  */
 
+// Bybit 카테고리 타입들은 constants/bybitCategories.ts에서 import
+export type { 
+  BybitRawCategory, 
+  BybitDisplayCategory 
+} from '@/packages/shared/constants/bybitCategories';
+
+// 내부에서 사용하기 위한 import
+import type { BybitRawCategory } from '@/packages/shared/constants/bybitCategories';
+
 // 환율 API 응답 타입
 export interface ExchangeRateResponse {
   result: string;
@@ -39,9 +48,7 @@ export type ExchangeRateAction =
 export type ExchangeType = 'bybit' | 'binance' | 'upbit';
 
 // 지원하는 카테고리 타입
-export type BybitCategoryType = 'spot' | 'linear' | 'inverse' | 'option';
-export type BinanceCategoryType = 'spot' | 'futures' | 'options';
-export type UpbitCategoryType = 'KRW' | 'BTC' | 'USDT';
+export type UpbitRawCategoryType = 'KRW' | 'BTC' | 'USDT';
 
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
@@ -169,7 +176,7 @@ export interface ExchangeInstrumentState {
   error: string | null;
   
   // 함수 타입 정의
-  fetchBybitCoins: (category: BybitCategoryType) => Promise<boolean>;
+  fetchBybitCoins: (rawCategory: BybitRawCategory) => Promise<boolean>;
   fetchAllBybitCoins: () => Promise<boolean>;
   fetchExchangeCoins: (exchange: ExchangeType) => Promise<boolean>;
   fetchAllExchangeCoins: () => Promise<boolean>;

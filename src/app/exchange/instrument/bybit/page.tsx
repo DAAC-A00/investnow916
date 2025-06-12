@@ -10,7 +10,7 @@ interface InstrumentInfo {
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  displayCategory: keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP;
+  displayCategory: BybitDisplayCategory;
   settlementCode: string;
   restOfSymbol?: string;
 }
@@ -18,22 +18,19 @@ interface InstrumentInfo {
 // 공유 유틸리티에서 한국어 QWERTY 변환 함수 가져오기
 import { normalizeSearchTerm } from '@/packages/shared/utils';
 
-const BYBIT_INSTRUMENT_KEYS = [
-  'bybit-option',
-  'bybit-spot',
-  'bybit-cm',
-  'bybit-um',
-];
+import { 
+  BybitRawCategory, 
+  BybitDisplayCategory,
+  toDisplayCategory,
+  toRawCategory,
+  ALL_DISPLAY_CATEGORIES 
+} from '@/packages/shared/constants/bybitCategories';
 
-// Bybit 카테고리 매핑
-export const BYBIT_CATEGORY_DISPLAYTORAW_MAP = {
-  // 표시용 카테고리(displayCategory): API 요청용 카테고리(rawCategory)
-  'um': 'linear',
-  'cm': 'inverse',
-  // spot, option은 그대로 유지
-  'spot': 'spot',
-  'option': 'option'
-} as const;
+// localStorage 키 생성을 위한 헬퍼 함수
+const getBybitStorageKeys = (): string[] => {
+  return ALL_DISPLAY_CATEGORIES.map(category => `bybit-${category}`);
+};
+
 const parseInstrumentString = (instrumentStr: string, categoryKey: string): InstrumentInfo | null => {
   try {
     const parts = instrumentStr.split('=');
@@ -52,7 +49,7 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     // 수량이 10 미만이거나 없는 경우 1로 설정
     const quantity = (quantityStr && parseInt(quantityStr, 10) >= 10) ? parseInt(quantityStr, 10) : 1;
 
-    const displayCategory = categoryKey.replace('bybit-', '');
+    const displayCategory = categoryKey.replace('bybit-', '') as BybitDisplayCategory;
 
     return {
       rawSymbol,
@@ -60,8 +57,8 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
       quantity,
       baseCode,
       quoteCode,
-      rawCategory: BYBIT_CATEGORY_DISPLAYTORAW_MAP[displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP] || displayCategory,
-      displayCategory: displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP,
+      rawCategory: toRawCategory(displayCategory),
+      displayCategory,
       pair: `${baseCode}/${quoteCode}`,
       settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
       restOfSymbol: restOfSymbol || undefined
@@ -84,7 +81,7 @@ const BybitInstrumentPage = () => {
       const allInstruments: InstrumentInfo[] = [];
       let foundAnyData = false;
 
-      BYBIT_INSTRUMENT_KEYS.forEach(key => {
+      getBybitStorageKeys().forEach(key => {
         const storedData = localStorage.getItem(key);
         if (storedData) {
           foundAnyData = true;

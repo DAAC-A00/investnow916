@@ -2,12 +2,12 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { 
-  BybitCategoryType, 
   BybitTickerResponse, 
   BybitTicker,
   TickerInfo, 
-  ExchangeType 
+  ExchangeType
 } from '../types/exchange';
+import { BybitRawCategory } from '../constants/bybitCategories';
 
 // 티커 스토어 상태 타입
 interface BybitTickerState {
@@ -17,16 +17,16 @@ interface BybitTickerState {
   lastUpdated: Record<string, string>; // category별 마지막 업데이트 시간
   
   // 액션들
-  fetchTickers: (category: BybitCategoryType) => Promise<boolean>;
+  fetchTickers: (category: BybitRawCategory) => Promise<boolean>;
   fetchAllTickers: () => Promise<boolean>;
-  getTickersForCategory: (category: BybitCategoryType) => TickerInfo[];
+  getTickersForCategory: (category: BybitRawCategory) => TickerInfo[];
   getFilteredTickers: (filter: {
-    category?: BybitCategoryType;
+    category?: BybitRawCategory;
     symbol?: string;
     sortField?: string;
     sortDirection?: 'asc' | 'desc';
   }) => TickerInfo[];
-  clearTickers: (category?: BybitCategoryType) => void;
+  clearTickers: (category?: BybitRawCategory) => void;
 }
 
 // 초기 상태
@@ -38,12 +38,12 @@ const initialState = {
 };
 
 // Bybit 티커 API URL
-const getTickerApiUrl = (category: BybitCategoryType): string => {
-  return `https://api.bybit.com/v5/market/tickers?category=${category}`;
+const getTickerApiUrl = (rawCategory: BybitRawCategory): string => {
+  return `https://api.bybit.com/v5/market/tickers?category=${rawCategory}`;
 };
 
 // Bybit 티커 데이터를 TickerInfo 형식으로 변환
-const transformBybitTicker = (ticker: BybitTicker, category: BybitCategoryType): TickerInfo => {
+const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory): TickerInfo => {
   const lastPrice = parseFloat(ticker.lastPrice) || 0;
   const prevPrice = parseFloat(ticker.prevPrice24h) || 0;
   const priceChange = lastPrice - prevPrice;
@@ -61,7 +61,7 @@ const transformBybitTicker = (ticker: BybitTicker, category: BybitCategoryType):
 
   return {
     rawSymbol: ticker.symbol,
-    symbol,
+    displaySymbol: symbol,
     lastPrice,
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,
@@ -72,7 +72,8 @@ const transformBybitTicker = (ticker: BybitTicker, category: BybitCategoryType):
     bidPrice: parseFloat(ticker.bid1Price) || 0,
     askPrice: parseFloat(ticker.ask1Price) || 0,
     exchange: 'bybit' as ExchangeType,
-    category,
+    displayCategory: rawCategory,
+    rawCategory,
   };
 };
 
@@ -83,15 +84,15 @@ export const useBybitTickerStore = create<BybitTickerState>()(
       ...initialState,
 
       // 특정 카테고리의 티커 정보 가져오기
-      fetchTickers: async (category: BybitCategoryType): Promise<boolean> => {
+      fetchTickers: async (rawCategory: BybitRawCategory): Promise<boolean> => {
         set((state) => {
           state.isLoading = true;
           state.error = null;
         });
 
         try {
-          const url = getTickerApiUrl(category);
-          console.log(`🔄 Bybit ${category} 티커 정보 요청:`, url);
+          const url = getTickerApiUrl(rawCategory);
+          console.log(`🔄 Bybit ${rawCategory} 티커 정보 요청:`, url);
 
           const response = await fetch(url, {
             method: 'GET',
@@ -116,22 +117,22 @@ export const useBybitTickerStore = create<BybitTickerState>()(
 
           // 티커 데이터 변환
           const transformedTickers = data.result.list.map(ticker => 
-            transformBybitTicker(ticker, category)
+            transformBybitTicker(ticker, rawCategory)
           );
 
           set((state) => {
-            state.tickers[category] = transformedTickers;
-            state.lastUpdated[category] = new Date().toISOString();
+            state.tickers[rawCategory] = transformedTickers;
+            state.lastUpdated[rawCategory] = new Date().toISOString();
             state.isLoading = false;
             state.error = null;
           });
 
-          console.log(`✅ Bybit ${category} 티커 정보 로드 완료:`, transformedTickers.length, '개');
+          console.log(`✅ Bybit ${rawCategory} 티커 정보 로드 완료:`, transformedTickers.length, '개');
           return true;
 
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`❌ Bybit ${category} 티커 정보 로드 실패:`, errorMessage);
+          console.error(`❌ Bybit ${rawCategory} 티커 정보 로드 실패:`, errorMessage);
 
           set((state) => {
             state.isLoading = false;
@@ -144,11 +145,11 @@ export const useBybitTickerStore = create<BybitTickerState>()(
 
       // 모든 카테고리의 티커 정보 가져오기
       fetchAllTickers: async (): Promise<boolean> => {
-        const categories: BybitCategoryType[] = ['spot', 'linear', 'inverse'];
+        const rawCategories: BybitRawCategory[] = ['spot', 'linear', 'inverse'];
         let allSuccess = true;
 
-        for (const category of categories) {
-          const success = await get().fetchTickers(category);
+        for (const rawCategory of rawCategories) {
+          const success = await get().fetchTickers(rawCategory);
           if (!success) {
             allSuccess = false;
           }
@@ -160,13 +161,13 @@ export const useBybitTickerStore = create<BybitTickerState>()(
       },
 
       // 특정 카테고리의 티커 목록 가져오기
-      getTickersForCategory: (category: BybitCategoryType): TickerInfo[] => {
+      getTickersForCategory: (category: BybitRawCategory): TickerInfo[] => {
         return get().tickers[category] || [];
       },
 
       // 필터링 및 정렬된 티커 목록 가져오기
       getFilteredTickers: (filter: {
-        category?: BybitCategoryType;
+        category?: BybitRawCategory;
         symbol?: string;
         sortField?: string;
         sortDirection?: 'asc' | 'desc';
@@ -186,7 +187,7 @@ export const useBybitTickerStore = create<BybitTickerState>()(
         if (symbol) {
           const searchTerm = symbol.toLowerCase();
           result = result.filter(ticker => 
-            ticker.symbol.toLowerCase().includes(searchTerm)
+            ticker.rawSymbol.toLowerCase().includes(searchTerm)
           );
         }
 
@@ -213,11 +214,11 @@ export const useBybitTickerStore = create<BybitTickerState>()(
       },
 
       // 티커 데이터 초기화
-      clearTickers: (category?: BybitCategoryType): void => {
+      clearTickers: (rawCategory?: BybitRawCategory): void => {
         set((state) => {
-          if (category) {
-            delete state.tickers[category];
-            delete state.lastUpdated[category];
+          if (rawCategory) {
+            delete state.tickers[rawCategory];
+            delete state.lastUpdated[rawCategory];
           } else {
             state.tickers = {};
             state.lastUpdated = {};
