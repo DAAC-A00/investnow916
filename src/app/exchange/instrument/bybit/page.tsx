@@ -5,11 +5,12 @@ import React, { useEffect, useState } from 'react';
 interface InstrumentInfo {
   rawSymbol: string;
   displaySymbol: string;
+  quantity: number;
   baseCode: string;
   quoteCode: string;
+  pair: string;
   rawCategory: string;
   displayCategory: keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP;
-  quantity: number;
   settlementCode: string;
   restOfSymbol?: string;
 }
@@ -38,7 +39,8 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     const displaySymbol = parts[0];
 
     // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
-    const pattern = /^(\d+)?\*?([^/]+)\/([^(]+)(?:\(([^)]+)\))?(?:-(.*))?$/;
+    // 수정된 정규식 패턴 (예시)
+    const pattern = /^(\d+)?\*?([^/]+)\/([^-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
     const match = displaySymbol.match(pattern);
     
     if (!match) return null;
@@ -51,11 +53,12 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     return {
       rawSymbol,
       displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
+      quantity,
       baseCode,
       quoteCode,
       rawCategory: BYBIT_CATEGORY_DISPLAYTORAW_MAP[displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP] || displayCategory,
       displayCategory: displayCategory as keyof typeof BYBIT_CATEGORY_DISPLAYTORAW_MAP,
-      quantity,
+      pair: `${baseCode}/${quoteCode}`,
       settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
       restOfSymbol: restOfSymbol || undefined
     };
@@ -118,12 +121,13 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['rawSymbol', 'displaySymbol', 'baseCode', 'quoteCode', 'rawCategory', 'displayCategory', 'quantity', 'settlementCode', 'restOfSymbol'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['rawSymbol', 'displaySymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'restOfSymbol'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
     rawSymbol: '원본 심볼',
     displaySymbol: '표시용 심볼',
     baseCode: '베이스코드',
     quoteCode: '쿼트코드',
+    pair: '페어',
     rawCategory: '원본 카테고리',
     displayCategory: '표시용 카테고리',
     quantity: '수량',

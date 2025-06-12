@@ -243,35 +243,52 @@ const fetchBybitCoins = async (rawCategory: BybitCategoryType, set: any, get: an
         }
       }
       
-      // restOfSymbol 추출 (기존 로직 유지)
-      // rawSymbol에서 actualBaseCode와 quoteCode를 제거한 후 나머지 부분 추출
+      // restOfSymbol 추출 로직 개선
+      // 1. rawSymbol에서 왼쪽/오른쪽 끝에 actualBaseCode가 있는지 확인하고 제거
+      // 2. 남은 문자열에서 왼쪽/오른쪽 끝에 quoteCode가 있는지 확인하고 제거
       if ((!baseCoinLeftNumberMatch || quantity === 1) && quantity === 1) {
         // baseCoin에서 quantity를 추출하지 못한 경우에만 기존 로직 사용
-        const baseQuotePattern = `${actualBaseCode}${quoteCoin || quoteCode}`;
-        const restPart = rawSymbol.replace(baseQuotePattern, '');
+        let processedSymbol = rawSymbol;
+        const quoteCodeToUse = quoteCoin || quoteCode;
         
-        if (restPart) {
-          // quoteCode가 USDC이면서 restPart가 "${baseCode}PERP"를 포함하는 경우 제거
-          let processedRestPart = restPart;
-          if ((quoteCoin === 'USDC' || quoteCode === 'USDC') && restPart.includes(`${actualBaseCode}PERP`)) {
-            processedRestPart = restPart.replace(`${actualBaseCode}PERP`, '');
+        // 1. actualBaseCode 제거 (왼쪽/오른쪽 끝에서만)
+        if (processedSymbol.startsWith(actualBaseCode)) {
+          processedSymbol = processedSymbol.substring(actualBaseCode.length);
+        } else if (processedSymbol.endsWith(actualBaseCode)) {
+          processedSymbol = processedSymbol.substring(0, processedSymbol.length - actualBaseCode.length);
+        }
+        
+        // 2. quoteCode 제거 (왼쪽/오른쪽 끝에서만)
+        if (quoteCodeToUse) {
+          if (processedSymbol.startsWith(quoteCodeToUse)) {
+            processedSymbol = processedSymbol.substring(quoteCodeToUse.length);
+          } else if (processedSymbol.endsWith(quoteCodeToUse)) {
+            processedSymbol = processedSymbol.substring(0, processedSymbol.length - quoteCodeToUse.length);
           }
-          
-          // 가장 왼쪽에 있는 숫자 추출
-          const leftmostNumberMatch = processedRestPart.match(/^(\d+)/);
-          if (leftmostNumberMatch) {
-            const extractedNumber = parseInt(leftmostNumberMatch[1]);
-            // 10 이상인 경우만 유효한 quantity로 간주
-            if (extractedNumber >= 10) {
-              quantity = extractedNumber;
-              // quantity도 함께 제거하여 restOfSymbol 확보
-              restOfSymbol = processedRestPart.replace(/^\d+/, '');
-            } else {
-              restOfSymbol = processedRestPart;
-            }
+        }
+        
+        // USDC PERP 패턴 처리
+        let processedRestPart = processedSymbol;
+        if ((quoteCoin === 'USDC' || quoteCode === 'USDC') && processedSymbol.includes(`${actualBaseCode}PERP`)) {
+          processedRestPart = processedSymbol.replace(`${actualBaseCode}PERP`, '');
+        }
+        
+        // 가장 왼쪽에 있는 숫자 추출
+        const leftmostNumberMatch = processedRestPart.match(/^(\d+)/);
+        if (leftmostNumberMatch) {
+          const extractedNumber = parseInt(leftmostNumberMatch[1]);
+          // 10 이상인 경우에만 유효한 quantity로 간주
+          if (extractedNumber >= 10) {
+            quantity = extractedNumber;
+            // 숫자 부분을 제외한 나머지를 restOfSymbol로 설정
+            restOfSymbol = processedRestPart.substring(leftmostNumberMatch[0].length);
           } else {
+            // 10 미만인 경우 전체를 restOfSymbol으로 처리
             restOfSymbol = processedRestPart;
           }
+        } else {
+          // 숫자가 없는 경우 전체를 restOfSymbol으로 처리
+          restOfSymbol = processedRestPart;
         }
       }
       
