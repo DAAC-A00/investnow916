@@ -125,8 +125,8 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     // quantity*baseCode/quoteCode-restOfSymbol=rawSymbol (quantity > 1)
     // baseCode/quoteCode-restOfSymbol=rawSymbol (quantity = 1)
     // settlementCode와 quoteCode가 다른 경우:
-    // quantity*baseCode/quoteCode=settlementCode-restOfSymbol=rawSymbol (quantity > 1)
-    // baseCode/quoteCode=settlementCode-restOfSymbol=rawSymbol (quantity = 1)
+    // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol (quantity > 1)
+    // baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol (quantity = 1)
     const stringData = symbols
       .filter(item => item.displaySymbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
@@ -156,8 +156,8 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
           return `${symbolPart}=${rawSymbol}`;
         } else {
           // 다른 경우: 새로운 형식 사용
-          // settlementCode 추가: =settlementCode
-          symbolPart += `=${settlement}`;
+          // settlementCode 추가: (settlementCode)
+          symbolPart += `(${settlement})`;
           
           // restOfSymbol이 있으면 추가: -restOfSymbol
           if (restOfSymbol && restOfSymbol !== '') {
@@ -232,29 +232,58 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
         }
       }
       
+      // 왼쪽에서 quantity를 찾지 못한 경우, 오른쪽에서 quantity 확보 시도
+      if (quantity === 1) {
+        const baseCoinRightNumberMatch = (baseCoin || baseCode).match(/^(.+?)(\d+)$/);
+        if (baseCoinRightNumberMatch) {
+          const extractedNumber = parseInt(baseCoinRightNumberMatch[2]);
+          // 10 이상인 경우만 유효한 quantity로 간주 (SHIB1000 같은 케이스)
+          if (extractedNumber >= 10) {
+            quantity = extractedNumber;
+            actualBaseCode = baseCoinRightNumberMatch[1]; // 숫자를 제거한 나머지가 실제 baseCode
+          }
+        }
+      }
+      
       // restOfSymbol 추출 (기존 로직 유지)
       // rawSymbol에서 actualBaseCode와 quoteCode를 제거한 후 나머지 부분 추출
-      if (!baseCoinLeftNumberMatch || quantity === 1) {
+      if ((!baseCoinLeftNumberMatch || quantity === 1) && quantity === 1) {
         // baseCoin에서 quantity를 추출하지 못한 경우에만 기존 로직 사용
         const baseQuotePattern = `${actualBaseCode}${quoteCoin || quoteCode}`;
         const restPart = rawSymbol.replace(baseQuotePattern, '');
         
         if (restPart) {
+          // quoteCode가 USDC이면서 restPart가 "${baseCode}PERP"를 포함하는 경우 제거
+          let processedRestPart = restPart;
+          if ((quoteCoin === 'USDC' || quoteCode === 'USDC') && restPart.includes(`${actualBaseCode}PERP`)) {
+            processedRestPart = restPart.replace(`${actualBaseCode}PERP`, '');
+          }
+          
           // 가장 왼쪽에 있는 숫자 추출
-          const leftmostNumberMatch = restPart.match(/^(\d+)/);
+          const leftmostNumberMatch = processedRestPart.match(/^(\d+)/);
           if (leftmostNumberMatch) {
             const extractedNumber = parseInt(leftmostNumberMatch[1]);
             // 10 이상인 경우만 유효한 quantity로 간주
             if (extractedNumber >= 10) {
               quantity = extractedNumber;
               // quantity도 함께 제거하여 restOfSymbol 확보
-              restOfSymbol = restPart.replace(/^\d+/, '');
+              restOfSymbol = processedRestPart.replace(/^\d+/, '');
             } else {
-              restOfSymbol = restPart;
+              restOfSymbol = processedRestPart;
             }
           } else {
-            restOfSymbol = restPart;
+            restOfSymbol = processedRestPart;
           }
+        }
+      }
+      
+      // restOfSymbol의 가장 왼쪽과 오른쪽 값이 -인 경우 제거
+      if (restOfSymbol) {
+        if (restOfSymbol.startsWith('-')) {
+          restOfSymbol = restOfSymbol.substring(1);
+        }
+        if (restOfSymbol.endsWith('-')) {
+          restOfSymbol = restOfSymbol.slice(0, -1);
         }
       }
       
@@ -473,20 +502,16 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           const symbolsString = getStoredSymbols(exchange, category);
           if (!symbolsString) return [];
           // 새로운 형식에서 심볼 부분만 추출
+          // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol
+          // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol 부분 반환
           return symbolsString.split(',').map(pair => {
             const parts = pair.split('=');
             if (parts.length < 2) return '';
             
-            // settlementCode가 포함된 형식인지 확인
-            if (parts.length >= 3) {
-              // settlementCode가 다른 경우: quantity*baseCode/quoteCode=settlementCode-restOfSymbol=rawSymbol
-              // quantity*baseCode/quoteCode=settlementCode-restOfSymbol 부분 반환
-              return parts.slice(0, -1).join('=');
-            } else {
-              // settlementCode와 quoteCode가 동일한 경우: quantity*baseCode/quoteCode-restOfSymbol=rawSymbol
-              // quantity*baseCode/quoteCode-restOfSymbol 부분 반환
-              return parts[0];
-            }
+            // 새로운 형식에서 심볼 부분만 추출
+            // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol
+            // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol 부분 반환
+            return parts.slice(0, -1).join('=');
           }).filter(Boolean);
         },
 
@@ -507,106 +532,90 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
               
               // 새로운 형식 파싱
               // settlementCode와 quoteCode가 동일한 경우: quantity*baseCode/quoteCode-restOfSymbol=rawSymbol
-              // settlementCode와 quoteCode가 다른 경우: quantity*baseCode/quoteCode=settlementCode-restOfSymbol=rawSymbol
+              // settlementCode와 quoteCode가 다른 경우: quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol
               const symbolEntries = data.split(',');
               return symbolEntries.map(entry => {
                 const parts = entry.split('=');
                 if (parts.length < 2) return null;
                 
                 const rawSymbol = parts[parts.length - 1]; // 마지막 부분이 rawSymbol
+                const symbolPart = parts.slice(0, -1).join('='); // 심볼 부분
                 
-                // settlementCode가 포함된 형식인지 확인 (= 기호가 2개 이상이면 settlementCode 포함)
-                if (parts.length >= 3) {
-                  // settlementCode가 다른 경우: quantity*baseCode/quoteCode=settlementCode-restOfSymbol=rawSymbol
-                  const symbolPart = parts[0]; // quantity*baseCode/quoteCode 부분
-                  const settlementRest = parts[1]; // settlementCode-restOfSymbol 부분
+                // quantity 추출
+                let quantity = 1;
+                let restPart = symbolPart;
+                
+                if (symbolPart.includes('*')) {
+                  const [qtyStr, rest] = symbolPart.split('*', 2);
+                  quantity = parseInt(qtyStr) || 1;
+                  restPart = rest;
+                }
+                
+                // settlementCode가 포함된 형식인지 확인 (괄호 포함 여부)
+                if (restPart.includes('(') && restPart.includes(')')) {
+                  // settlementCode가 다른 경우: baseCode/quoteCode(settlementCode)-restOfSymbol
+                  const [baseQuotePart, restOfSymbolPart] = restPart.split('-', 2);
+                  const baseQuoteSettlementSplit = baseQuotePart.split('/');
+                  if (baseQuoteSettlementSplit.length < 2) return null;
                   
-                  // quantity 추출
-                  let quantity = 1;
-                  let baseQuotePart = symbolPart;
+                  const baseCodeVal = baseQuoteSettlementSplit[0];
+                  let quoteCodeVal = baseQuoteSettlementSplit[1];
                   
-                  if (symbolPart.includes('*')) {
-                    const [qtyStr, rest] = symbolPart.split('*', 2);
-                    quantity = parseInt(qtyStr) || 1;
-                    baseQuotePart = rest;
+                  // settlementCode 추출
+                  let settlementCode = quoteCodeVal;
+                  if (quoteCodeVal.includes('(')) {
+                    const parenMatch = quoteCodeVal.match(/^([^(]+)\(([^)]+)\)$/);
+                    if (parenMatch) {
+                      quoteCodeVal = parenMatch[1];
+                      settlementCode = parenMatch[2];
+                    }
                   }
                   
-                  // baseCode/quoteCode 추출
-                  const baseQuoteSplit = baseQuotePart.split('/');
-                  if (baseQuoteSplit.length < 2) return null;
-                  
-                  const baseCodeVal = baseQuoteSplit[0];
-                  const quoteCodeVal = baseQuoteSplit[1];
-                  
-                  // settlementCode와 restOfSymbol 분리
-                  let settlementCode = settlementRest;
-                  let restOfSymbol = '';
-                  
-                  if (settlementRest.includes('-')) {
-                    const [settlement, rest] = settlementRest.split('-', 2);
-                    settlementCode = settlement;
-                    restOfSymbol = rest;
+                  // restOfSymbol 처리 (- 제거)
+                  let restOfSymbolVal = restOfSymbolPart || '';
+                  if (restOfSymbolVal && restOfSymbolVal.startsWith('-')) {
+                    restOfSymbolVal = restOfSymbolVal.substring(1);
                   }
                   
-                  // 원래 symbol 형식으로 재구성
                   const displaySymbol = quantity > 1 
-                    ? (restOfSymbol ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbol}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
-                    : (restOfSymbol ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbol}` : `${baseCodeVal}/${quoteCodeVal}`);
+                    ? (restOfSymbolVal ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
+                    : (restOfSymbolVal ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${baseCodeVal}/${quoteCodeVal}`);
                   
                   return {
                     displaySymbol,
                     rawSymbol,
                     baseCode: baseCodeVal,
                     quoteCode: quoteCodeVal,
-                    restOfSymbol,
+                    restOfSymbol: restOfSymbolVal,
                     quantity,
                     settlementCode
                   };
                 } else {
-                  // settlementCode와 quoteCode가 동일한 경우: quantity*baseCode/quoteCode-restOfSymbol=rawSymbol
-                  const symbolPart = parts[0]; // quantity*baseCode/quoteCode-restOfSymbol 부분
-                  
-                  // quantity 추출
-                  let quantity = 1;
-                  let baseQuoteRestPart = symbolPart;
-                  
-                  if (symbolPart.includes('*')) {
-                    const [qtyStr, rest] = symbolPart.split('*', 2);
-                    quantity = parseInt(qtyStr) || 1;
-                    baseQuoteRestPart = rest;
-                  }
-                  
-                  // baseCode/quoteCode와 restOfSymbol 분리
-                  let baseQuotePart = baseQuoteRestPart;
-                  let restOfSymbol = '';
-                  
-                  if (baseQuoteRestPart.includes('-')) {
-                    const [baseQuote, rest] = baseQuoteRestPart.split('-', 2);
-                    baseQuotePart = baseQuote;
-                    restOfSymbol = rest;
-                  }
-                  
-                  // baseCode/quoteCode 추출
+                  // settlementCode와 quoteCode가 동일한 경우: baseCode/quoteCode-restOfSymbol
+                  const [baseQuotePart, restOfSymbolPart] = restPart.split('-', 2);
                   const baseQuoteSplit = baseQuotePart.split('/');
                   if (baseQuoteSplit.length < 2) return null;
                   
                   const baseCodeVal = baseQuoteSplit[0];
                   const quoteCodeVal = baseQuoteSplit[1];
+                  const settlementCode = quoteCodeVal; // settlementCode는 quoteCode와 동일
                   
-                  // settlementCode는 quoteCode와 동일
-                  const settlementCode = quoteCodeVal;
+                  // restOfSymbol 처리 (- 제거)
+                  let restOfSymbolVal = restOfSymbolPart || '';
+                  if (restOfSymbolVal && restOfSymbolVal.startsWith('-')) {
+                    restOfSymbolVal = restOfSymbolVal.substring(1);
+                  }
                   
-                  // 원래 symbol 형식으로 재구성
-                  const displaySymbol = quantity >= 10 
-                    ? (restOfSymbol ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbol}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
-                    : (restOfSymbol ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbol}` : `${baseCodeVal}/${quoteCodeVal}`);
+                  const displaySymbol = quantity > 1 
+                    ? (restOfSymbolVal ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
+                    : (restOfSymbolVal ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${baseCodeVal}/${quoteCodeVal}`);
                   
                   return {
                     displaySymbol,
                     rawSymbol,
                     baseCode: baseCodeVal,
                     quoteCode: quoteCodeVal,
-                    restOfSymbol,
+                    restOfSymbol: restOfSymbolVal,
                     quantity,
                     settlementCode
                   };
