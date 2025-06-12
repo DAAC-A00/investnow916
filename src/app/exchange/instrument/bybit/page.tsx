@@ -15,6 +15,9 @@ interface InstrumentInfo {
   restOfSymbol?: string;
 }
 
+// 공유 유틸리티에서 한국어 QWERTY 변환 함수 가져오기
+import { normalizeSearchTerm } from '@/packages/shared/utils';
+
 const BYBIT_INSTRUMENT_KEYS = [
   'bybit-option',
   'bybit-spot',
@@ -113,15 +116,20 @@ const BybitInstrumentPage = () => {
     }
   }, []);
 
-  // 검색어에 따라 데이터 필터링
+  // 검색어에 따라 데이터 필터링 (한국어 입력 지원)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredData(instrumentData);
     } else {
-      const term = searchTerm.toLowerCase().trim();
-      const filtered = instrumentData.filter(instrument => 
-        `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}`.toLowerCase().includes(term)
-      );
+      // 검색어 정규화 (한국어 자모 → 영어 QWERTY 변환 및 소문자 변환)
+      const normalizedTerm = normalizeSearchTerm(searchTerm);
+      
+      // 검색어로 필터링
+      const filtered = instrumentData.filter(instrument => {
+        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}`.toLowerCase();
+        return searchText.includes(normalizedTerm);
+      });
+      
       setFilteredData(filtered);
     }
   }, [searchTerm, instrumentData]);
