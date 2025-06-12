@@ -190,8 +190,8 @@ src/
 - **quantity = 1**: `${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
 
 #### settlementCode와 quoteCode가 다른 경우 (확장):
-- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}=${settlementCode}-${restOfSymbol}=${rawSymbol}`
-- **quantity = 1**: `${baseCode}/${quoteCode}=${settlementCode}-${restOfSymbol}=${rawSymbol}`
+- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
+- **quantity = 1**: `${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 
 ### 타입 정의
 
@@ -204,9 +204,8 @@ interface SymbolInfo {
   restOfSymbol?: string;          // 추가 심볼 정보
   quantity?: number;              // 수량 (기본값: 1)
   settlementCode?: string;        // 정산 화폐
-  category?: string;              // 내부 카테고리
-  rawCategory?: string;           // API 원본 카테고리
   displayCategory?: string;       // UI 표시 카테고리
+  rawCategory?: string;           // API 원본 카테고리
   [key: string]: any;             // 추가 필드 허용
 }
 ```

@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import styles from './page.module.css';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { BybitCategoryType, TickerInfo } from '@/packages/shared/types/exchange';
-import { BYBIT_CATEGORY_MAP } from '@/packages/shared/stores/createExchangeInstrumentStore';
-import { log } from 'console';
+import { BYBIT_CATEGORY_RAWTODISPLAY_MAP } from '@/packages/shared/stores/createExchangeInstrumentStore';
 
 type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';
 type SortDirection = 'asc' | 'desc';
@@ -147,7 +145,7 @@ export default function BybitTickersPage() {
   }
 
   // selectedCategory를 storage용 카테고리로 변환
-  const storageCategory = BYBIT_CATEGORY_MAP[selectedCategory] || selectedCategory;
+  const storageCategory = BYBIT_CATEGORY_RAWTODISPLAY_MAP[selectedCategory] || selectedCategory;
   // storage 카테고리로 instrument map 생성
   const instrumentMap = loadInstrumentMap(storageCategory);
 

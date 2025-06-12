@@ -55,7 +55,7 @@ const API_URLS = {
 };
 
 // Bybit 카테고리 매핑
-export const BYBIT_CATEGORY_MAP = {
+export const BYBIT_CATEGORY_RAWTODISPLAY_MAP = {
   // API 요청용 카테고리(rawCategory): 표시용 카테고리(displayCategory)
   'linear': 'um',
   'inverse': 'cm',
@@ -64,16 +64,15 @@ export const BYBIT_CATEGORY_MAP = {
   'option': 'option'
 } as const;
 
-type BybitApiCategory = keyof typeof BYBIT_CATEGORY_MAP;
+type BybitRawCategory = keyof typeof BYBIT_CATEGORY_RAWTODISPLAY_MAP;
 
 // 거래소별 카테고리 정보를 반환하는 함수
 const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   if (exchange === 'bybit') {
-    const displayCategory = BYBIT_CATEGORY_MAP[rawCategory as BybitApiCategory] || rawCategory;
+    const displayCategory = BYBIT_CATEGORY_RAWTODISPLAY_MAP[rawCategory as BybitRawCategory] || rawCategory;
     return {
       rawCategory,
       displayCategory,
-      category: displayCategory // 호환성을 위해 displayCategory와 동일
     };
   }
   
@@ -81,44 +80,43 @@ const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   return {
     rawCategory,
     displayCategory: rawCategory,
-    category: rawCategory
   };
 };
 
 // 내부 저장용 카테고리로 변환 (displayCategory 반환)
 const toStorageCategory = (category: string): string => {
-  return BYBIT_CATEGORY_MAP[category as BybitApiCategory] || category;
+  return BYBIT_CATEGORY_RAWTODISPLAY_MAP[category as BybitRawCategory] || category;
 };
 
 // API 요청용 카테고리로 변환 (rawCategory 반환)
-const toApiCategory = (storageCategory: string): string => {
-  return Object.entries(BYBIT_CATEGORY_MAP).find(
+const toRawCategory = (storageCategory: string): string => {
+  return Object.entries(BYBIT_CATEGORY_RAWTODISPLAY_MAP).find(
     ([_, value]) => value === storageCategory
   )?.[0] || storageCategory;
 };
 
 // 로컬 스토리지 접근 함수
-const getStorageKey = (exchange: ExchangeType, category: string, isApiCategory: boolean = false): string => {
-  // isApiCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
-  const storageCategory = isApiCategory ? toStorageCategory(category) : category;
+const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+  // isRawCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
+  const storageCategory = isRawCategory ? toStorageCategory(category) : category;
   return `${exchange}-${storageCategory}`;
 };
 
 // 로컬 스토리지에서 심볼 문자열 가져오기
-const getStoredSymbols = (exchange: ExchangeType, category: string, isApiCategory: boolean = false): string => {
+const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
   if (typeof window === 'undefined') return '';
   
-  const key = getStorageKey(exchange, category, isApiCategory);
+  const key = getStorageKey(exchange, category, isRawCategory);
   const storedValue = localStorage.getItem(key);
   return storedValue || '';
 };
 
 // 로컬 스토리지에 심볼 문자열 저장하기
-const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], isApiCategory: boolean = false): void => {
+const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], isRawCategory: boolean = false): void => {
   if (typeof window === 'undefined') return;
   
   try {
-    const key = getStorageKey(exchange, category, isApiCategory);
+    const key = getStorageKey(exchange, category, isRawCategory);
     
     // 문자열 형식으로 변환하여 저장
     // settlementCode와 quoteCode가 동일한 경우:
@@ -177,7 +175,7 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
 };
 
 // Bybit 거래소의 코인 정보 가져오기
-const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: any): Promise<boolean> => {
+const fetchBybitCoins = async (rawCategory: BybitCategoryType, set: any, get: any): Promise<boolean> => {
   try {
     set((state: ExchangeInstrumentState) => {
       state.isLoading = true;
@@ -185,7 +183,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
     });
 
     // API 요청은 원래 카테고리로
-    const response = await fetch(API_URLS.bybit.getUrl(apiCategory));
+    const response = await fetch(API_URLS.bybit.getUrl(rawCategory));
     
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);
@@ -213,7 +211,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
       } = item;
       
       // 카테고리 정보 생성 (displayCategory 확인용)
-      const categoryInfo = getCategoryInfo('bybit', apiCategory);
+      const categoryInfo = getCategoryInfo('bybit', rawCategory);
       
       // quantity 추출 로직
       // baseCoin의 왼쪽에 숫자가 있고 그 숫자가 10 이상인 경우 해당 숫자가 quantity
@@ -312,7 +310,6 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
         quantity,
         settlementCode,
         // 카테고리 정보
-        category: categoryInfo.category,
         rawCategory: categoryInfo.rawCategory,
         displayCategory: categoryInfo.displayCategory,
         // 원본 API 응답 데이터 저장
@@ -322,7 +319,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
       };
       
       // 카테고리별 특화 필드들 추가
-      if (apiCategory === 'linear' || apiCategory === 'inverse') {
+      if (rawCategory === 'linear' || rawCategory === 'inverse') {
         // Linear/Inverse 전용 필드들
         Object.assign(symbolObj, {
           contractType: item.contractType,
@@ -344,7 +341,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
           riskParameters: item.riskParameters,
           displayName: item.displayName,
         });
-      } else if (apiCategory === 'spot') {
+      } else if (rawCategory === 'spot') {
         // Spot 전용 필드들
         Object.assign(symbolObj, {
           innovation: item.innovation,
@@ -354,7 +351,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
           priceFilter: item.priceFilter,
           riskParameters: item.riskParameters,
         });
-      } else if (apiCategory === 'option') {
+      } else if (rawCategory === 'option') {
         // Option 전용 필드들
         Object.assign(symbolObj, {
           optionsType: item.optionsType,
@@ -372,7 +369,7 @@ const fetchBybitCoins = async (apiCategory: BybitCategoryType, set: any, get: an
     });
     
     // 로컬 스토리지에 저장할 때는 변환된 카테고리 사용
-    const storageCategory = toStorageCategory(apiCategory);
+    const storageCategory = toStorageCategory(rawCategory);
     storeSymbols('bybit', storageCategory, symbolObjects);
     
     set((state: ExchangeInstrumentState) => {
@@ -398,8 +395,8 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
       ...initialState,
 
         // Bybit 거래소의 코인 정보 가져오기
-        fetchBybitCoins: async (apiCategory: BybitCategoryType) => {
-          return await fetchBybitCoins(apiCategory, set, get);
+        fetchBybitCoins: async (rawCategory: BybitCategoryType) => {
+          return await fetchBybitCoins(rawCategory, set, get);
         },
 
         // 모든 Bybit 카테고리의 코인 정보 가져오기
@@ -460,7 +457,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           } else if (!category) {
             // 특정 거래소의 모든 카테고리 심볼 데이터 초기화
             const categories = exchange === 'bybit' ? 
-              [...Object.values(BYBIT_CATEGORY_MAP), 'um', 'cm'] : // um, cm도 함께 삭제
+              [...Object.values(BYBIT_CATEGORY_RAWTODISPLAY_MAP), 'um', 'cm'] : // um, cm도 함께 삭제
               exchange === 'binance' ? ['spot', 'futures', 'options'] :
               exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
             
@@ -478,11 +475,11 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 특정 거래소와 카테고리의 심볼 데이터 초기화
             // API 카테고리와 저장용 카테고리 모두 삭제
             const storageCategory = toStorageCategory(category);
-            const apiCategory = toApiCategory(category);
+            const rawCategory = toRawCategory(category);
             
             const keysToRemove = new Set([
               getStorageKey(exchange, storageCategory),
-              getStorageKey(exchange, apiCategory)
+              getStorageKey(exchange, rawCategory)
             ]);
             
             keysToRemove.forEach(key => {
@@ -634,12 +631,12 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           // 카테고리 필터가 없으면 모든 카테고리 사용
           if (!category) {
             categories = exchange === 'bybit' ? 
-              [...Object.values(BYBIT_CATEGORY_MAP), 'um', 'cm'] : // um, cm도 함께 검색
+              [...Object.values(BYBIT_CATEGORY_RAWTODISPLAY_MAP), 'um', 'cm'] : // um, cm도 함께 검색
               exchange === 'binance' ? ['spot', 'futures', 'options'] :
               exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] : [];
           } else {
             // 카테고리 필터가 있으면 해당 카테고리와 변환된 카테고리 모두 검색
-            categories = [category, toStorageCategory(category), toApiCategory(category)];
+            categories = [category, toStorageCategory(category), toRawCategory(category)];
             // 중복 제거
             categories = [...new Set(categories)];
           }
@@ -664,7 +661,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
                 if (quoteCode && quote !== quoteCode) continue;
                 
                 // 원본 카테고리 유지 (API 카테고리로 변환)
-                const originalCategory = toApiCategory(cat) || cat;
+                const originalCategory = toRawCategory(cat) || cat;
                 
                 // 카테고리 정보 생성
                 const categoryInfo = getCategoryInfo(ex, originalCategory);
