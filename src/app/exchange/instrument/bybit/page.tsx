@@ -39,14 +39,15 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     const displaySymbol = parts[0];
 
     // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
-    // 수정된 정규식 패턴 (예시)
-    const pattern = /^(\d+)?\*?([^/]+)\/([^-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
+    // 수량은 10 이상인 경우에만 추출하고, 그 외에는 baseCode의 일부로 처리
+    const pattern = /^(?:(\d{2,})\*?)?([^/]+)\/([^-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
     const match = displaySymbol.match(pattern);
     
     if (!match) return null;
 
-    const [, quantityStr = '1', baseCode, quoteCode, settlementCode, restOfSymbol] = match;
-    const quantity = quantityStr ? parseInt(quantityStr, 10) : 1;
+    const [, quantityStr, baseCode, quoteCode, settlementCode, restOfSymbol] = match;
+    // 수량이 10 미만이거나 없는 경우 1로 설정
+    const quantity = (quantityStr && parseInt(quantityStr, 10) >= 10) ? parseInt(quantityStr, 10) : 1;
 
     const displayCategory = categoryKey.replace('bybit-', '');
 

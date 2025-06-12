@@ -214,16 +214,17 @@ const fetchBybitCoins = async (rawCategory: BybitCategoryType, set: any, get: an
       const categoryInfo = getCategoryInfo('bybit', rawCategory);
       
       // quantity 추출 로직
-      // baseCoin의 왼쪽에 숫자가 있고 그 숫자가 10 이상인 경우 해당 숫자가 quantity
+      // baseCoin의 왼쪽에 숫자가 있고 그 숫자가 10 이상인 경우에만 해당 숫자가 quantity
+      // 10 미만의 숫자는 baseCode의 일부로 간주
       let quantity = 1;
       let actualBaseCode = baseCoin || baseCode;
       let restOfSymbol = '';
       
-      // baseCoin에서 왼쪽 숫자 확인
+      // baseCoin에서 왼쪽 숫자 확인 (10 이상인 경우에만 quantity로 처리)
       const baseCoinLeftNumberMatch = (baseCoin || baseCode).match(/^(\d+)(.+)/);
       if (baseCoinLeftNumberMatch) {
         const extractedNumber = parseInt(baseCoinLeftNumberMatch[1]);
-        // 10 이상인 경우만 유효한 quantity로 간주
+        // 10 이상인 경우에만 quantity로 처리하고, 그렇지 않으면 baseCode의 일부로 간주
         if (extractedNumber >= 10) {
           quantity = extractedNumber;
           actualBaseCode = baseCoinLeftNumberMatch[2]; // 숫자를 제거한 나머지가 실제 baseCode
