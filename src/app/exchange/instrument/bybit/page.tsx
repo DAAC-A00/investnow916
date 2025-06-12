@@ -70,6 +70,8 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
 
 const BybitInstrumentPage = () => {
   const [instrumentData, setInstrumentData] = useState<InstrumentInfo[]>([]);
+  const [filteredData, setFilteredData] = useState<InstrumentInfo[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +102,7 @@ const BybitInstrumentPage = () => {
         setError('유효한 Bybit instrument 정보를 파싱할 수 없습니다. 데이터 형식을 확인하세요.');
       }
       setInstrumentData(allInstruments);
+      setFilteredData(allInstruments); // 초기에는 모든 데이터 표시
 
     } catch (e) {
       console.error('로컬 스토리지 데이터 처리 중 오류 발생:', e);
@@ -109,6 +112,19 @@ const BybitInstrumentPage = () => {
     }
   }, []);
 
+  // 검색어에 따라 데이터 필터링
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredData(instrumentData);
+    } else {
+      const term = searchTerm.toLowerCase().trim();
+      const filtered = instrumentData.filter(instrument => 
+        `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}`.toLowerCase().includes(term)
+      );
+      setFilteredData(filtered);
+    }
+  }, [searchTerm, instrumentData]);
+
   if (loading) {
     return <div className="p-5 text-muted-foreground">데이터를 불러오는 중입니다...</div>;
   }
@@ -117,7 +133,7 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-red-600 dark:text-red-400">오류: {error}</div>;
   }
 
-  if (instrumentData.length === 0 && !loading) {
+  if (instrumentData.length === 0) {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
@@ -137,9 +153,33 @@ const BybitInstrumentPage = () => {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-2xl font-semibold mb-4 text-foreground">
-        Bybit Instrument 정보 ({instrumentData.length}개)
-      </h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-semibold text-foreground">
+          Bybit Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
+        </h1>
+        <div className="relative w-full md:w-80">
+          <input
+            type="text"
+            placeholder="심볼, 코드, 페어로 검색..."
+            className="w-full px-4 py-2 pl-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background border-border text-foreground"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg
+            className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+      </div>
       {instrumentData.length > 0 && (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="min-w-full divide-y divide-border text-sm">
@@ -156,7 +196,7 @@ const BybitInstrumentPage = () => {
               </tr>
             </thead>
             <tbody className="bg-background divide-y divide-border">
-              {instrumentData.map((instrument, index) => (
+              {filteredData.map((instrument, index) => (
                 <tr key={instrument.rawSymbol ? `${instrument.rawSymbol}-${instrument.rawCategory}-${index}` : index} className="hover:bg-muted/50">
                   {tableHeaders.map((header) => (
                     <td 
