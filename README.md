@@ -149,19 +149,19 @@ src/
 | `rawSymbol`                       | 외부 API 원본 심볼 (ex: BTCUSDT, 1000SHIBUSDT)                        |
 | `displaySymbol`                   | 내부 표시용 심볼 (조건부 포맷)                                            |
 | `baseCode` / `quoteCode`          | 기준/견적 화폐 코드 (quantity 제거된 실제 코드)                              |
-| `quantity`                        | 수량 정보 (10 이상일 때만 유효, 기본값: 1)                                 |
+| `quantity`                        | 수량 정보 (10의 배수일 때만 유효, 기본값: 1)                                 |
 | `settlementCode`                  | 정산 화폐 코드 (조건부 결정)                                             |
 | `restOfSymbol`                    | 기타 심볼 정보 (만료일, 옵션 정보 등)                                       |
 | `rawCategory` / `displayCategory` | API 원본 카테고리 / UI 표시용                                           |
 
 ### displaySymbol 조건부 포맷
 
-#### quantity >= 10인 경우:
+#### quantity가 10의 배수인 경우:
 - **restOfSymbol 있음**: `${quantity}${baseCode}/${quoteCode}-${restOfSymbol}`
 - **restOfSymbol 없음**: `${quantity}${baseCode}/${quoteCode}`
 - **예시**: `100BTC/USDT`, `50ETH/USDT-25DEC24`
 
-#### quantity < 10인 경우 (기존 형식):
+#### quantity가 10의 배수가 아닌 경우:
 - **restOfSymbol 있음**: `${baseCode}/${quoteCode}-${restOfSymbol}`
 - **restOfSymbol 없음**: `${baseCode}/${quoteCode}`
 - **예시**: `BTC/USDT`, `ETH/USDT-25DEC24`
@@ -192,34 +192,6 @@ src/
 - **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 - **quantity = 1**: `${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 
-#### 빗썸 전용 확장 형식 (Warning 정보 포함):
-- **기본 형식**: `${baseCode}/${quoteCode}=${rawSymbol}+${remark}@${warning1}@${warning2}#${search}`
-- **remark**: `caution` (market_warning이 CAUTION인 경우)
-- **warning**: API에서 가져온 warning_type들 (`@`로 구분)
-- **search**: 검색용 한국명 (`#`으로 구분)
-
-**빗썸 Warning 타입:**
-- `TRADING_VOLUME_SUDDEN_FLUCTUATION`: 거래량 급등
-- `DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION`: 입금량 급등
-- `PRICE_DIFFERENCE_HIGH`: 가격 차이
-- `SPECIFIC_ACCOUNT_HIGH_TRANSACTION`: 소수계좌 거래 집중
-- `EXCHANGE_TRADING_CONCENTRATION`: 거래소 거래 집중
-
-**빗썸 저장 예시:**
-```
-# CAUTION + Warning이 모두 있는 경우
-BTC/KRW=KRW-BTC+caution@DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION@TRADING_VOLUME_SUDDEN_FLUCTUATION#비트코인
-
-# Warning만 있는 경우
-ETH/KRW=KRW-ETH@PRICE_DIFFERENCE_HIGH#이더리움
-
-# CAUTION만 있는 경우
-ADA/KRW=KRW-ADA+caution#에이다
-
-# 아무것도 없는 경우
-DOT/KRW=KRW-DOT#폴카닷
-```
-
 ### 타입 정의
 
 ```ts
@@ -234,22 +206,9 @@ interface SymbolInfo {
   displayCategory?: string;       // UI 표시 카테고리
   rawCategory?: string;           // API 원본 카테고리
   
-  // 빗썸 전용 필드들
-  warnings?: BithumbWarningType[]; // 빗썸 warning 정보 배열
-  market_warning?: string;         // 빗썸 market warning (CAUTION, NONE)
-  korean_name?: string;            // 빗썸 한국명 (검색용)
-  english_name?: string;           // 빗썸 영문명
-  
   [key: string]: any;             // 추가 필드 허용
 }
 
-// 빗썸 Warning 타입 정의
-type BithumbWarningType = 
-  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
-  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
-  | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
-  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'    // 소수계좌 거래 집중
-  | 'EXCHANGE_TRADING_CONCENTRATION';      // 거래소 거래 집중
 ```
 
 ### 파싱 예시
@@ -307,10 +266,6 @@ type BithumbWarningType =
   quoteCode: "KRW",
   quantity: 1,
   settlementCode: "KRW",
-  warnings: ["DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION", "TRADING_VOLUME_SUDDEN_FLUCTUATION"],
-  market_warning: "CAUTION",
-  korean_name: "비트코인",
-  english_name: "Bitcoin"
 }
 
 // localStorage 저장 형식

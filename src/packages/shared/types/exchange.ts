@@ -157,7 +157,14 @@ export interface BithumbInstrument {
   market_warning: string; // "NONE" 또는 "CAUTION"
 }
 
-export type BithumbInstrumentsResponse = BithumbInstrument[];
+// Bithumb Instruments API 응답 구조
+export interface BithumbInstrumentsResponse {
+  status: string;         // "0000" = 성공
+  message?: string;       // 에러 메시지
+  data: {
+    [market: string]: BithumbInstrument;
+  };
+}
 
 // Bithumb Warning API 응답 타입
 export interface BithumbWarning {
@@ -166,7 +173,12 @@ export interface BithumbWarning {
   end_date: string;       // 예: "2025-06-14 07:04:59"
 }
 
-export type BithumbWarningsResponse = BithumbWarning[];
+// Bithumb Warnings API 응답 구조
+export interface BithumbWarningsResponse {
+  status: string;         // "0000" = 성공
+  message?: string;       // 에러 메시지
+  data?: BithumbWarning[];
+}
 
 // Bithumb Warning 타입 정의
 export type BithumbWarningType = 

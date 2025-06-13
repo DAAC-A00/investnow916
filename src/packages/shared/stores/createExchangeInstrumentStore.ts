@@ -63,9 +63,7 @@ const API_URLS = {
   },
   bithumb: {
     base: 'https://api.bithumb.com/v1/market/all',
-    warning: 'https://api.bithumb.com/v1/market/virtual_asset_warning',
-    getUrl: () => `${API_URLS.bithumb.base}?isDetails=true`,
-    getWarningUrl: () => API_URLS.bithumb.warning,
+    getUrl: () => `${API_URLS.bithumb.base}?isDetails=false`,
   },
   binance: {
     // 추후 구현
@@ -135,6 +133,49 @@ const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: 
   return `${exchange}-${storageCategory}`;
 };
 
+// 업데이트 시간 저장용 키 생성
+const getUpdateTimeKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+  const storageKey = getStorageKey(exchange, category, isRawCategory);
+  return `${storageKey}-updated`;
+};
+
+// 업데이트 시간 저장
+const storeUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const key = getUpdateTimeKey(exchange, category, isRawCategory);
+    const currentTime = new Date().toISOString();
+    localStorage.setItem(key, currentTime);
+  } catch (error) {
+    console.error(`업데이트 시간 저장 실패 (${exchange}-${category}):`, error);
+  }
+};
+
+// 업데이트 시간 조회
+const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): Date | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const key = getUpdateTimeKey(exchange, category, isRawCategory);
+    const timeStr = localStorage.getItem(key);
+    return timeStr ? new Date(timeStr) : null;
+  } catch (error) {
+    console.error(`업데이트 시간 조회 실패 (${exchange}-${category}):`, error);
+    return null;
+  }
+};
+
+// 데이터 갱신 필요 여부 확인 (2시간 기준)
+const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
+  const updateTime = getUpdateTime(exchange, category, isRawCategory);
+  if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
+  
+  const now = new Date();
+  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
+  return diffHours >= 2; // 2시간 이상 경과하면 갱신 필요
+};
+
 // 로컬 스토리지에서 심볼 문자열 가져오기
 const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
   if (typeof window === 'undefined') return '';
@@ -152,11 +193,12 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     const key = getStorageKey(exchange, category, isRawCategory);
     
     // 문자열 형식으로 변환하여 저장
-    // 새로운 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}#{search}
-    // remark가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}@${warning1}@${warning2}#{search}
-    // warning이 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
-    // search가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}
-    // 모두 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
+    // quoteCode와 settlementCode가 동일하지 않고 remark가 있는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
+    // quoteCode와 settlementCode가 동일하지 않고 remark가 없는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
+    // quoteCode와 settlementCode가 동일하고 remark가 있는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}+${remark}
+    // quoteCode와 settlementCode가 동일하고 remark가 없는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}
+    // quantity가 1인 경우 remark가 있는 경우 포맷: ${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
+    // quantity가 1인 경우 remark가 없는 경우 포맷: ${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
     const stringData = symbols
       .filter(item => item.displaySymbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
@@ -181,8 +223,10 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
           symbolPart = `${qty}*${symbolPart}`;
         }
         
-        // settlementCode 추가: (settlementCode)
-        symbolPart += `(${settlement})`;
+        // settlementCode 추가: quoteCode와 다른 경우에만 (settlementCode) 추가
+        if (settlement !== quoteCode) {
+          symbolPart += `(${settlement})`;
+        }
         
         // restOfSymbol이 있으면 추가: -restOfSymbol
         if (restOfSymbol && restOfSymbol !== '') {
@@ -192,32 +236,14 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
         // rawSymbol 추가: =rawSymbol
         symbolPart += `=${rawSymbol}`;
         
-        // remark 처리 (거래소별 로직)
+        // remark 처리
         let remark = '';
-        if (exchange === 'bithumb') {
-          // Bithumb: market_warning이 CAUTION인 경우에만 caution으로 저장
-          if (item.market_warning === 'CAUTION') {
-            remark = 'caution';
-          }
-        } else if (exchange === 'bybit') {
-          // Bybit: remark는 빈 문자열로 고정
-          remark = '';
-        }
         
-        // warning 처리 (빗썸에서만 사용)
+        // warning 처리
         let warningPart = '';
-        if (exchange === 'bithumb' && item.warnings && item.warnings.length > 0) {
-          warningPart = item.warnings.map((w: BithumbWarningType) => `@${w}`).join('');
-        }
         
-        // search 처리 (거래소별 로직)
+        // search 처리
         let search = '';
-        if (exchange === 'bithumb') {
-          // Bithumb: korean_name이 있는 경우에만 저장
-          if (item.korean_name) {
-            search = item.korean_name;
-          }
-        }
         
         // remark 추가 (있는 경우에만)
         if (remark) {
@@ -247,10 +273,18 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
 // Bybit 거래소의 코인 정보 가져오기
 const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any): Promise<boolean> => {
   try {
+    // 갱신 필요 여부 확인
+    if (!needsUpdate('bybit', rawCategory, true)) {
+      console.log(`Bybit ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
+      return true; // 갱신이 필요하지 않으면 성공으로 처리
+    }
+
     set((state: ExchangeInstrumentState) => {
       state.isLoading = true;
       state.error = null;
     });
+
+    console.log(`Bybit ${rawCategory} 데이터를 갱신합니다...`);
 
     // API 요청은 원래 카테고리로
     const response = await fetch(API_URLS.bybit.getUrl(rawCategory));
@@ -284,17 +318,15 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
       const categoryInfo = getCategoryInfo('bybit', rawCategory);
       
       // quantity 추출 로직
-      // baseCoin의 왼쪽에 숫자가 있고 그 숫자가 10 이상인 경우에만 해당 숫자가 quantity
-      // 10 미만의 숫자는 baseCode의 일부로 간주
+      // baseCoin의 왼쪽에 숫자가 있고 그 숫자가 10으로 나누어 떨어지는 경우에만 해당 숫자가 quantity
       let quantity = 1;
       let actualBaseCode = baseCoin || baseCode;
-      let restOfSymbol = '';
       
-      // baseCoin에서 왼쪽 숫자 확인 (10 이상인 경우에만 quantity로 처리)
+      // baseCoin에서 왼쪽 숫자 확인
       const baseCoinLeftNumberMatch = (baseCoin || baseCode).match(/^(\d+)(.+)/);
       if (baseCoinLeftNumberMatch) {
         const extractedNumber = parseInt(baseCoinLeftNumberMatch[1]);
-        // 10 이상인 경우에만 유효한 quantity로 간주하고, 그렇지 않으면 baseCode의 일부로 간주
+        // 10 이상인 경우만 유효한 quantity로 간주
         if (extractedNumber >= 10) {
           quantity = extractedNumber;
           actualBaseCode = baseCoinLeftNumberMatch[2]; // 숫자를 제거한 나머지가 실제 baseCode
@@ -314,151 +346,92 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
         }
       }
       
-      // restOfSymbol 추출 로직 개선
-      // 1. rawSymbol에서 왼쪽/오른쪽 끝에 actualBaseCode가 있는지 확인하고 제거
-      // 2. 남은 문자열에서 왼쪽/오른쪽 끝에 quoteCode가 있는지 확인하고 제거
-      if ((!baseCoinLeftNumberMatch || quantity === 1) && quantity === 1) {
-        // baseCoin에서 quantity를 추출하지 못한 경우에만 기존 로직 사용
-        let processedSymbol = rawSymbol;
-        const quoteCodeToUse = quoteCoin || quoteCode;
-        
-        // 1. actualBaseCode 제거 (왼쪽/오른쪽 끝에서만)
-        if (processedSymbol.startsWith(actualBaseCode)) {
-          processedSymbol = processedSymbol.substring(actualBaseCode.length);
-        } else if (processedSymbol.endsWith(actualBaseCode)) {
-          processedSymbol = processedSymbol.substring(0, processedSymbol.length - actualBaseCode.length);
-        }
-        
-        // 2. quoteCode 제거 (왼쪽/오른쪽 끝에서만)
-        if (quoteCodeToUse) {
-          if (processedSymbol.startsWith(quoteCodeToUse)) {
-            processedSymbol = processedSymbol.substring(quoteCodeToUse.length);
-          } else if (processedSymbol.endsWith(quoteCodeToUse)) {
-            processedSymbol = processedSymbol.substring(0, processedSymbol.length - quoteCodeToUse.length);
-          }
-        }
-        
-        // USDC PERP 패턴 처리
-        let processedRestPart = processedSymbol;
-        if ((quoteCoin === 'USDC' || quoteCode === 'USDC') && processedSymbol.includes(`${actualBaseCode}PERP`)) {
-          processedRestPart = processedSymbol.replace(`${actualBaseCode}PERP`, '');
-        }
-        
-        // 가장 왼쪽에 있는 숫자 추출
-        const leftmostNumberMatch = processedRestPart.match(/^(\d+)/);
-        if (leftmostNumberMatch) {
-          const extractedNumber = parseInt(leftmostNumberMatch[1]);
-          // 10 이상인 경우에만 유효한 quantity로 간주
+      // settlementCode 결정 로직
+      let settlement = settleCoin || quoteCode || quoteCoin;
+      
+      // cm 카테고리이면서 USD 견적인 경우 settlementCode는 baseCode
+      if (rawCategory === 'option' && (quoteCode === 'USD' || quoteCoin === 'USD')) {
+        settlement = actualBaseCode;
+      }
+      
+      // restOfSymbol 추출 (rawSymbol에서 baseCode와 quoteCode를 제거한 나머지)
+      let restPart = rawSymbol.replace(actualBaseCode, '').replace(quoteCode || quoteCoin, '');
+      
+      // quoteCode가 USDC이면서 restPart가 "${baseCode}PERP"를 포함하는 경우 제거
+      let processedRestPart = restPart;
+      if ((quoteCoin === 'USDC' || quoteCode === 'USDC') && restPart.includes(`${actualBaseCode}PERP`)) {
+        processedRestPart = restPart.replace(`${actualBaseCode}PERP`, '');
+      }
+      
+      // processedRestPart에서 왼쪽 숫자 추출 (quantity가 1인 경우에만)
+      if (quantity === 1 && processedRestPart) {
+        const restPartLeftNumberMatch = processedRestPart.match(/^(\d+)(.*)$/);
+        if (restPartLeftNumberMatch) {
+          const extractedNumber = parseInt(restPartLeftNumberMatch[1]);
           if (extractedNumber >= 10) {
             quantity = extractedNumber;
-            // 숫자 부분을 제외한 나머지를 restOfSymbol로 설정
-            restOfSymbol = processedRestPart.substring(leftmostNumberMatch[0].length);
-          } else {
-            // 10 미만인 경우 전체를 restOfSymbol으로 처리
-            restOfSymbol = processedRestPart;
+            processedRestPart = restPartLeftNumberMatch[2]; // 숫자를 제거한 나머지
           }
-        } else {
-          // 숫자가 없는 경우 전체를 restOfSymbol으로 처리
-          restOfSymbol = processedRestPart;
         }
       }
       
-      // restOfSymbol의 가장 왼쪽과 오른쪽 값이 -인 경우 제거
-      if (restOfSymbol) {
-        if (restOfSymbol.startsWith('-')) {
-          restOfSymbol = restOfSymbol.substring(1);
-        }
-        if (restOfSymbol.endsWith('-')) {
-          restOfSymbol = restOfSymbol.slice(0, -1);
-        }
+      // restOfSymbol의 가장 왼쪽 값이 -인 경우 제거
+      let restOfSymbol = processedRestPart;
+      if (restOfSymbol && restOfSymbol.startsWith('-')) {
+        restOfSymbol = restOfSymbol.substring(1);
       }
       
-      // settlementCode 추출 로직
-      let settlementCode: string;
-      if (categoryInfo.displayCategory === 'cm' && (quoteCoin === 'USD' || quoteCode === 'USD')) {
-        // cm 카테고리이면서 quoteCode가 USD인 경우 settlementCode는 baseCode와 동일
-        settlementCode = actualBaseCode;
+      // displaySymbol 생성
+      let displaySymbol;
+      if (quantity >= 10) {
+        displaySymbol = restOfSymbol 
+          ? `${quantity}${actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
+          : `${quantity}${actualBaseCode}/${quoteCode || quoteCoin}`;
       } else {
-        // 그 외의 경우는 quoteCode와 동일
-        settlementCode = quoteCoin || quoteCode;
+        displaySymbol = restOfSymbol 
+          ? `${actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
+          : `${actualBaseCode}/${quoteCode || quoteCoin}`;
       }
       
-      // symbol: baseCode/quoteCode[-rest]
-      const displaySymbol = quantity >= 10 
-        ? (restOfSymbol ? `${quantity}${actualBaseCode}/${quoteCoin || quoteCode}-${restOfSymbol}` : `${quantity}${actualBaseCode}/${quoteCoin || quoteCode}`)
-        : (restOfSymbol ? `${actualBaseCode}/${quoteCoin || quoteCode}-${restOfSymbol}` : `${actualBaseCode}/${quoteCoin || quoteCode}`);
-      
-      // 기본 심볼 객체 생성
-      const symbolObj: any = {
-        displaySymbol,
+      // SymbolInfo 객체 생성
+      const symbolObj: SymbolInfo = {
         rawSymbol,
+        displaySymbol,
         baseCode: actualBaseCode,
-        quoteCode: quoteCoin || quoteCode,
-        restOfSymbol,
+        quoteCode: quoteCode || quoteCoin,
         quantity,
-        settlementCode,
-        // 카테고리 정보
-        rawCategory: categoryInfo.rawCategory,
-        displayCategory: categoryInfo.displayCategory,
-        // 원본 API 응답 데이터 저장
-        rawInstrumentData: item,
-        // 공통 필드들
+        restOfSymbol,
+        settlementCode: settlement,
+        // Bybit 전용 필드들
         status: item.status,
+        contractType: item.contractType,
+        launchTime: item.launchTime,
+        deliveryTime: item.deliveryTime,
+        deliveryFeeRate: item.deliveryFeeRate,
+        priceScale: item.priceScale,
+        leverageFilter: item.leverageFilter,
+        priceFilter: item.priceFilter,
+        lotSizeFilter: item.lotSizeFilter,
+        unifiedMarginTrade: item.unifiedMarginTrade,
+        fundingInterval: item.fundingInterval,
+        settleCoin: item.settleCoin,
+        copyTrading: item.copyTrading,
+        upperFundingRate: item.upperFundingRate,
+        lowerFundingRate: item.lowerFundingRate,
+        isPreListing: item.isPreListing,
+        preListingInfo: item.preListingInfo,
       };
-      
-      // 카테고리별 특화 필드들 추가
-      if (rawCategory === 'linear' || rawCategory === 'inverse') {
-        // Linear/Inverse 전용 필드들
-        Object.assign(symbolObj, {
-          contractType: item.contractType,
-          launchTime: item.launchTime,
-          deliveryTime: item.deliveryTime,
-          deliveryFeeRate: item.deliveryFeeRate,
-          priceScale: item.priceScale,
-          leverageFilter: item.leverageFilter,
-          priceFilter: item.priceFilter,
-          lotSizeFilter: item.lotSizeFilter,
-          unifiedMarginTrade: item.unifiedMarginTrade,
-          fundingInterval: item.fundingInterval,
-          settleCoin: item.settleCoin,
-          copyTrading: item.copyTrading,
-          upperFundingRate: item.upperFundingRate,
-          lowerFundingRate: item.lowerFundingRate,
-          isPreListing: item.isPreListing,
-          preListingInfo: item.preListingInfo,
-          riskParameters: item.riskParameters,
-          displayName: item.displayName,
-        });
-      } else if (rawCategory === 'spot') {
-        // Spot 전용 필드들
-        Object.assign(symbolObj, {
-          innovation: item.innovation,
-          marginTrading: item.marginTrading,
-          stTag: item.stTag,
-          lotSizeFilter: item.lotSizeFilter,
-          priceFilter: item.priceFilter,
-          riskParameters: item.riskParameters,
-        });
-      } else if (rawCategory === 'option') {
-        // Option 전용 필드들
-        Object.assign(symbolObj, {
-          optionsType: item.optionsType,
-          launchTime: item.launchTime,
-          deliveryTime: item.deliveryTime,
-          deliveryFeeRate: item.deliveryFeeRate,
-          priceFilter: item.priceFilter,
-          lotSizeFilter: item.lotSizeFilter,
-          displayName: item.displayName,
-          settleCoin: item.settleCoin,
-        });
-      }
       
       return symbolObj;
     });
     
-    // 로컬 스토리지에 저장할 때는 변환된 카테고리 사용
-    const storageCategory = toStorageCategory(rawCategory);
-    storeSymbols('bybit', storageCategory, symbolObjects);
+    console.log(`Bybit ${rawCategory} 카테고리에서 ${symbolObjects.length}개의 심볼을 처리했습니다.`);
+    
+    // 로컬 스토리지에 저장 (displayCategory로 저장)
+    storeSymbols('bybit', rawCategory, symbolObjects, true);
+    
+    // 업데이트 시간 저장
+    storeUpdateTime('bybit', rawCategory, true);
     
     set((state: ExchangeInstrumentState) => {
       state.isLoading = false;
@@ -476,120 +449,119 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
   }
 };
 
-// Bithumb Warning 정보 가져오기
-const fetchBithumbWarnings = async (): Promise<Record<string, BithumbWarningType[]>> => {
-  try {
-    const url = API_URLS.bithumb.getWarningUrl();
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      console.warn(`Bithumb Warning API 호출 실패: ${response.status}`);
-      return {};
-    }
-    
-    const data: BithumbWarningsResponse = await response.json();
-    
-    if (!Array.isArray(data)) {
-      console.warn('Bithumb Warning API 응답 형식이 올바르지 않습니다.');
-      return {};
-    }
-
-    // market별로 warning_type들을 그룹화
-    const warningMap: Record<string, BithumbWarningType[]> = {};
-    
-    for (const warning of data) {
-      if (!warningMap[warning.market]) {
-        warningMap[warning.market] = [];
-      }
-      warningMap[warning.market].push(warning.warning_type);
-    }
-    
-    console.log(`Bithumb Warning 정보: ${Object.keys(warningMap).length}개 심볼에 대한 경고 정보를 가져왔습니다.`);
-    return warningMap;
-  } catch (error) {
-    console.warn('Bithumb Warning 정보 가져오기 실패:', error);
-    return {};
-  }
-};
-
 // Bithumb 거래소의 코인 정보 가져오기
 const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get: any): Promise<boolean> => {
   try {
+    // 갱신 필요 여부 확인
+    if (!needsUpdate('bithumb', rawCategory, true)) {
+      console.log(`Bithumb ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
+      return true; // 갱신이 필요하지 않으면 성공으로 처리
+    }
+
     set((state: ExchangeInstrumentState) => {
       state.isLoading = true;
       state.error = null;
     });
 
-    // 1. 기본 instrument 정보 가져오기
-    const url = API_URLS.bithumb.getUrl();
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data: BithumbInstrumentsResponse = await response.json();
-    
-    if (!Array.isArray(data)) {
-      throw new Error('Bithumb API 응답 형식이 올바르지 않습니다.');
+    console.log(`Bithumb ${rawCategory} 데이터를 갱신합니다...`);
+
+    // 빗썸은 spot 카테고리만 지원하므로 spot이 아닌 경우 빈 배열 반환
+    if (rawCategory !== 'spot') {
+      console.log(`Bithumb은 ${rawCategory} 카테고리를 지원하지 않습니다.`);
+      
+      // 빈 데이터를 저장하고 업데이트 시간 기록
+      storeSymbols('bithumb', rawCategory, [], true);
+      storeUpdateTime('bithumb', rawCategory, true);
+      
+      set((state: ExchangeInstrumentState) => {
+        state.isLoading = false;
+      });
+      
+      return true;
     }
 
-    // 2. Warning 정보 가져오기 (병렬 처리)
-    const warningMap = await fetchBithumbWarnings();
+    // Bithumb API 요청 (instrument 정보와 warning 정보를 병렬로 가져오기)
+    const [instrumentResponse, warningResponse] = await Promise.all([
+      fetch(API_URLS.bithumb.getUrl()),
+      fetch('https://api.bithumb.com/v1/market/virtual_asset_warning').catch(() => null)
+    ]);
+    
+    if (!instrumentResponse.ok) {
+      throw new Error(`Bithumb API 요청 실패: ${instrumentResponse.status}`);
+    }
+    
+    const instrumentData = await instrumentResponse.json() as BithumbInstrumentsResponse;
+    
+    if (instrumentData.status !== '0000') {
+      throw new Error(`Bithumb API 에러: ${instrumentData.message}`);
+    }
 
-    // 빗썸은 spot 카테고리만 지원하므로 모든 데이터를 가져옴
-    console.log(`Bithumb spot 카테고리에서 ${data.length}개의 심볼을 찾았습니다.`);
+    // Warning 정보 처리
+    let warningsByMarket: { [market: string]: BithumbWarningType[] } = {};
+    if (warningResponse && warningResponse.ok) {
+      try {
+        const warningData = await warningResponse.json() as BithumbWarningsResponse;
+        if (warningData.status === '0000' && warningData.data) {
+          // market별로 warning 정보를 그룹화
+          for (const warning of warningData.data) {
+            if (!warningsByMarket[warning.market]) {
+              warningsByMarket[warning.market] = [];
+            }
+            warningsByMarket[warning.market].push(warning.warning_type);
+          }
+        }
+      } catch (warningError) {
+        console.warn('Bithumb warning 정보 가져오기 실패:', warningError);
+      }
+    }
 
     const symbolObjects: SymbolInfo[] = [];
+    
+    // Bithumb API 응답에서 심볼 데이터 추출
+    for (const [market, item] of Object.entries(instrumentData.data)) {
+      if (typeof item === 'object' && item !== null && 'market' in item) {
+        const bithumbItem = item as BithumbInstrument;
+        
+        // market 형식: KRW-BTC
+        const [quoteCode, baseCode] = market.split('-');
+        if (!baseCode || !quoteCode) continue;
+        
+        // settlementCode는 빗썸의 경우 항상 quoteCode와 동일 (spot 거래만 지원)
+        const settlementCode = quoteCode;
+        
+        // displaySymbol 생성: baseCode/quoteCode 형식
+        const displaySymbol = `${baseCode}/${quoteCode}`;
+        
+        // Warning 정보 가져오기
+        const warnings = warningsByMarket[market] || [];
+        
+        // SymbolInfo 객체 생성
+        const symbolObj: SymbolInfo = {
+          rawSymbol: market,
+          displaySymbol,
+          baseCode,
+          quoteCode,
+          quantity: 1, // 빗썸은 항상 1
+          settlementCode,
+          warnings: warnings.length > 0 ? warnings : undefined,
+          // 빗썸 전용 필드들
+          english_name: bithumbItem.english_name,
+          market: bithumbItem.market,
+          market_warning: bithumbItem.market_warning,
+          korean_name: bithumbItem.korean_name,
+        };
 
-    for (const item of data) {
-      // market 필드 파싱: "KRW-BTC" 또는 "BTC-ETH" 형식
-      const [quoteCode, baseCode] = item.market.split('-');
-      
-      if (!baseCode || !quoteCode) {
-        console.warn(`잘못된 market 형식: ${item.market}`);
-        continue;
+        symbolObjects.push(symbolObj);
       }
-
-      // rawSymbol은 API에서 받은 원본 형식 그대로 사용
-      const rawSymbol = item.market;
-      
-      // warning 정보 수집 (localStorage 저장용)
-      const warnings = warningMap[item.market] || [];
-      
-      // displaySymbol은 baseCode/quoteCode 형식으로 변환 (warning 정보는 포함하지 않음)
-      const displaySymbol = `${baseCode}/${quoteCode}`;
-      
-      // quantity는 기본값 1 (빗썸은 quantity 정보가 없음)
-      const quantity = 1;
-      
-      // settlementCode는 quoteCode와 동일
-      const settlementCode = quoteCode;
-
-      // SymbolInfo 객체 생성
-      const symbolObj: SymbolInfo = {
-        rawSymbol,
-        displaySymbol,
-        baseCode,
-        quoteCode,
-        quantity,
-        settlementCode,
-        // 빗썸 전용 필드들
-        korean_name: item.korean_name,
-        english_name: item.english_name,
-        market: item.market,
-        market_warning: item.market_warning,
-        // warning 정보 추가 (localStorage 저장 시 사용됨)
-        warnings: warnings.length > 0 ? warnings : undefined,
-      };
-
-      symbolObjects.push(symbolObj);
     }
 
     console.log(`Bithumb spot 카테고리에서 ${symbolObjects.length}개의 심볼을 처리했습니다.`);
     
     // 로컬 스토리지에 저장할 때는 spot 카테고리 사용
     storeSymbols('bithumb', 'spot', symbolObjects);
+    
+    // 업데이트 시간 저장
+    storeUpdateTime('bithumb', 'spot', false);
     
     set((state: ExchangeInstrumentState) => {
       state.isLoading = false;
@@ -722,11 +694,6 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
         // Bybit 거래소의 코인 정보 가져오기
         fetchBybitCoins: async (rawCategory: BybitRawCategory) => {
           return await fetchBybitCoins(rawCategory, set, get);
-        },
-
-        // Bithumb Warning 정보 가져오기
-        fetchBithumbWarnings: async () => {
-          return await fetchBithumbWarnings();
         },
 
         // Bithumb 거래소의 코인 정보 가져오기

@@ -1,18 +1,16 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
   rawSymbol: string;
   displaySymbol: string;
-  quantity: number;
   baseCode: string;
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  displayCategory: BybitDisplayCategory;
-  settlementCode: string;
-  restOfSymbol?: string;
+  displayCategory: BithumbDisplayCategory;
+  settlementCode?: string;
   remark?: string;
   search?: string;
 }
@@ -21,16 +19,16 @@ interface InstrumentInfo {
 import { normalizeSearchTerm } from '@/packages/shared/utils';
 
 import { 
-  BybitRawCategory, 
-  BybitDisplayCategory,
-  toDisplayCategory,
-  toRawCategory,
-  ALL_DISPLAY_CATEGORIES 
-} from '@/packages/shared/constants/bybitCategories';
+  BithumbRawCategory,
+  BithumbDisplayCategory
+} from '@/packages/shared/types/exchange';
+
+// Bithumb은 spot만 지원하므로 고정된 카테고리
+const BITHUMB_CATEGORIES: BithumbDisplayCategory[] = ['spot'];
 
 // 업데이트 시간 관련 함수들
 const getUpdateTimeKey = (category: string): string => {
-  return `bybit-${category}-updated`;
+  return `bithumb-${category}-updated`;
 };
 
 const getUpdateTime = (category: string): Date | null => {
@@ -53,8 +51,8 @@ const needsUpdate = (category: string): boolean => {
 };
 
 // localStorage 키 생성을 위한 헬퍼 함수
-const getBybitStorageKeys = (): string[] => {
-  return ALL_DISPLAY_CATEGORIES.map(category => `bybit-${category}`);
+const getBithumbStorageKeys = (): string[] => {
+  return BITHUMB_CATEGORIES.map(category => `bithumb-${category}`);
 };
 
 const parseInstrumentString = (instrumentStr: string, categoryKey: string): InstrumentInfo | null => {
@@ -62,32 +60,28 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
     const parts = instrumentStr.split('=');
     if (parts.length !== 2) return null;
     const rawSymbol = parts[1];
-    const displaySymbol = parts[0];
+    const leftPart = parts[0]; // baseCode/quoteCode
 
-    // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
-    // 수량은 10 이상인 경우에만 추출하고, 그 외에는 baseCode의 일부로 처리
-    const pattern = /^(?:(\d{2,})\*?)?([^/]+)\/([^/()(-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
-    const match = displaySymbol.match(pattern);
-    
-    if (!match) return null;
+    // baseCode/quoteCode(settlementCode) 추출
+    // Bithumb의 경우 일반적으로 baseCode/quoteCode 형식이지만, 
+    // 경우에 따라 baseCode/quoteCode(settlementCode) 형식일 수 있음
+    const symbolMatch = leftPart.match(/^([^/]+)\/([^/(]+)(?:\(([^)]+)\))?$/);
+    if (!symbolMatch) return null;
 
-    const [, quantityStr, baseCode, quoteCode, settlementCode, restOfSymbol] = match;
-    // 수량이 10 미만이거나 없는 경우 1로 설정
-    const quantity = (quantityStr && parseInt(quantityStr, 10) >= 10) ? parseInt(quantityStr, 10) : 1;
+    const [, baseCode, quoteCode, settlementCode] = symbolMatch;
+    const finalSettlementCode = settlementCode || quoteCode; // settlementCode가 없으면 quoteCode 사용
 
-    const displayCategory = categoryKey.replace('bybit-', '') as BybitDisplayCategory;
+    const displayCategory = categoryKey.replace('bithumb-', '') as BithumbDisplayCategory;
 
     return {
       rawSymbol,
-      displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode !== quoteCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
-      quantity,
+      displaySymbol: `${baseCode}/${quoteCode}`,
       baseCode,
       quoteCode,
-      rawCategory: toRawCategory(displayCategory),
+      rawCategory: 'spot' as BithumbRawCategory,
       displayCategory,
       pair: `${baseCode}/${quoteCode}`,
-      settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
-      restOfSymbol: restOfSymbol || undefined,
+      settlementCode: finalSettlementCode,
       remark: '',
       search: ''
     };
@@ -97,7 +91,7 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
   }
 };
 
-const BybitInstrumentPage = () => {
+const BithumbInstrumentPage = () => {
   const [instrumentData, setInstrumentData] = useState<InstrumentInfo[]>([]);
   const [filteredData, setFilteredData] = useState<InstrumentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,9 +105,9 @@ const BybitInstrumentPage = () => {
       let foundAnyData = false;
       const categoryUpdateTimes: {[category: string]: Date | null} = {};
 
-      getBybitStorageKeys().forEach(key => {
+      getBithumbStorageKeys().forEach(key => {
         const storedData = localStorage.getItem(key);
-        const category = key.replace('bybit-', '');
+        const category = key.replace('bithumb-', '');
         categoryUpdateTimes[category] = getUpdateTime(category);
         
         if (storedData) {
@@ -133,9 +127,9 @@ const BybitInstrumentPage = () => {
       setUpdateTimes(categoryUpdateTimes);
 
       if (!foundAnyData) {
-        setError('로컬 스토리지에서 Bybit instrument 정보를 찾을 수 없습니다.');
+        setError('로컬 스토리지에서 Bithumb instrument 정보를 찾을 수 없습니다.');
       } else if (allInstruments.length === 0 && foundAnyData) {
-        setError('유효한 Bybit instrument 정보를 파싱할 수 없습니다. 데이터 형식을 확인하세요.');
+        setError('유효한 Bithumb instrument 정보를 파싱할 수 없습니다. 데이터 형식을 확인하세요.');
       }
       setInstrumentData(allInstruments);
       setFilteredData(allInstruments); // 초기에는 모든 데이터 표시
@@ -158,7 +152,7 @@ const BybitInstrumentPage = () => {
       
       // 검색어로 필터링
       const filtered = instrumentData.filter(instrument => {
-        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}${instrument.remark}${instrument.search}`.toLowerCase();
+        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.rawCategory}${instrument.displayCategory}${instrument.remark}${instrument.search}`.toLowerCase();
         return searchText.includes(normalizedTerm);
       });
       
@@ -175,10 +169,10 @@ const BybitInstrumentPage = () => {
   }
 
   if (instrumentData.length === 0) {
-    return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
+    return <div className="p-5 text-muted-foreground">표시할 Bithumb instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['displaySymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'restOfSymbol', 'remark', 'search', 'rawSymbol'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['displaySymbol', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'rawSymbol', 'remark', 'search'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
     rawSymbol: '원본 심볼',
     displaySymbol: '표시용 심볼',
@@ -187,9 +181,7 @@ const BybitInstrumentPage = () => {
     pair: '페어',
     rawCategory: '원본 카테고리',
     displayCategory: '표시용 카테고리',
-    quantity: '수량',
-    settlementCode: '정산 화폐',
-    restOfSymbol: '추가정보',
+    settlementCode: '결제코드',
     remark: '비고',
     search: '검색어'
   };
@@ -198,7 +190,7 @@ const BybitInstrumentPage = () => {
     <div className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 className="text-2xl font-semibold text-foreground">
-          Bybit Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
+          Bithumb Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
         </h1>
         <div className="relative w-full md:w-80">
           <input
@@ -228,7 +220,7 @@ const BybitInstrumentPage = () => {
       <div className="mb-6 p-4 bg-muted/50 rounded-lg">
         <h3 className="text-lg font-medium text-foreground mb-3">카테고리별 업데이트 시간</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {ALL_DISPLAY_CATEGORIES.map(category => {
+          {BITHUMB_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
             const needsUpdateFlag = needsUpdate(category);
             
@@ -293,4 +285,4 @@ const BybitInstrumentPage = () => {
   );
 };
 
-export default BybitInstrumentPage; 
+export default BithumbInstrumentPage;

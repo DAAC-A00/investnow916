@@ -75,6 +75,14 @@ const defaultMenuItems: MenuItemType[] = [
     isAdminOnly: false,
   },
   {
+    id: 'exchange-bithumb-instrument',
+    label: '계측',
+    icon: '🛠️',
+    route: '/exchange/instrument/bithumb',
+    description: '빗썸 Instrument 정보 조회',
+    isAdminOnly: false,
+  },
+  {
     id: 'storage',
     label: '저장소',
     icon: '📂️',
