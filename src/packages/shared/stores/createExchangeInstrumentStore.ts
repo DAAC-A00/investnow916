@@ -59,7 +59,7 @@ const API_URLS = {
   },
   bithumb: {
     base: 'https://api.bithumb.com/v1/market/all',
-    getUrl: () => API_URLS.bithumb.base,
+    getUrl: () => `${API_URLS.bithumb.base}?isDetails=true`,
   },
   binance: {
     // 추후 구현
@@ -146,12 +146,10 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     const key = getStorageKey(exchange, category, isRawCategory);
     
     // 문자열 형식으로 변환하여 저장
-    // settlementCode와 quoteCode가 동일한 경우:
-    // quantity*baseCode/quoteCode-restOfSymbol=rawSymbol (quantity > 1)
-    // baseCode/quoteCode-restOfSymbol=rawSymbol (quantity = 1)
-    // settlementCode와 quoteCode가 다른 경우:
-    // quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol (quantity > 1)
-    // baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol (quantity = 1)
+    // 새로운 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
+    // remark가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}#{search}
+    // search가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
+    // 둘 다 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
     const stringData = symbols
       .filter(item => item.displaySymbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
@@ -176,29 +174,49 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
           symbolPart = `${qty}*${symbolPart}`;
         }
         
-        // settlementCode와 quoteCode가 동일한지 확인
-        if (settlement === quoteCode) {
-          // 동일한 경우: 기존 형식 사용
-          // restOfSymbol이 있으면 추가: -restOfSymbol
-          if (restOfSymbol && restOfSymbol !== '') {
-            symbolPart += `-${restOfSymbol}`;
-          }
-          
-          // 최종 형식: symbolPart=rawSymbol
-          return `${symbolPart}=${rawSymbol}`;
-        } else {
-          // 다른 경우: 새로운 형식 사용
-          // settlementCode 추가: (settlementCode)
-          symbolPart += `(${settlement})`;
-          
-          // restOfSymbol이 있으면 추가: -restOfSymbol
-          if (restOfSymbol && restOfSymbol !== '') {
-            symbolPart += `-${restOfSymbol}`;
-          }
-          
-          // 최종 형식: symbolPart=rawSymbol
-          return `${symbolPart}=${rawSymbol}`;
+        // settlementCode 추가: (settlementCode)
+        symbolPart += `(${settlement})`;
+        
+        // restOfSymbol이 있으면 추가: -restOfSymbol
+        if (restOfSymbol && restOfSymbol !== '') {
+          symbolPart += `-${restOfSymbol}`;
         }
+        
+        // rawSymbol 추가: =rawSymbol
+        symbolPart += `=${rawSymbol}`;
+        
+        // remark 처리 (거래소별 로직)
+        let remark = '';
+        if (exchange === 'bithumb') {
+          // Bithumb: market_warning이 CAUTION인 경우에만 caution으로 저장
+          if (item.market_warning === 'CAUTION') {
+            remark = 'caution';
+          }
+        } else if (exchange === 'bybit') {
+          // Bybit: remark는 빈 문자열로 고정
+          remark = '';
+        }
+        
+        // search 처리 (거래소별 로직)
+        let search = '';
+        if (exchange === 'bithumb') {
+          // Bithumb: korean_name이 있는 경우에만 저장
+          if (item.korean_name) {
+            search = item.korean_name;
+          }
+        }
+        
+        // remark 추가 (있는 경우에만)
+        if (remark) {
+          symbolPart += `+${remark}`;
+        }
+        
+        // search 추가 (있는 경우에만)
+        if (search) {
+          symbolPart += `#${search}`;
+        }
+        
+        return symbolPart;
       })
       .join(',');
     
@@ -499,6 +517,7 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
         korean_name: item.korean_name,
         english_name: item.english_name,
         market: item.market,
+        market_warning: item.market_warning,
       };
 
       symbolObjects.push(symbolObj);
@@ -522,6 +541,104 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
     
     console.error('Bithumb 코인 정보 가져오기 실패:', error);
     return false;
+  }
+};
+
+// 로컬 스토리지에서 데이터 조회 (저장된 카테고리로 조회 시도)
+const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
+  try {
+    const data = getStoredSymbols(ex, cat);
+    if (!data) return [];
+    
+    // 새로운 형식 파싱: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
+    const symbolEntries = data.split(',');
+    return symbolEntries.map(entry => {
+      // remark와 search 분리
+      let mainPart = entry;
+      let remark = '';
+      let search = '';
+      
+      // search 추출 (#으로 분리)
+      if (mainPart.includes('#')) {
+        const hashParts = mainPart.split('#');
+        mainPart = hashParts[0];
+        search = hashParts[1] || '';
+      }
+      
+      // remark 추출 (+로 분리)
+      if (mainPart.includes('+')) {
+        const plusParts = mainPart.split('+');
+        mainPart = plusParts[0];
+        remark = plusParts[1] || '';
+      }
+      
+      // rawSymbol 분리 (=로 분리)
+      const parts = mainPart.split('=');
+      if (parts.length < 2) return null;
+      
+      const rawSymbol = parts[parts.length - 1]; // 마지막 부분이 rawSymbol
+      const symbolPart = parts.slice(0, -1).join('='); // 심볼 부분
+      
+      // quantity 추출
+      let quantity = 1;
+      let restPart = symbolPart;
+      
+      if (symbolPart.includes('*')) {
+        const [qtyStr, rest] = symbolPart.split('*', 2);
+        quantity = parseInt(qtyStr) || 1;
+        restPart = rest;
+      }
+      
+      // settlementCode 추출 (괄호로 감싸진 부분)
+      let baseQuotePart = restPart;
+      let restOfSymbolPart = '';
+      let settlementCode = '';
+      
+      // restOfSymbol 분리 (-로 분리)
+      if (restPart.includes('-')) {
+        const dashParts = restPart.split('-');
+        baseQuotePart = dashParts[0];
+        restOfSymbolPart = dashParts.slice(1).join('-');
+      }
+      
+      // baseCode/quoteCode(settlementCode) 파싱
+      const baseQuoteSplit = baseQuotePart.split('/');
+      if (baseQuoteSplit.length < 2) return null;
+      
+      const baseCodeVal = baseQuoteSplit[0];
+      let quoteCodeVal = baseQuoteSplit[1];
+      
+      // settlementCode 추출 (괄호 안의 내용)
+      if (quoteCodeVal.includes('(') && quoteCodeVal.includes(')')) {
+        const parenMatch = quoteCodeVal.match(/^([^(]+)\(([^)]+)\)$/);
+        if (parenMatch) {
+          quoteCodeVal = parenMatch[1];
+          settlementCode = parenMatch[2];
+        }
+      } else {
+        settlementCode = quoteCodeVal; // 괄호가 없으면 quoteCode와 동일
+      }
+      
+      // displaySymbol 생성
+      const displaySymbol = quantity > 1 
+        ? (restOfSymbolPart ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolPart}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
+        : (restOfSymbolPart ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolPart}` : `${baseCodeVal}/${quoteCodeVal}`);
+      
+      return {
+        displaySymbol,
+        rawSymbol,
+        baseCode: baseCodeVal,
+        quoteCode: quoteCodeVal,
+        restOfSymbol: restOfSymbolPart,
+        quantity,
+        settlementCode,
+        remark,
+        search
+      };
+    }).filter(Boolean) as SymbolInfo[];
+  } catch (error) {
+    console.error(`Failed to load symbols for ${ex}-${cat}:`, error);
+    return [];
   }
 };
 
@@ -631,7 +748,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 거래소별 rawCategory 변환
             let rawCategory = category;
             if (exchange === 'bybit') {
-              rawCategory = toRawCategory(category as BybitDisplayCategory) || category;
+              rawCategory = toRawCategory(category as BybitDisplayCategory);
             } else if (exchange === 'bithumb') {
               rawCategory = toBithumbRawCategory(category as BithumbDisplayCategory);
             }
@@ -679,109 +796,6 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           quoteCode?: string;
         }): CoinInfo[] => {
           const { exchange, category, baseCode, quoteCode } = filter;
-          
-          // 로컬 스토리지에서 데이터 조회 (저장된 카테고리로 조회 시도)
-          const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
-            try {
-              const data = getStoredSymbols(ex, cat);
-              if (!data) return [];
-              
-              // 새로운 형식 파싱
-              // settlementCode와 quoteCode가 동일한 경우: quantity*baseCode/quoteCode-restOfSymbol=rawSymbol
-              // settlementCode와 quoteCode가 다른 경우: quantity*baseCode/quoteCode(settlementCode)-restOfSymbol=rawSymbol
-              const symbolEntries = data.split(',');
-              return symbolEntries.map(entry => {
-                const parts = entry.split('=');
-                if (parts.length < 2) return null;
-                
-                const rawSymbol = parts[parts.length - 1]; // 마지막 부분이 rawSymbol
-                const symbolPart = parts.slice(0, -1).join('='); // 심볼 부분
-                
-                // quantity 추출
-                let quantity = 1;
-                let restPart = symbolPart;
-                
-                if (symbolPart.includes('*')) {
-                  const [qtyStr, rest] = symbolPart.split('*', 2);
-                  quantity = parseInt(qtyStr) || 1;
-                  restPart = rest;
-                }
-                
-                // settlementCode가 포함된 형식인지 확인 (괄호 포함 여부)
-                if (restPart.includes('(') && restPart.includes(')')) {
-                  // settlementCode가 다른 경우: baseCode/quoteCode(settlementCode)-restOfSymbol
-                  const [baseQuotePart, restOfSymbolPart] = restPart.split('-', 2);
-                  const baseQuoteSettlementSplit = baseQuotePart.split('/');
-                  if (baseQuoteSettlementSplit.length < 2) return null;
-                  
-                  const baseCodeVal = baseQuoteSettlementSplit[0];
-                  let quoteCodeVal = baseQuoteSettlementSplit[1];
-                  
-                  // settlementCode 추출
-                  let settlementCode = quoteCodeVal;
-                  if (quoteCodeVal.includes('(')) {
-                    const parenMatch = quoteCodeVal.match(/^([^(]+)\(([^)]+)\)$/);
-                    if (parenMatch) {
-                      quoteCodeVal = parenMatch[1];
-                      settlementCode = parenMatch[2];
-                    }
-                  }
-                  
-                  // restOfSymbol 처리 (- 제거)
-                  let restOfSymbolVal = restOfSymbolPart || '';
-                  if (restOfSymbolVal && restOfSymbolVal.startsWith('-')) {
-                    restOfSymbolVal = restOfSymbolVal.substring(1);
-                  }
-                  
-                  const displaySymbol = quantity > 1 
-                    ? (restOfSymbolVal ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
-                    : (restOfSymbolVal ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${baseCodeVal}/${quoteCodeVal}`);
-                  
-                  return {
-                    displaySymbol,
-                    rawSymbol,
-                    baseCode: baseCodeVal,
-                    quoteCode: quoteCodeVal,
-                    restOfSymbol: restOfSymbolVal,
-                    quantity,
-                    settlementCode
-                  };
-                } else {
-                  // settlementCode와 quoteCode가 동일한 경우: baseCode/quoteCode-restOfSymbol
-                  const [baseQuotePart, restOfSymbolPart] = restPart.split('-', 2);
-                  const baseQuoteSplit = baseQuotePart.split('/');
-                  if (baseQuoteSplit.length < 2) return null;
-                  
-                  const baseCodeVal = baseQuoteSplit[0];
-                  const quoteCodeVal = baseQuoteSplit[1];
-                  const settlementCode = quoteCodeVal; // settlementCode는 quoteCode와 동일
-                  
-                  // restOfSymbol 처리 (- 제거)
-                  let restOfSymbolVal = restOfSymbolPart || '';
-                  if (restOfSymbolVal && restOfSymbolVal.startsWith('-')) {
-                    restOfSymbolVal = restOfSymbolVal.substring(1);
-                  }
-                  
-                  const displaySymbol = quantity > 1 
-                    ? (restOfSymbolVal ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
-                    : (restOfSymbolVal ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolVal}` : `${baseCodeVal}/${quoteCodeVal}`);
-                  
-                  return {
-                    displaySymbol,
-                    rawSymbol,
-                    baseCode: baseCodeVal,
-                    quoteCode: quoteCodeVal,
-                    restOfSymbol: restOfSymbolVal,
-                    quantity,
-                    settlementCode
-                  };
-                }
-              }).filter(Boolean) as SymbolInfo[];
-            } catch (error) {
-              console.error(`Failed to load symbols for ${ex}-${cat}:`, error);
-              return [];
-            }
-          };
           
           // 모든 거래소와 카테고리 조합에 대해 필터링
           const exchanges = exchange ? [exchange] : (['bybit', 'binance', 'upbit', 'bithumb'] as ExchangeType[]);

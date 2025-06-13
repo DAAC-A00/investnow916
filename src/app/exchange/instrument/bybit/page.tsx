@@ -13,6 +13,8 @@ interface InstrumentInfo {
   displayCategory: BybitDisplayCategory;
   settlementCode: string;
   restOfSymbol?: string;
+  remark?: string;
+  search?: string;
 }
 
 // 공유 유틸리티에서 한국어 QWERTY 변환 함수 가져오기
@@ -61,7 +63,9 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
       displayCategory,
       pair: `${baseCode}/${quoteCode}`,
       settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
-      restOfSymbol: restOfSymbol || undefined
+      restOfSymbol: restOfSymbol || undefined,
+      remark: '',
+      search: ''
     };
   } catch (e) {
     console.error('Error parsing instrument string:', instrumentStr, e);
@@ -123,7 +127,7 @@ const BybitInstrumentPage = () => {
       
       // 검색어로 필터링
       const filtered = instrumentData.filter(instrument => {
-        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}`.toLowerCase();
+        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}${instrument.remark}${instrument.search}`.toLowerCase();
         return searchText.includes(normalizedTerm);
       });
       
@@ -143,7 +147,7 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['rawSymbol', 'displaySymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'restOfSymbol'];
+const tableHeaders: (keyof InstrumentInfo)[] = ['rawSymbol', 'displaySymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'restOfSymbol', 'remark', 'search'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
     rawSymbol: '원본 심볼',
     displaySymbol: '표시용 심볼',
@@ -154,7 +158,9 @@ const BybitInstrumentPage = () => {
     displayCategory: '표시용 카테고리',
     quantity: '수량',
     settlementCode: '정산 화폐',
-    restOfSymbol: '추가정보'
+    restOfSymbol: '추가정보',
+    remark: '비고',
+    search: '검색어'
   };
 
   return (

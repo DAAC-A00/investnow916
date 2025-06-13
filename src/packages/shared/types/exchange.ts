@@ -154,6 +154,7 @@ export interface BithumbInstrument {
   market: string;         // 예: "KRW-BTC", "BTC-ETH"
   korean_name: string;    // 예: "비트코인"
   english_name: string;   // 예: "Bitcoin"
+  market_warning: string; // "NONE" 또는 "CAUTION"
 }
 
 export type BithumbInstrumentsResponse = BithumbInstrument[];
