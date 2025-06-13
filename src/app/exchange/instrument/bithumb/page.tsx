@@ -23,17 +23,24 @@ import {
   BithumbDisplayCategory
 } from '@/packages/shared/types/exchange';
 
+// 스토어 import 추가
+import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
+
 // Bithumb은 spot만 지원하므로 고정된 카테고리
 const BITHUMB_CATEGORIES: BithumbDisplayCategory[] = ['spot'];
 
-// 업데이트 시간 관련 함수들
+// 업데이트 시간 관련 함수들 (스토어와 일치하도록 수정)
 const getUpdateTimeKey = (category: string): string => {
+  // 스토어의 getUpdateTimeKey 함수와 동일한 로직 사용
   return `bithumb-${category}-updated`;
 };
 
 const getUpdateTime = (category: string): Date | null => {
+  if (typeof window === 'undefined') return null;
+  
   try {
-    const timeStr = localStorage.getItem(getUpdateTimeKey(category));
+    const key = getUpdateTimeKey(category);
+    const timeStr = localStorage.getItem(key);
     return timeStr ? new Date(timeStr) : null;
   } catch (error) {
     console.error(`업데이트 시간 조회 실패 (${category}):`, error);
@@ -43,52 +50,11 @@ const getUpdateTime = (category: string): Date | null => {
 
 const needsUpdate = (category: string): boolean => {
   const updateTime = getUpdateTime(category);
-  if (!updateTime) return true;
+  if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
   
   const now = new Date();
   const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  return diffHours >= 2; // 2시간 이상 지났으면 갱신 필요
-};
-
-// localStorage 키 생성을 위한 헬퍼 함수
-const getBithumbStorageKeys = (): string[] => {
-  return BITHUMB_CATEGORIES.map(category => `bithumb-${category}`);
-};
-
-const parseInstrumentString = (instrumentStr: string, categoryKey: string): InstrumentInfo | null => {
-  try {
-    const parts = instrumentStr.split('=');
-    if (parts.length !== 2) return null;
-    const rawSymbol = parts[1];
-    const leftPart = parts[0]; // baseCode/quoteCode
-
-    // baseCode/quoteCode(settlementCode) 추출
-    // Bithumb의 경우 일반적으로 baseCode/quoteCode 형식이지만, 
-    // 경우에 따라 baseCode/quoteCode(settlementCode) 형식일 수 있음
-    const symbolMatch = leftPart.match(/^([^/]+)\/([^/(]+)(?:\(([^)]+)\))?$/);
-    if (!symbolMatch) return null;
-
-    const [, baseCode, quoteCode, settlementCode] = symbolMatch;
-    const finalSettlementCode = settlementCode || quoteCode; // settlementCode가 없으면 quoteCode 사용
-
-    const displayCategory = categoryKey.replace('bithumb-', '') as BithumbDisplayCategory;
-
-    return {
-      rawSymbol,
-      displaySymbol: `${baseCode}/${quoteCode}`,
-      baseCode,
-      quoteCode,
-      rawCategory: 'spot' as BithumbRawCategory,
-      displayCategory,
-      pair: `${baseCode}/${quoteCode}`,
-      settlementCode: finalSettlementCode,
-      remark: '',
-      search: ''
-    };
-  } catch (e) {
-    console.error('Error parsing instrument string:', instrumentStr, e);
-    return null;
-  }
+  return diffHours >= 2; // 2시간 이상 경과하면 갱신 필요
 };
 
 const BithumbInstrumentPage = () => {
@@ -99,47 +65,70 @@ const BithumbInstrumentPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [updateTimes, setUpdateTimes] = useState<{[category: string]: Date | null}>({});
 
-  useEffect(() => {
+  // 스토어에서 함수들 가져오기
+  const { fetchBithumbCoins, getFilteredCoins } = useExchangeInstrumentStore();
+
+  // 데이터 로드 및 갱신 함수
+  const loadData = async () => {
     try {
-      const allInstruments: InstrumentInfo[] = [];
-      let foundAnyData = false;
+      setLoading(true);
+      setError(null);
+
+      // 업데이트 시간 정보 먼저 수집
       const categoryUpdateTimes: {[category: string]: Date | null} = {};
-
-      getBithumbStorageKeys().forEach(key => {
-        const storedData = localStorage.getItem(key);
-        const category = key.replace('bithumb-', '');
+      BITHUMB_CATEGORIES.forEach(category => {
         categoryUpdateTimes[category] = getUpdateTime(category);
-        
-        if (storedData) {
-          foundAnyData = true;
-          const instrumentStrings = storedData.split(',');
-          instrumentStrings.forEach(str => {
-            if (str.trim()) {
-              const parsed = parseInstrumentString(str.trim(), key);
-              if (parsed) {
-                allInstruments.push(parsed);
-              }
-            }
-          });
-        }
       });
-
       setUpdateTimes(categoryUpdateTimes);
 
-      if (!foundAnyData) {
-        setError('로컬 스토리지에서 Bithumb instrument 정보를 찾을 수 없습니다.');
-      } else if (allInstruments.length === 0 && foundAnyData) {
-        setError('유효한 Bithumb instrument 정보를 파싱할 수 없습니다. 데이터 형식을 확인하세요.');
-      }
-      setInstrumentData(allInstruments);
-      setFilteredData(allInstruments); // 초기에는 모든 데이터 표시
+      // Bithumb spot 데이터 가져오기 (자동으로 2시간 체크 후 필요시 갱신)
+      const success = await fetchBithumbCoins('spot');
+      
+      if (success) {
+        // 스토어에서 필터링된 코인 정보 가져오기
+        const filteredCoins = getFilteredCoins({
+          exchange: 'bithumb',
+          category: 'spot'
+        });
 
+        // InstrumentInfo 형식으로 변환
+        const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
+          rawSymbol: coin.rawSymbol,
+          displaySymbol: coin.displaySymbol,
+          baseCode: coin.baseCode,
+          quoteCode: coin.quoteCode,
+          pair: coin.displaySymbol,
+          rawCategory: coin.rawCategory,
+          displayCategory: coin.displayCategory as BithumbDisplayCategory,
+          settlementCode: coin.settlementCode,
+          remark: '',
+          search: ''
+        }));
+
+        setInstrumentData(instrumentInfos);
+        setFilteredData(instrumentInfos);
+
+        // 업데이트 시간 다시 수집 (갱신 후)
+        const updatedCategoryUpdateTimes: {[category: string]: Date | null} = {};
+        BITHUMB_CATEGORIES.forEach(category => {
+          updatedCategoryUpdateTimes[category] = getUpdateTime(category);
+        });
+        setUpdateTimes(updatedCategoryUpdateTimes);
+
+        console.log(`Bithumb에서 ${instrumentInfos.length}개의 instrument 정보를 로드했습니다.`);
+      } else {
+        setError('Bithumb 데이터를 가져오는데 실패했습니다.');
+      }
     } catch (e) {
-      console.error('로컬 스토리지 데이터 처리 중 오류 발생:', e);
+      console.error('데이터 로드 중 오류 발생:', e);
       setError('데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   // 검색어에 따라 데이터 필터링 (한국어 입력 지원)
@@ -188,37 +177,54 @@ const BithumbInstrumentPage = () => {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-semibold text-foreground">
           Bithumb Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
         </h1>
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            placeholder="심볼, 코드, 페어로 검색..."
-            className="w-full px-4 py-2 pl-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background border-border text-foreground"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative w-full md:w-80">
+            <input
+              type="text"
+              placeholder="심볼, 코드, 페어로 검색..."
+              className="w-full px-4 py-2 pl-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background border-border text-foreground"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </svg>
+            <svg
+              className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {loading ? '갱신 중...' : '수동 갱신'}
+          </button>
         </div>
       </div>
 
       {/* 업데이트 시간 정보 표시 */}
       <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-        <h3 className="text-lg font-medium text-foreground mb-3">카테고리별 업데이트 시간</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium text-foreground">카테고리별 업데이트 시간</h3>
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+              갱신 중...
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {BITHUMB_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];

@@ -56,6 +56,7 @@ export interface CoinInfo {
   exchange: ExchangeType;  // 거래소
   displayCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
   rawCategory: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
+  settlementCode?: string; // 정산 화폐 코드 (예: USD, USDT)
   
   // 원본 API 응답 데이터 (카테고리별로 다른 정보 포함)
   rawInstrumentData?: any; // 전체 API 응답 데이터
@@ -154,17 +155,10 @@ export interface BithumbInstrument {
   market: string;         // 예: "KRW-BTC", "BTC-ETH"
   korean_name: string;    // 예: "비트코인"
   english_name: string;   // 예: "Bitcoin"
-  market_warning: string; // "NONE" 또는 "CAUTION"
 }
 
-// Bithumb Instruments API 응답 구조
-export interface BithumbInstrumentsResponse {
-  status: string;         // "0000" = 성공
-  message?: string;       // 에러 메시지
-  data: {
-    [market: string]: BithumbInstrument;
-  };
-}
+// Bithumb API 응답은 배열 형태
+export type BithumbInstrumentsResponse = BithumbInstrument[];
 
 // Bithumb Warning API 응답 타입
 export interface BithumbWarning {

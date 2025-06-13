@@ -59,11 +59,11 @@ const initialState: ExchangeInstrumentStateData = {
 const API_URLS = {
   bybit: {
     base: 'https://api.bybit.com/v5/market/instruments-info',
-    getUrl: (category: BybitRawCategory) => `${API_URLS.bybit.base}?category=${category}`,
+    getInstrumentUrl: (category: BybitRawCategory) => `${API_URLS.bybit.base}?category=${category}`,
   },
   bithumb: {
     base: 'https://api.bithumb.com/v1/market/all',
-    getUrl: () => `${API_URLS.bithumb.base}?isDetails=false`,
+    getInstrumentUrl: () => `${API_URLS.bithumb.base}?isDetails=false`,
   },
   binance: {
     // 추후 구현
@@ -287,7 +287,7 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
     console.log(`Bybit ${rawCategory} 데이터를 갱신합니다...`);
 
     // API 요청은 원래 카테고리로
-    const response = await fetch(API_URLS.bybit.getUrl(rawCategory));
+    const response = await fetch(API_URLS.bybit.getInstrumentUrl(rawCategory));
     
     if (!response.ok) {
       throw new Error(`API 요청 실패: ${response.status}`);
@@ -453,7 +453,7 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
 const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get: any): Promise<boolean> => {
   try {
     // 갱신 필요 여부 확인
-    if (!needsUpdate('bithumb', rawCategory, true)) {
+    if (!needsUpdate('bithumb', rawCategory, false)) {
       console.log(`Bithumb ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
       return true; // 갱신이 필요하지 않으면 성공으로 처리
     }
@@ -470,8 +470,8 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       console.log(`Bithumb은 ${rawCategory} 카테고리를 지원하지 않습니다.`);
       
       // 빈 데이터를 저장하고 업데이트 시간 기록
-      storeSymbols('bithumb', rawCategory, [], true);
-      storeUpdateTime('bithumb', rawCategory, true);
+      storeSymbols('bithumb', rawCategory, [], false);
+      storeUpdateTime('bithumb', rawCategory, false);
       
       set((state: ExchangeInstrumentState) => {
         state.isLoading = false;
@@ -480,11 +480,8 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       return true;
     }
 
-    // Bithumb API 요청 (instrument 정보와 warning 정보를 병렬로 가져오기)
-    const [instrumentResponse, warningResponse] = await Promise.all([
-      fetch(API_URLS.bithumb.getUrl()),
-      fetch('https://api.bithumb.com/v1/market/virtual_asset_warning').catch(() => null)
-    ]);
+    // Bithumb API 요청
+    const instrumentResponse = await fetch(API_URLS.bithumb.getInstrumentUrl());
     
     if (!instrumentResponse.ok) {
       throw new Error(`Bithumb API 요청 실패: ${instrumentResponse.status}`);
@@ -492,73 +489,42 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
     
     const instrumentData = await instrumentResponse.json() as BithumbInstrumentsResponse;
     
-    if (instrumentData.status !== '0000') {
-      throw new Error(`Bithumb API 에러: ${instrumentData.message}`);
-    }
-
-    // Warning 정보 처리
-    let warningsByMarket: { [market: string]: BithumbWarningType[] } = {};
-    if (warningResponse && warningResponse.ok) {
-      try {
-        const warningData = await warningResponse.json() as BithumbWarningsResponse;
-        if (warningData.status === '0000' && warningData.data) {
-          // market별로 warning 정보를 그룹화
-          for (const warning of warningData.data) {
-            if (!warningsByMarket[warning.market]) {
-              warningsByMarket[warning.market] = [];
-            }
-            warningsByMarket[warning.market].push(warning.warning_type);
-          }
-        }
-      } catch (warningError) {
-        console.warn('Bithumb warning 정보 가져오기 실패:', warningError);
-      }
+    // 배열이 아니거나 비어있는 경우 에러 처리
+    if (!Array.isArray(instrumentData) || instrumentData.length === 0) {
+      throw new Error('Bithumb API 응답 형식이 올바르지 않습니다.');
     }
 
     const symbolObjects: SymbolInfo[] = [];
     
     // Bithumb API 응답에서 심볼 데이터 추출
-    for (const [market, item] of Object.entries(instrumentData.data)) {
-      if (typeof item === 'object' && item !== null && 'market' in item) {
-        const bithumbItem = item as BithumbInstrument;
-        
-        // market 형식: KRW-BTC
-        const [quoteCode, baseCode] = market.split('-');
-        if (!baseCode || !quoteCode) continue;
-        
-        // settlementCode는 빗썸의 경우 항상 quoteCode와 동일 (spot 거래만 지원)
-        const settlementCode = quoteCode;
-        
-        // displaySymbol 생성: baseCode/quoteCode 형식
-        const displaySymbol = `${baseCode}/${quoteCode}`;
-        
-        // Warning 정보 가져오기
-        const warnings = warningsByMarket[market] || [];
-        
-        // SymbolInfo 객체 생성
-        const symbolObj: SymbolInfo = {
-          rawSymbol: market,
-          displaySymbol,
-          baseCode,
-          quoteCode,
-          quantity: 1, // 빗썸은 항상 1
-          settlementCode,
-          warnings: warnings.length > 0 ? warnings : undefined,
-          // 빗썸 전용 필드들
-          english_name: bithumbItem.english_name,
-          market: bithumbItem.market,
-          market_warning: bithumbItem.market_warning,
-          korean_name: bithumbItem.korean_name,
-        };
+    for (const item of instrumentData) {
+      // market 형식: KRW-BTC
+      const [quoteCode, baseCode] = item.market.split('-');
+      if (!baseCode || !quoteCode) continue;
+      
+      // settlementCode는 빗썸의 경우 항상 quoteCode와 동일 (spot 거래만 지원)
+      const settlementCode = quoteCode;
+      
+      // displaySymbol 생성: baseCode/quoteCode 형식
+      const displaySymbol = `${baseCode}/${quoteCode}`;
+      
+      // SymbolInfo 객체 생성
+      const symbolObj: SymbolInfo = {
+        rawSymbol: item.market,
+        displaySymbol,
+        baseCode,
+        quoteCode,
+        quantity: 1, // 빗썸은 항상 1
+        settlementCode,
+      };
 
-        symbolObjects.push(symbolObj);
-      }
+      symbolObjects.push(symbolObj);
     }
 
     console.log(`Bithumb spot 카테고리에서 ${symbolObjects.length}개의 심볼을 처리했습니다.`);
     
     // 로컬 스토리지에 저장할 때는 spot 카테고리 사용
-    storeSymbols('bithumb', 'spot', symbolObjects);
+    storeSymbols('bithumb', 'spot', symbolObjects, false);
     
     // 업데이트 시간 저장
     storeUpdateTime('bithumb', 'spot', false);
@@ -947,7 +913,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           await Promise.all(
             categories.map(async (cat) => {
               try {
-                const url = API_URLS.bybit.getUrl(cat);
+                const url = API_URLS.bybit.getInstrumentUrl(cat);
                 const res = await fetch(url);
                 const data = (await res.json()) as BybitInstrumentsResponse;
                 if (data.retCode === 0 && data.result?.list) {
