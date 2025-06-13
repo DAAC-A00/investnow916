@@ -42,7 +42,7 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
 
     // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
     // 수량은 10 이상인 경우에만 추출하고, 그 외에는 baseCode의 일부로 처리
-    const pattern = /^(?:(\d{2,})\*?)?([^/]+)\/([^-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
+    const pattern = /^(?:(\d{2,})\*?)?([^/]+)\/([^/()(-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
     const match = displaySymbol.match(pattern);
     
     if (!match) return null;
@@ -55,7 +55,7 @@ const parseInstrumentString = (instrumentStr: string, categoryKey: string): Inst
 
     return {
       rawSymbol,
-      displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
+      displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode !== quoteCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
       quantity,
       baseCode,
       quoteCode,

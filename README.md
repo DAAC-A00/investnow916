@@ -3,10 +3,9 @@
 ## 📁 프로젝트 구조
 
 ```
-
 src/
 ├── app/                            # Next.js (App Router) 기반 웹앱
-├── app\_mobile/                     # React Native (Expo) 앱 - PWA 또는 앱 스토어 배포용
+├── app_mobile/                     # React Native (Expo) 앱 - PWA 또는 앱 스토어 배포용
 ├── packages/
 │   ├── shared/                     # 공통 로직 모듈 (웹/모바일 공용)
 │   │   ├── components/             # UI 컴포넌트 (Tamagui/Shadcn 기반)
@@ -29,7 +28,7 @@ src/
 │       ├── mock-server/            # MSW 기반 Mock 서버
 │       └── performance/            # 성능 측정 도구
 
-````
+```
 
 ---
 
@@ -50,7 +49,7 @@ src/
 <Button variant={isActive ? "solid" : "outline"} disabled={!isAvailable}>
   주문하기
 </Button>
-````
+```
 
 ---
 
@@ -193,6 +192,34 @@ src/
 - **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 - **quantity = 1**: `${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 
+#### 빗썸 전용 확장 형식 (Warning 정보 포함):
+- **기본 형식**: `${baseCode}/${quoteCode}=${rawSymbol}+${remark}@${warning1}@${warning2}#${search}`
+- **remark**: `caution` (market_warning이 CAUTION인 경우)
+- **warning**: API에서 가져온 warning_type들 (`@`로 구분)
+- **search**: 검색용 한국명 (`#`으로 구분)
+
+**빗썸 Warning 타입:**
+- `TRADING_VOLUME_SUDDEN_FLUCTUATION`: 거래량 급등
+- `DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION`: 입금량 급등
+- `PRICE_DIFFERENCE_HIGH`: 가격 차이
+- `SPECIFIC_ACCOUNT_HIGH_TRANSACTION`: 소수계좌 거래 집중
+- `EXCHANGE_TRADING_CONCENTRATION`: 거래소 거래 집중
+
+**빗썸 저장 예시:**
+```
+# CAUTION + Warning이 모두 있는 경우
+BTC/KRW=KRW-BTC+caution@DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION@TRADING_VOLUME_SUDDEN_FLUCTUATION#비트코인
+
+# Warning만 있는 경우
+ETH/KRW=KRW-ETH@PRICE_DIFFERENCE_HIGH#이더리움
+
+# CAUTION만 있는 경우
+ADA/KRW=KRW-ADA+caution#에이다
+
+# 아무것도 없는 경우
+DOT/KRW=KRW-DOT#폴카닷
+```
+
 ### 타입 정의
 
 ```ts
@@ -206,12 +233,28 @@ interface SymbolInfo {
   settlementCode?: string;        // 정산 화폐
   displayCategory?: string;       // UI 표시 카테고리
   rawCategory?: string;           // API 원본 카테고리
+  
+  // 빗썸 전용 필드들
+  warnings?: BithumbWarningType[]; // 빗썸 warning 정보 배열
+  market_warning?: string;         // 빗썸 market warning (CAUTION, NONE)
+  korean_name?: string;            // 빗썸 한국명 (검색용)
+  english_name?: string;           // 빗썸 영문명
+  
   [key: string]: any;             // 추가 필드 허용
 }
+
+// 빗썸 Warning 타입 정의
+type BithumbWarningType = 
+  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
+  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
+  | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
+  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'    // 소수계좌 거래 집중
+  | 'EXCHANGE_TRADING_CONCENTRATION';      // 거래소 거래 집중
 ```
 
 ### 파싱 예시
 
+#### Bybit 예시:
 ```ts
 // API 응답 예시
 {
@@ -230,6 +273,48 @@ interface SymbolInfo {
   restOfSymbol: "25DEC24",
   settlementCode: "USDT"
 }
+```
+
+#### 빗썸 예시:
+```ts
+// API 응답 예시
+{
+  market: "KRW-BTC",
+  korean_name: "비트코인",
+  english_name: "Bitcoin",
+  market_warning: "CAUTION"
+}
+
+// Warning API 응답 예시
+[
+  {
+    market: "KRW-BTC",
+    warning_type: "DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION",
+    end_date: "2025-06-14 07:04:59"
+  },
+  {
+    market: "KRW-BTC", 
+    warning_type: "TRADING_VOLUME_SUDDEN_FLUCTUATION",
+    end_date: "2025-06-14 07:04:59"
+  }
+]
+
+// 파싱 결과
+{
+  rawSymbol: "KRW-BTC",
+  displaySymbol: "BTC/KRW",
+  baseCode: "BTC",
+  quoteCode: "KRW",
+  quantity: 1,
+  settlementCode: "KRW",
+  warnings: ["DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION", "TRADING_VOLUME_SUDDEN_FLUCTUATION"],
+  market_warning: "CAUTION",
+  korean_name: "비트코인",
+  english_name: "Bitcoin"
+}
+
+// localStorage 저장 형식
+"BTC/KRW=KRW-BTC+caution@DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION@TRADING_VOLUME_SUDDEN_FLUCTUATION#비트코인"
 ```
 
 ---

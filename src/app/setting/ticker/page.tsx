@@ -97,7 +97,7 @@ export default function TickerSettingPage() {
       priceChange: 300.00,
       priceChangePercent: 6.00,
       turnover: 2340000000,
-      label: '상승 예시',
+      label: '거래유의',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
@@ -108,7 +108,7 @@ export default function TickerSettingPage() {
       priceChange: -300.00,
       priceChangePercent: -6.00,
       turnover: 15600000,
-      label: '하락 예시',
+      label: '가격 급등락',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
@@ -119,7 +119,7 @@ export default function TickerSettingPage() {
       priceChange: 0.00,
       priceChangePercent: 0.00,
       turnover: 890000,
-      label: '보합 예시',
+      label: '입금량 급등',
       prevPrice24h: 73.19,
       prevPrice: 73.19
     }

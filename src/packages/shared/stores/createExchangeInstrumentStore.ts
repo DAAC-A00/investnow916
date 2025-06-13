@@ -11,6 +11,7 @@ interface SymbolInfo {
   restOfSymbol?: string;
   quantity?: number;
   settlementCode?: string;
+  warnings?: BithumbWarningType[]; // 빗썸 warning 정보 (빗썸에서만 사용)
   [key: string]: any; // 기타 추가 속성들
 }
 
@@ -27,6 +28,9 @@ import {
   BybitInstrument,
   BithumbInstrumentsResponse,
   BithumbInstrument,
+  BithumbWarningsResponse,
+  BithumbWarning,
+  BithumbWarningType,
   BithumbRawCategory,
   BithumbDisplayCategory,
   CoinInfo, 
@@ -59,7 +63,9 @@ const API_URLS = {
   },
   bithumb: {
     base: 'https://api.bithumb.com/v1/market/all',
+    warning: 'https://api.bithumb.com/v1/market/virtual_asset_warning',
     getUrl: () => `${API_URLS.bithumb.base}?isDetails=true`,
+    getWarningUrl: () => API_URLS.bithumb.warning,
   },
   binance: {
     // 추후 구현
@@ -146,10 +152,11 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     const key = getStorageKey(exchange, category, isRawCategory);
     
     // 문자열 형식으로 변환하여 저장
-    // 새로운 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
-    // remark가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}#{search}
-    // search가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
-    // 둘 다 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
+    // 새로운 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}#{search}
+    // remark가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}@${warning1}@${warning2}#{search}
+    // warning이 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
+    // search가 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}
+    // 모두 없는 경우: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
     const stringData = symbols
       .filter(item => item.displaySymbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
@@ -197,6 +204,12 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
           remark = '';
         }
         
+        // warning 처리 (빗썸에서만 사용)
+        let warningPart = '';
+        if (exchange === 'bithumb' && item.warnings && item.warnings.length > 0) {
+          warningPart = item.warnings.map((w: BithumbWarningType) => `@${w}`).join('');
+        }
+        
         // search 처리 (거래소별 로직)
         let search = '';
         if (exchange === 'bithumb') {
@@ -209,6 +222,11 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
         // remark 추가 (있는 경우에만)
         if (remark) {
           symbolPart += `+${remark}`;
+        }
+        
+        // warning 추가 (있는 경우에만)
+        if (warningPart) {
+          symbolPart += warningPart;
         }
         
         // search 추가 (있는 경우에만)
@@ -276,7 +294,7 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
       const baseCoinLeftNumberMatch = (baseCoin || baseCode).match(/^(\d+)(.+)/);
       if (baseCoinLeftNumberMatch) {
         const extractedNumber = parseInt(baseCoinLeftNumberMatch[1]);
-        // 10 이상인 경우에만 quantity로 처리하고, 그렇지 않으면 baseCode의 일부로 간주
+        // 10 이상인 경우에만 유효한 quantity로 간주하고, 그렇지 않으면 baseCode의 일부로 간주
         if (extractedNumber >= 10) {
           quantity = extractedNumber;
           actualBaseCode = baseCoinLeftNumberMatch[2]; // 숫자를 제거한 나머지가 실제 baseCode
@@ -458,6 +476,42 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
   }
 };
 
+// Bithumb Warning 정보 가져오기
+const fetchBithumbWarnings = async (): Promise<Record<string, BithumbWarningType[]>> => {
+  try {
+    const url = API_URLS.bithumb.getWarningUrl();
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`Bithumb Warning API 호출 실패: ${response.status}`);
+      return {};
+    }
+    
+    const data: BithumbWarningsResponse = await response.json();
+    
+    if (!Array.isArray(data)) {
+      console.warn('Bithumb Warning API 응답 형식이 올바르지 않습니다.');
+      return {};
+    }
+
+    // market별로 warning_type들을 그룹화
+    const warningMap: Record<string, BithumbWarningType[]> = {};
+    
+    for (const warning of data) {
+      if (!warningMap[warning.market]) {
+        warningMap[warning.market] = [];
+      }
+      warningMap[warning.market].push(warning.warning_type);
+    }
+    
+    console.log(`Bithumb Warning 정보: ${Object.keys(warningMap).length}개 심볼에 대한 경고 정보를 가져왔습니다.`);
+    return warningMap;
+  } catch (error) {
+    console.warn('Bithumb Warning 정보 가져오기 실패:', error);
+    return {};
+  }
+};
+
 // Bithumb 거래소의 코인 정보 가져오기
 const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get: any): Promise<boolean> => {
   try {
@@ -466,6 +520,7 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       state.error = null;
     });
 
+    // 1. 기본 instrument 정보 가져오기
     const url = API_URLS.bithumb.getUrl();
     const response = await fetch(url);
     
@@ -478,6 +533,9 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
     if (!Array.isArray(data)) {
       throw new Error('Bithumb API 응답 형식이 올바르지 않습니다.');
     }
+
+    // 2. Warning 정보 가져오기 (병렬 처리)
+    const warningMap = await fetchBithumbWarnings();
 
     // 빗썸은 spot 카테고리만 지원하므로 모든 데이터를 가져옴
     console.log(`Bithumb spot 카테고리에서 ${data.length}개의 심볼을 찾았습니다.`);
@@ -496,7 +554,10 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       // rawSymbol은 API에서 받은 원본 형식 그대로 사용
       const rawSymbol = item.market;
       
-      // displaySymbol은 baseCode/quoteCode 형식으로 변환
+      // warning 정보 수집 (localStorage 저장용)
+      const warnings = warningMap[item.market] || [];
+      
+      // displaySymbol은 baseCode/quoteCode 형식으로 변환 (warning 정보는 포함하지 않음)
       const displaySymbol = `${baseCode}/${quoteCode}`;
       
       // quantity는 기본값 1 (빗썸은 quantity 정보가 없음)
@@ -518,6 +579,8 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
         english_name: item.english_name,
         market: item.market,
         market_warning: item.market_warning,
+        // warning 정보 추가 (localStorage 저장 시 사용됨)
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
 
       symbolObjects.push(symbolObj);
@@ -550,30 +613,37 @@ const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
     const data = getStoredSymbols(ex, cat);
     if (!data) return [];
     
-    // 새로운 형식 파싱: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}#{search}
+    // 새로운 형식 파싱: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}#{search}
     const symbolEntries = data.split(',');
     return symbolEntries.map(entry => {
-      // remark와 search 분리
-      let mainPart = entry;
+      // remark, warning, search 분리
       let remark = '';
       let search = '';
+      let warningPart = '';
       
-      // search 추출 (#으로 분리)
-      if (mainPart.includes('#')) {
-        const hashParts = mainPart.split('#');
-        mainPart = hashParts[0];
+      // search 추출 (#으로 분리) - 가장 먼저 처리
+      if (entry.includes('#')) {
+        const hashParts = entry.split('#');
+        entry = hashParts[0];
         search = hashParts[1] || '';
       }
       
-      // remark 추출 (+로 분리)
-      if (mainPart.includes('+')) {
-        const plusParts = mainPart.split('+');
-        mainPart = plusParts[0];
+      // warning 추출 (@로 분리) - search 제거 후 처리
+      if (entry.includes('@')) {
+        const atParts = entry.split('@');
+        entry = atParts[0];
+        warningPart = atParts.slice(1).join('@'); // 여러 warning을 다시 @로 연결
+      }
+      
+      // remark 추출 (+로 분리) - warning 제거 후 처리
+      if (entry.includes('+')) {
+        const plusParts = entry.split('+');
+        entry = plusParts[0];
         remark = plusParts[1] || '';
       }
       
       // rawSymbol 분리 (=로 분리)
-      const parts = mainPart.split('=');
+      const parts = entry.split('=');
       if (parts.length < 2) return null;
       
       const rawSymbol = parts[parts.length - 1]; // 마지막 부분이 rawSymbol
@@ -633,7 +703,8 @@ const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
         quantity,
         settlementCode,
         remark,
-        search
+        search,
+        warnings: warningPart ? warningPart.split('@') : undefined
       };
     }).filter(Boolean) as SymbolInfo[];
   } catch (error) {
@@ -651,6 +722,11 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
         // Bybit 거래소의 코인 정보 가져오기
         fetchBybitCoins: async (rawCategory: BybitRawCategory) => {
           return await fetchBybitCoins(rawCategory, set, get);
+        },
+
+        // Bithumb Warning 정보 가져오기
+        fetchBithumbWarnings: async () => {
+          return await fetchBithumbWarnings();
         },
 
         // Bithumb 거래소의 코인 정보 가져오기
@@ -815,7 +891,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             
             // 거래소별 rawCategory 변환
             if (exchange === 'bybit') {
-              rawCategory = toRawCategory(category as BybitDisplayCategory) || category;
+              rawCategory = toRawCategory(category as BybitDisplayCategory);
             } else if (exchange === 'bithumb') {
               rawCategory = toBithumbRawCategory(category as BithumbDisplayCategory);
             }

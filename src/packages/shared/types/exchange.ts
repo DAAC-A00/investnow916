@@ -159,6 +159,32 @@ export interface BithumbInstrument {
 
 export type BithumbInstrumentsResponse = BithumbInstrument[];
 
+// Bithumb Warning API 응답 타입
+export interface BithumbWarning {
+  market: string;         // 예: "KRW-LINK"
+  warning_type: BithumbWarningType;
+  end_date: string;       // 예: "2025-06-14 07:04:59"
+}
+
+export type BithumbWarningsResponse = BithumbWarning[];
+
+// Bithumb Warning 타입 정의
+export type BithumbWarningType = 
+  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
+  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
+  | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
+  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'    // 소수계좌 거래 집중
+  | 'EXCHANGE_TRADING_CONCENTRATION';      // 거래소 거래 집중
+
+// Bithumb Warning 타입별 한글 설명
+export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
+  'TRADING_VOLUME_SUDDEN_FLUCTUATION': '거래량 급등',
+  'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION': '입금량 급등',
+  'PRICE_DIFFERENCE_HIGH': '가격 차이',
+  'SPECIFIC_ACCOUNT_HIGH_TRANSACTION': '소수계좌 거래 집중',
+  'EXCHANGE_TRADING_CONCENTRATION': '거래소 거래 집중'
+};
+
 // Bithumb 카테고리 타입 (spot만 지원)
 export type BithumbRawCategory = 'spot';
 export type BithumbDisplayCategory = 'spot';

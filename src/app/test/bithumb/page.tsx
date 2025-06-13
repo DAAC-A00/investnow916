@@ -194,8 +194,10 @@ export default function BithumbTestPage() {
                             {item.korean_name && <div><strong>한국명:</strong> {item.korean_name}</div>}
                             {item.english_name && <div><strong>영문명:</strong> {item.english_name}</div>}
                             {item.market_warning && <div><strong>시장 경고:</strong> {item.market_warning}</div>}
+                            {item.warnings && item.warnings.length > 0 && (
+                              <div><strong>Warning 정보:</strong> {item.warnings.map((w: string) => `+${w}`).join('')}</div>
+                            )}
                             {item.remark && <div><strong>비고:</strong> {item.remark}</div>}
-                            {item.search && <div><strong>검색어:</strong> {item.search}</div>}
                             <div><strong>거래소:</strong> {item.exchange}</div>
                             <div><strong>카테고리:</strong> {item.rawCategory} / {item.displayCategory}</div>
                             <div><strong>baseCode/quoteCode:</strong> {item.baseCode}/{item.quoteCode}</div>
@@ -214,9 +216,12 @@ export default function BithumbTestPage() {
                         localStorage 데이터 미리보기 (클릭하여 펼치기)
                       </summary>
                       <div className="mt-2 bg-gray-50 dark:bg-gray-600 p-2 rounded text-xs">
+                        <div className="mb-2 text-blue-600 font-semibold">
+                          새로운 형식: baseCode/quoteCode=rawSymbol+caution@warning1@warning2#korean_name
+                        </div>
                         {result.rawData.map((item: any, idx: number) => (
                           <div key={idx} className="mb-2 pb-2 border-b border-gray-200 last:border-b-0">
-                            <div>{item}</div>
+                            <div className="font-mono text-xs break-all">{item}</div>
                           </div>
                         ))}
                       </div>
