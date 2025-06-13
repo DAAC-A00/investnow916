@@ -168,12 +168,32 @@ const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: 
 
 // 데이터 갱신 필요 여부 확인 (2시간 기준)
 const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
-  const updateTime = getUpdateTime(exchange, category, isRawCategory);
-  if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
+  // 1. 로컬 스토리지에 데이터가 있는지 확인
+  const storedData = getStoredSymbols(exchange, category, isRawCategory);
+  if (!storedData || storedData.trim() === '' || storedData === '[]') {
+    console.log(`${exchange} ${category} 데이터가 로컬 스토리지에 없습니다. 갱신이 필요합니다.`);
+    return true; // 데이터가 없으면 갱신 필요
+  }
   
+  // 2. 업데이트 시간 확인
+  const updateTime = getUpdateTime(exchange, category, isRawCategory);
+  if (!updateTime) {
+    console.log(`${exchange} ${category} 업데이트 시간 정보가 없습니다. 갱신이 필요합니다.`);
+    return true; // 업데이트 시간이 없으면 갱신 필요
+  }
+  
+  // 3. 2시간 경과 여부 확인
   const now = new Date();
   const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  return diffHours >= 2; // 2시간 이상 경과하면 갱신 필요
+  const needsRefresh = diffHours >= 2;
+  
+  if (needsRefresh) {
+    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 갱신이 필요합니다.`);
+  } else {
+    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 최신 상태입니다.`);
+  }
+  
+  return needsRefresh;
 };
 
 // 로컬 스토리지에서 심볼 문자열 가져오기
@@ -454,7 +474,6 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
   try {
     // 갱신 필요 여부 확인
     if (!needsUpdate('bithumb', rawCategory, false)) {
-      console.log(`Bithumb ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
       return true; // 갱신이 필요하지 않으면 성공으로 처리
     }
 
@@ -463,11 +482,11 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       state.error = null;
     });
 
-    console.log(`Bithumb ${rawCategory} 데이터를 갱신합니다...`);
+    console.log(`🔄 Bithumb ${rawCategory} 데이터를 갱신합니다...`);
 
     // 빗썸은 spot 카테고리만 지원하므로 spot이 아닌 경우 빈 배열 반환
     if (rawCategory !== 'spot') {
-      console.log(`Bithumb은 ${rawCategory} 카테고리를 지원하지 않습니다.`);
+      console.log(`⚠️ Bithumb은 ${rawCategory} 카테고리를 지원하지 않습니다.`);
       
       // 빈 데이터를 저장하고 업데이트 시간 기록
       storeSymbols('bithumb', rawCategory, [], false);
@@ -481,26 +500,34 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
     }
 
     // Bithumb API 요청
+    console.log(`📡 Bithumb API 요청 중... (${API_URLS.bithumb.getInstrumentUrl()})`);
     const instrumentResponse = await fetch(API_URLS.bithumb.getInstrumentUrl());
     
     if (!instrumentResponse.ok) {
-      throw new Error(`Bithumb API 요청 실패: ${instrumentResponse.status}`);
+      throw new Error(`Bithumb API 요청 실패: ${instrumentResponse.status} ${instrumentResponse.statusText}`);
     }
     
     const instrumentData = await instrumentResponse.json() as BithumbInstrumentsResponse;
     
     // 배열이 아니거나 비어있는 경우 에러 처리
     if (!Array.isArray(instrumentData) || instrumentData.length === 0) {
-      throw new Error('Bithumb API 응답 형식이 올바르지 않습니다.');
+      throw new Error('Bithumb API 응답 형식이 올바르지 않거나 데이터가 비어있습니다.');
     }
 
+    console.log(`📊 Bithumb API에서 ${instrumentData.length}개의 원시 데이터를 받았습니다.`);
+
     const symbolObjects: SymbolInfo[] = [];
+    let processedCount = 0;
+    let skippedCount = 0;
     
     // Bithumb API 응답에서 심볼 데이터 추출
     for (const item of instrumentData) {
       // market 형식: KRW-BTC
       const [quoteCode, baseCode] = item.market.split('-');
-      if (!baseCode || !quoteCode) continue;
+      if (!baseCode || !quoteCode) {
+        skippedCount++;
+        continue;
+      }
       
       // settlementCode는 빗썸의 경우 항상 quoteCode와 동일 (spot 거래만 지원)
       const settlementCode = quoteCode;
@@ -519,9 +546,10 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       };
 
       symbolObjects.push(symbolObj);
+      processedCount++;
     }
 
-    console.log(`Bithumb spot 카테고리에서 ${symbolObjects.length}개의 심볼을 처리했습니다.`);
+    console.log(`✅ Bithumb spot 카테고리에서 ${processedCount}개의 심볼을 처리했습니다. (${skippedCount}개 건너뜀)`);
     
     // 로컬 스토리지에 저장할 때는 spot 카테고리 사용
     storeSymbols('bithumb', 'spot', symbolObjects, false);
@@ -529,19 +557,38 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
     // 업데이트 시간 저장
     storeUpdateTime('bithumb', 'spot', false);
     
+    const updateTime = new Date().toLocaleString('ko-KR');
+    console.log(`💾 Bithumb 데이터가 로컬 스토리지에 저장되었습니다. (업데이트 시간: ${updateTime})`);
+    
     set((state: ExchangeInstrumentState) => {
       state.isLoading = false;
     });
     
     return true;
   } catch (error) {
-    set((state: ExchangeInstrumentState) => {
-      state.isLoading = false;
-      state.error = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-    });
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+    console.error('❌ Bithumb 코인 정보 가져오기 실패:', errorMessage);
     
-    console.error('Bithumb 코인 정보 가져오기 실패:', error);
-    return false;
+    // 기존 데이터가 있는지 확인
+    const existingData = getStoredSymbols('bithumb', rawCategory, false);
+    const hasExistingData = existingData && existingData.trim() !== '' && existingData !== '[]';
+    
+    if (hasExistingData) {
+      console.log('📋 기존 Bithumb 데이터를 유지합니다.');
+      // 기존 데이터가 있으면 에러 상태를 설정하지 않고 로딩만 해제
+      set((state: ExchangeInstrumentState) => {
+        state.isLoading = false;
+        // 기존 데이터가 있으면 에러를 설정하지 않음
+      });
+      return true; // 기존 데이터 사용으로 성공 처리
+    } else {
+      // 기존 데이터가 없으면 에러 상태 설정
+      set((state: ExchangeInstrumentState) => {
+        state.isLoading = false;
+        state.error = `Bithumb 데이터 로드 실패: ${errorMessage}`;
+      });
+      return false;
+    }
   }
 };
 

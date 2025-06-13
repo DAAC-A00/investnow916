@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
+import { ALL_RAW_CATEGORIES } from '../constants/bybitCategories';
 
 interface ExchangeCoinsInitializerProps {
-  exchange?: ExchangeType;
+  exchanges?: ExchangeType[];
   category?: BybitRawCategory;
   autoFetch?: boolean;
 }
@@ -15,7 +16,7 @@ interface ExchangeCoinsInitializerProps {
  * localStorage에서 데이터를 불러오고, 필요시 API에서 최신 데이터를 가져옵니다.
  */
 export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> = ({
-  exchange = 'bybit',
+  exchanges = ['bybit', 'bithumb'],
   category,
   autoFetch = true,
 }) => {
@@ -38,40 +39,47 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
     if (!mounted || !autoFetch) return;
 
     const fetchData = async () => {
-      if (exchange === 'bybit') {
-        if (category) {
-          // 특정 카테고리만 가져오기
-          // 해당 카테고리의 심볼 데이터가 있는지 확인
-          const symbols = getSymbolsForCategory(exchange, category);
-          const hasData = symbols.length > 0;
-          
-          // 데이터가 없으면 가져오기
-          if (!hasData) {
-            await fetchBybitCoins(category);
-          }
-        } else {
-          // Bybit의 모든 카테고리 데이터 가져오기
-          const categories: BybitRawCategory[] = ['spot', 'linear', 'inverse', 'option'];
-          for (const cat of categories) {
-            // 해당 카테고리의 심볼 데이터가 있는지 확인
-            const symbols = getSymbolsForCategory(exchange, cat);
+      // 모든 지정된 거래소에 대해 데이터 가져오기
+      for (const exchange of exchanges) {
+        if (exchange === 'bybit') {
+          if (category) {
+            // 특정 카테고리만 가져오기
+            const symbols = getSymbolsForCategory(exchange, category);
             const hasData = symbols.length > 0;
             
             // 데이터가 없으면 가져오기
             if (!hasData) {
-              await fetchBybitCoins(cat);
+              await fetchBybitCoins(category);
+            }
+          } else {
+            // Bybit의 모든 카테고리 데이터 가져오기
+            for (const cat of ALL_RAW_CATEGORIES) {
+              // 해당 카테고리의 심볼 데이터가 있는지 확인
+              const symbols = getSymbolsForCategory(exchange, cat);
+              const hasData = symbols.length > 0;
+              
+              // 데이터가 없으면 가져오기
+              if (!hasData) {
+                await fetchBybitCoins(cat);
+              }
             }
           }
+        } else {
+          // Bithumb 등 다른 거래소 데이터 가져오기
+          const symbols = getSymbolsForCategory(exchange, 'spot');
+          const hasData = symbols.length > 0;
+          
+          // 데이터가 없으면 가져오기
+          if (!hasData) {
+            await fetchExchangeCoins(exchange);
+          }
         }
-      } else {
-        // 전체 거래소 데이터 가져오기
-        await fetchExchangeCoins(exchange);
       }
     };
 
     // 데이터 가져오기 실행
     fetchData();
-  }, [mounted, autoFetch, exchange, category, fetchBybitCoins, fetchExchangeCoins, getSymbolsForCategory]);
+  }, [mounted, autoFetch, exchanges, category, fetchBybitCoins, fetchExchangeCoins, getSymbolsForCategory]);
 
   // 하이드레이션 전에는 아무것도 렌더링하지 않음
   if (!mounted) return null;
