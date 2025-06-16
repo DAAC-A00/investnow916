@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { ALL_RAW_CATEGORIES } from '../constants/bybitCategories';
+import { ALL_RAW_CATEGORIES, toDisplayCategory } from '../constants/bybitCategories';
 
 interface ExchangeCoinsInitializerProps {
   exchanges?: ExchangeType[];
@@ -29,6 +29,78 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
     getSymbolsForCategory
   } = useExchangeCoinsStore();
 
+  // 로컬 스토리지 접근 함수들 (store에서 가져온 로직)
+  const toStorageCategory = (category: string): string => {
+    // Bybit 카테고리 변환 시도
+    const bybitDisplayCategory = toDisplayCategory(category as BybitRawCategory);
+    if (bybitDisplayCategory) {
+      return bybitDisplayCategory;
+    }
+    
+    return category;
+  };
+
+  const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+    // isRawCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
+    const storageCategory = isRawCategory ? toStorageCategory(category) : category;
+    return `${exchange}-${storageCategory}`;
+  };
+
+  const getUpdateTimeKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+    const storageKey = getStorageKey(exchange, category, isRawCategory);
+    return `${storageKey}-updateTime`;
+  };
+
+  const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): Date | null => {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const key = getUpdateTimeKey(exchange, category, isRawCategory);
+      const timeStr = localStorage.getItem(key);
+      return timeStr ? new Date(timeStr) : null;
+    } catch (error) {
+      console.error(`업데이트 시간 조회 실패 (${exchange}-${category}):`, error);
+      return null;
+    }
+  };
+
+  const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+    if (typeof window === 'undefined') return '';
+    
+    const key = getStorageKey(exchange, category, isRawCategory);
+    const storedValue = localStorage.getItem(key);
+    return storedValue || '';
+  };
+
+  const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
+    // 1. 로컬 스토리지에 데이터가 있는지 확인
+    const storedData = getStoredSymbols(exchange, category, isRawCategory);
+    if (!storedData || storedData.trim() === '' || storedData === '[]') {
+      console.log(`${exchange} ${category} 데이터가 로컬 스토리지에 없습니다. 갱신이 필요합니다.`);
+      return true; // 데이터가 없으면 갱신 필요
+    }
+    
+    // 2. 업데이트 시간 확인
+    const updateTime = getUpdateTime(exchange, category, isRawCategory);
+    if (!updateTime) {
+      console.log(`${exchange} ${category} 업데이트 시간 정보가 없습니다. 갱신이 필요합니다.`);
+      return true; // 업데이트 시간이 없으면 갱신 필요
+    }
+    
+    // 3. 2시간 경과 여부 확인
+    const now = new Date();
+    const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
+    const needsRefresh = diffHours >= 2;
+    
+    if (needsRefresh) {
+      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 갱신이 필요합니다.`);
+    } else {
+      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 최신 상태입니다.`);
+    }
+    
+    return needsRefresh;
+  };
+
   // 마운트 상태 체크 (하이드레이션 이슈 방지)
   useEffect(() => {
     setMounted(true);
@@ -47,8 +119,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
             const symbols = getSymbolsForCategory(exchange, category);
             const hasData = symbols.length > 0;
             
-            // 데이터가 없으면 가져오기
-            if (!hasData) {
+            // 데이터가 없거나 갱신이 필요하면 가져오기
+            if (!hasData || needsUpdate(exchange, category, true)) {
+              console.log(`Bybit ${category} 데이터를 갱신합니다...`);
               await fetchBybitCoins(category);
             }
           } else {
@@ -58,8 +131,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
               const symbols = getSymbolsForCategory(exchange, cat);
               const hasData = symbols.length > 0;
               
-              // 데이터가 없으면 가져오기
-              if (!hasData) {
+              // 데이터가 없거나 갱신이 필요하면 가져오기
+              if (!hasData || needsUpdate(exchange, cat, true)) {
+                console.log(`Bybit ${cat} 데이터를 갱신합니다...`);
                 await fetchBybitCoins(cat);
               }
             }
@@ -69,8 +143,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
           const symbols = getSymbolsForCategory(exchange, 'spot');
           const hasData = symbols.length > 0;
           
-          // 데이터가 없으면 가져오기
-          if (!hasData) {
+          // 데이터가 없거나 갱신이 필요하면 가져오기
+          if (!hasData || needsUpdate(exchange, 'spot', false)) {
+            console.log(`${exchange} spot 데이터를 갱신합니다...`);
             await fetchExchangeCoins(exchange);
           }
         }
