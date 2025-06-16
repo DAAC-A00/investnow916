@@ -28,6 +28,13 @@ import {
   ALL_DISPLAY_CATEGORIES 
 } from '@/packages/shared/constants/bybitCategories';
 
+// 중앙 관리 갱신 설정 import
+import { 
+  getUpdateInterval,
+  needsDataUpdate,
+  getUpdateIntervalDescription
+} from '@/packages/shared/constants/updateConfig';
+
 // 업데이트 시간 관련 함수들
 const getUpdateTimeKey = (category: string): string => {
   return `bybit-${category}-updated`;
@@ -47,9 +54,8 @@ const needsUpdate = (category: string): boolean => {
   const updateTime = getUpdateTime(category);
   if (!updateTime) return true;
   
-  const now = new Date();
-  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  return diffHours >= 2; // 2시간 이상 지났으면 갱신 필요
+  // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
+  return needsDataUpdate(updateTime, 'bybit');
 };
 
 // localStorage 키 생성을 위한 헬퍼 함수
@@ -253,7 +259,7 @@ const BybitInstrumentPage = () => {
           })}
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
-          💡 데이터는 2시간마다 자동으로 갱신됩니다. 갱신이 필요한 카테고리는 다음 API 호출 시 자동으로 업데이트됩니다.
+          💡 데이터는 {getUpdateIntervalDescription('bybit')} 갱신이 필요한 카테고리는 다음 API 호출 시 자동으로 업데이트됩니다.
         </div>
       </div>
 

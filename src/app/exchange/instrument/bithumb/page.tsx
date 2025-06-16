@@ -26,6 +26,13 @@ import {
 // 스토어 import 추가
 import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
 
+// 중앙 관리 갱신 설정 import
+import { 
+  getUpdateInterval,
+  needsDataUpdate,
+  getUpdateIntervalDescription
+} from '@/packages/shared/constants/updateConfig';
+
 // Bithumb은 spot만 지원하므로 고정된 카테고리
 const BITHUMB_CATEGORIES: BithumbDisplayCategory[] = ['spot'];
 
@@ -52,9 +59,8 @@ const needsUpdate = (category: string): boolean => {
   const updateTime = getUpdateTime(category);
   if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
   
-  const now = new Date();
-  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  return diffHours >= 2; // 2시간 이상 경과하면 갱신 필요
+  // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
+  return needsDataUpdate(updateTime, 'bithumb');
 };
 
 const BithumbInstrumentPage = () => {
@@ -324,7 +330,7 @@ const BithumbInstrumentPage = () => {
           })}
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
-          💡 데이터는 2시간마다 자동으로 갱신됩니다. 갱신이 필요한 경우 다음 API 호출 시 자동으로 업데이트됩니다.
+          💡 데이터는 {getUpdateIntervalDescription('bithumb')} 갱신이 필요한 경우 다음 API 호출 시 자동으로 업데이트됩니다.
         </div>
       </div>
 

@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
 import { ALL_RAW_CATEGORIES, toDisplayCategory } from '../constants/bybitCategories';
+import { 
+  getUpdateInterval,
+  needsDataUpdate
+} from '../constants/updateConfig';
 
 interface ExchangeCoinsInitializerProps {
   exchanges?: ExchangeType[];
@@ -87,15 +91,16 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
       return true; // 업데이트 시간이 없으면 갱신 필요
     }
     
-    // 3. 2시간 경과 여부 확인
+    // 3. 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
+    const needsRefresh = needsDataUpdate(updateTime, exchange);
+    const updateInterval = getUpdateInterval(exchange);
     const now = new Date();
     const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-    const needsRefresh = diffHours >= 2;
     
     if (needsRefresh) {
-      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 갱신이 필요합니다.`);
+      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기로 갱신이 필요합니다.`);
     } else {
-      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 최신 상태입니다.`);
+      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기 내에서 최신 상태입니다.`);
     }
     
     return needsRefresh;

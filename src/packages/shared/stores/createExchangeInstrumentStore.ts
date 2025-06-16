@@ -24,6 +24,12 @@ import {
 } from '@/packages/shared/constants/bybitCategories';
 
 import { 
+  UPDATE_CONFIG,
+  getUpdateInterval,
+  needsDataUpdate
+} from '@/packages/shared/constants/updateConfig';
+
+import { 
   BybitInstrumentsResponse, 
   BybitInstrument,
   BithumbInstrumentsResponse,
@@ -166,7 +172,7 @@ const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: 
   }
 };
 
-// 데이터 갱신 필요 여부 확인 (2시간 기준)
+// 데이터 갱신 필요 여부 확인 (중앙 관리 설정 사용)
 const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
   // 1. 로컬 스토리지에 데이터가 있는지 확인
   const storedData = getStoredSymbols(exchange, category, isRawCategory);
@@ -182,15 +188,16 @@ const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: bo
     return true; // 업데이트 시간이 없으면 갱신 필요
   }
   
-  // 3. 2시간 경과 여부 확인
+  // 3. 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
+  const needsRefresh = needsDataUpdate(updateTime, exchange);
+  const updateInterval = getUpdateInterval(exchange);
   const now = new Date();
   const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  const needsRefresh = diffHours >= 2;
   
   if (needsRefresh) {
-    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 갱신이 필요합니다.`);
+    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기로 갱신이 필요합니다.`);
   } else {
-    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. 최신 상태입니다.`);
+    console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기 내에서 최신 상태입니다.`);
   }
   
   return needsRefresh;
