@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
 import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
@@ -23,6 +23,9 @@ export default function TickerSettingPage() {
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+  
+  // symbol별 lastPrice 최대 소수점 자리수 추적
+  const symbolMaxDecimals = useRef<Record<string, number>>({});
   
   // localStorage에서 설정값 초기화 (하이드레이션 문제 해결)
   useEffect(() => {
@@ -88,6 +91,14 @@ export default function TickerSettingPage() {
   // 현재 테마의 색상 토큰
   const themeColors = colorTokens[currentTheme];
 
+  // 숫자의 소수점 자리수를 계산하는 함수
+  const getDecimals = (num: number) => {
+    if (!isFinite(num)) return 0;
+    const s = num.toString();
+    if (s.includes('.')) return s.split('.')[1].length;
+    return 0;
+  };
+
   // 실시간 티커 데이터 상태
   const [tickerData, setTickerData] = useState<TickerData[]>([
     {
@@ -125,6 +136,14 @@ export default function TickerSettingPage() {
     }
   ]);
 
+  // 초기 데이터의 소수점 자리수 추적
+  useEffect(() => {
+    tickerData.forEach(ticker => {
+      const decimals = getDecimals(ticker.price);
+      symbolMaxDecimals.current[ticker.symbol] = decimals;
+    });
+  }, []);
+
   // 애니메이션 매니저 생성 (설정된 지속 시간 사용)
   const [animationManager, setAnimationManager] = useState(() => createPriceChangeAnimationManager(borderAnimationDuration));
 
@@ -153,6 +172,11 @@ export default function TickerSettingPage() {
         // 변동 후 가격 계산 (최소 0.01)
         const newPrice = Math.max(ticker.price + change, 0.05); 
         
+        // 소수점 자리수 추적
+        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+        
         // 가격 변동 및 퍼센트 계산
         const priceChange = newPrice - ticker.prevPrice24h;
         const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
@@ -180,6 +204,11 @@ export default function TickerSettingPage() {
         const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
         
         const newPrice = Math.max(ticker.price + change, 0.05); // 변동 후 가격
+        
+        // 소수점 자리수 추적
+        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
         
         const priceChange = newPrice - ticker.prevPrice24h;
         const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
@@ -400,15 +429,35 @@ export default function TickerSettingPage() {
         <h2 className="text-lg font-semibold mb-4">예시</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            {tickerData.map((ticker) => (
-              <Ticker
-                key={ticker.symbol}
-                data={ticker}
-                onPriceChange={(symbol, oldPrice, newPrice) => {
-                  console.log(`${symbol}: ${oldPrice} → ${newPrice}`);
-                }}
-              />
-            ))}
+            {(() => {
+              // symbol별 price의 최대 소수점 자리수 추적 (렌더 직전)
+              tickerData.forEach(ticker => {
+                const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+                const current = getDecimals(ticker.price);
+                if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+              });
+
+              return tickerData.map((ticker) => {
+                const priceDecimals = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+                
+                // 포맷팅된 데이터로 업데이트
+                const formattedTicker = {
+                  ...ticker,
+                  price: Number(Number(ticker.price).toFixed(priceDecimals)),
+                  priceChange: Number(Number(ticker.priceChange).toFixed(priceDecimals)),
+                };
+
+                return (
+                  <Ticker
+                    key={ticker.symbol}
+                    data={formattedTicker}
+                    onPriceChange={(symbol, oldPrice, newPrice) => {
+                      console.log(`${symbol}: ${oldPrice} → ${newPrice}`);
+                    }}
+                  />
+                );
+              });
+            })()}
           </div>
           
           <div className="mt-6 p-3 bg-muted/30 rounded-md">
