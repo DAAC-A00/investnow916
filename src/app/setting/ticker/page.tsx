@@ -113,6 +113,17 @@ export default function TickerSettingPage() {
       prevPrice: 5000.00
     },
     {
+      symbol: 'LONGNAMECOIN999/USDT',
+      displaySymbol: 'LONGNAMECOIN999/USDT',
+      price: 99999999.99,
+      priceChange: 8181818.18,
+      priceChangePercent: 9000.00,
+      turnover: 50000000000,
+      label: '급등',
+      prevPrice24h: 1010101.01,
+      prevPrice: 1010101.01
+    },
+    {
       symbol: 'COIN2/USDT', 
       displaySymbol: 'COIN2/USDT',
       price: 4700.00,
@@ -122,6 +133,17 @@ export default function TickerSettingPage() {
       label: '가격 급등락',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
+    },
+    {
+      symbol: 'LONGNAMECOIN000/USDT',
+      displaySymbol: 'LONGNAMECOIN000/USDT',
+      price: 0.000123456789,
+      priceChange: -0.006009876,
+      priceChangePercent: -98.00,
+      turnover: 120000,
+      label: '급락',
+      prevPrice24h: 0.006133332789,
+      prevPrice: 0.006133332789
     },
     {
       symbol: 'COIN3/USDT',

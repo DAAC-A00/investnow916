@@ -21,6 +21,20 @@ interface TickerProps {
   onPriceChange?: (symbol: string, oldPrice: number, newPrice: number) => void;
 }
 
+// 텍스트 길이에 따라 폰트 크기를 계산하는 함수
+const calculateFontSize = (text: string, baseFontSize: number, maxLength: number) => {
+  if (text.length <= maxLength) {
+    return baseFontSize;
+  }
+  
+  // 텍스트가 길어질수록 폰트 크기를 줄임 (최소 0.7배까지)
+  const ratio = Math.max(0.7, maxLength / text.length);
+  return baseFontSize * ratio;
+};
+
+// 폰트 크기를 rem 단위로 변환하는 함수
+const toRemSize = (size: number) => `${size}rem`;
+
 export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
   const { 
     tickerColorMode,
@@ -103,7 +117,21 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
 
   // 가격 포맷팅 함수 (1000 이상인 경우 콤마 추가)
   const formatPrice = (price: number) => {
-    const decimals = price < 1 ? 4 : 2;
+    let decimals: number;
+    
+    // 가격 범위에 따라 소수점 자리수 결정
+    if (price >= 1000) {
+      decimals = 2; // 1000 이상: 소수점 2자리
+    } else if (price >= 100) {
+      decimals = 2; // 100 이상: 소수점 2자리
+    } else if (price >= 1) {
+      decimals = 4; // 1 이상: 소수점 4자리
+    } else if (price >= 0.01) {
+      decimals = 6; // 0.01 이상: 소수점 6자리
+    } else {
+      decimals = 12; // 매우 작은 가격: 소수점 12자리
+    }
+    
     const formattedPrice = price.toFixed(decimals);
     
     // 1000 이상인 경우 콤마 추가
@@ -121,6 +149,11 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
   const formattedPriceChangePercent = `${data.priceChangePercent >= 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}${showPercentSymbol ? '%' : ''}`;
   const formattedLastPrice = formatPrice(data.price);
 
+  // 동적 폰트 크기 계산
+  const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 12); // 기본 text-lg (1.125rem), 최대 12글자
+  const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
+  const percentFontSize = calculateFontSize(formattedPriceChangePercent, 0.875, 8); // 기본 text-sm (0.875rem), 최대 8글자
+
   // 스토어에서 색상 및 스타일 설정 가져오기
   const priceStyle = getTickerPriceStyle(tickerColorMode, data.priceChange);
   const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, data.priceChange, showPercentBackground);
@@ -135,7 +168,12 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
     >
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <div className="font-semibold text-lg">{data.displaySymbol}</div>
+          <div 
+            className="font-semibold whitespace-nowrap overflow-hidden"
+            style={{ fontSize: toRemSize(symbolFontSize) }}
+          >
+            {data.displaySymbol}
+          </div>
           <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
           {data.label && (
             <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
@@ -144,22 +182,24 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
           )}
         </div>
         <div className="text-right">
-          <div className="font-bold text-lg text-right">
+          <div className="font-bold text-right">
             <span
-              className="px-1 inline-block"
+              className="px-1 inline-block whitespace-nowrap"
               style={{ 
                 ...borderStyle,
                 ...priceStyle,
-                borderRadius: '0rem' 
+                borderRadius: '0rem',
+                fontSize: toRemSize(priceFontSize)
               }}
             >
               {formattedLastPrice}
             </span>
             <span 
-              className="text-sm px-1.5 py-0.5 rounded ml-1 font-semibold"
+              className="px-1.5 py-0.5 rounded ml-1 font-semibold whitespace-nowrap"
               style={{ 
                 ...priceStyle,
-                ...percentBackgroundStyle
+                ...percentBackgroundStyle,
+                fontSize: toRemSize(percentFontSize)
               }}
             >
               {formattedPriceChangePercent}
