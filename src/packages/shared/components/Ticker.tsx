@@ -33,6 +33,23 @@ const calculateFontSize = (text: string, baseFontSize: number, maxLength: number
   return baseFontSize * ratio;
 };
 
+// 고정 너비 기준으로 폰트 크기를 동적으로 계산하는 함수
+const calculatePercentFontSize = (text: string, baseFontSize: number, fixedWidthRem: number) => {
+  // rem을 픽셀로 변환 (보통 1rem = 16px)
+  const fixedWidthPx = fixedWidthRem * 16;
+  
+  // 기본적으로 한 글자당 약 0.6em 정도의 너비를 가정
+  const estimatedTextWidth = text.length * baseFontSize * 16 * 0.6;
+  
+  if (estimatedTextWidth <= fixedWidthPx) {
+    return baseFontSize;
+  }
+  
+  // 고정 너비에 맞도록 폰트 크기 조정 (최소 0.6배까지)
+  const ratio = Math.max(0.6, fixedWidthPx / estimatedTextWidth);
+  return baseFontSize * ratio;
+};
+
 // 폰트 크기를 rem 단위로 변환하는 함수
 const toRemSize = (size: number) => `${size}rem`;
 
@@ -73,40 +90,6 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
       return newManager;
     });
   }, [borderAnimationDuration]);
-
-  // 데이터 변경 감지 및 애니메이션 트리거
-  useEffect(() => {
-    const prevData = prevDataRef.current;
-    
-    // 가격이 실제로 변경되었는지 확인
-    if (data.price !== prevData.price) {
-      const oldPrice = data.prevPrice24h ?? prevData.price ?? previousPrice;
-      const newPrice = data.price;
-      
-      // 가격 변동 콜백 호출
-      if (onPriceChange) {
-        onPriceChange(data.symbol, oldPrice, newPrice);
-      }
-
-      // 애니메이션 트리거 (가격이 실제로 다를 때만)
-      if (borderAnimationEnabled && oldPrice !== newPrice) {
-        animationManager.triggerPriceChangeAnimation(
-          data.symbol,
-          oldPrice,
-          newPrice,
-          (symbol, isAnimating) => {
-            setBorderAnimation(isAnimating);
-          }
-        );
-      }
-
-      // 이전 가격 업데이트
-      setPreviousPrice(oldPrice);
-    }
-
-    // 현재 데이터를 이전 데이터로 저장
-    prevDataRef.current = data;
-  }, [data, onPriceChange, animationManager, borderAnimationEnabled, previousPrice]);
 
   // 숫자 포맷팅 함수
   const formatNumber = (num: number) => {
@@ -171,13 +154,59 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
 
   const formattedTurnover = formatNumber(data.turnover);
   const formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${data.priceChange.toFixed(2)}`;
-  const formattedPriceChangePercent = `${data.priceChangePercent >= 0 ? '+' : ''}${data.priceChangePercent.toFixed(2)}${showPercentSymbol ? '%' : ''}`;
+  let percentAbs = Math.abs(data.priceChangePercent);
+  let percentStr = '';
+  if (percentAbs >= 1000) {
+    percentStr = Math.round(data.priceChangePercent).toLocaleString();
+  } else if (percentAbs >= 100) {
+    percentStr = data.priceChangePercent.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  } else {
+    percentStr = data.priceChangePercent.toFixed(2);
+  }
+  const formattedPriceChangePercent = `${data.priceChangePercent >= 0 ? '+' : ''}${percentStr}${showPercentSymbol ? '%' : ''}`;
   const formattedLastPrice = formatPrice(data.price);
+
+  // 데이터 변경 감지 및 애니메이션 트리거
+  useEffect(() => {
+    const prevData = prevDataRef.current;
+    
+    // 가격이 실제로 변경되었는지 확인
+    if (data.price !== prevData.price) {
+      const oldPrice = data.prevPrice24h ?? prevData.price ?? previousPrice;
+      const newPrice = data.price;
+      
+      // 가격 변동 콜백 호출
+      if (onPriceChange) {
+        onPriceChange(data.symbol, oldPrice, newPrice);
+      }
+
+      // 애니메이션 트리거 (가격이 실제로 다를 때만)
+      if (borderAnimationEnabled && oldPrice !== newPrice) {
+        animationManager.triggerPriceChangeAnimation(
+          data.symbol,
+          oldPrice,
+          newPrice,
+          (symbol, isAnimating) => {
+            setBorderAnimation(isAnimating);
+          }
+        );
+      }
+
+      // 이전 가격 업데이트
+      setPreviousPrice(oldPrice);
+    }
+
+    // 현재 데이터를 이전 데이터로 저장
+    prevDataRef.current = data;
+  }, [data, onPriceChange, animationManager, borderAnimationEnabled, previousPrice]);
 
   // 동적 폰트 크기 계산
   const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 12); // 기본 text-lg (1.125rem), 최대 12글자
   const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
-  const percentFontSize = calculateFontSize(formattedPriceChangePercent, 0.875, 8); // 기본 text-sm (0.875rem), 최대 8글자
+  
+  // percent 영역의 고정 너비 설정 (5rem = 80px, +100.00% 정도가 적당히 들어갈 크기)
+  const percentFixedWidth = 5; // rem 단위
+  const percentFontSize = calculatePercentFontSize(formattedPriceChangePercent, 0.875, percentFixedWidth); // 기본 text-sm (0.875rem)
 
   // 스토어에서 색상 및 스타일 설정 가져오기
   const priceStyle = getTickerPriceStyle(tickerColorMode, data.priceChange);
@@ -207,9 +236,9 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
           )}
         </div>
         <div className="text-right">
-          <div className="font-bold text-right">
+          <div className="font-bold text-right flex items-center justify-end gap-1">
             <span
-              className="px-1 inline-block whitespace-nowrap"
+              className="px-1 inline-block whitespace-nowrap flex-shrink-0"
               style={{ 
                 ...borderStyle,
                 ...priceStyle,
@@ -220,11 +249,13 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
               {formattedLastPrice}
             </span>
             <span 
-              className="px-1.5 py-0.5 rounded ml-1 font-semibold whitespace-nowrap"
+              className="px-1.5 py-0.5 rounded font-semibold whitespace-nowrap overflow-hidden text-center"
               style={{ 
                 ...priceStyle,
                 ...percentBackgroundStyle,
-                fontSize: toRemSize(percentFontSize)
+                fontSize: toRemSize(percentFontSize),
+                width: `${percentFixedWidth}rem`,
+                minWidth: `${percentFixedWidth}rem`
               }}
             >
               {formattedPriceChangePercent}

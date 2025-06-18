@@ -130,7 +130,7 @@ export default function TickerSettingPage() {
       priceChange: -300.00,
       priceChangePercent: -6.00,
       turnover: 15600000,
-      label: '가격 급등락',
+      label: '가격 급락',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
@@ -155,7 +155,40 @@ export default function TickerSettingPage() {
       label: '입금량 급등',
       prevPrice24h: 73.19,
       prevPrice: 73.19
-    }
+    },
+    {
+      symbol: 'PrettyMuchLongNameCoin777/USDT',
+      displaySymbol: 'PrettyMuchLongNameCoin777/USDT',
+      price: 770000000.00,
+      priceChange: 754901961.00,
+      priceChangePercent: 5000.00,
+      turnover: 999999999999,
+      label: '가격 급등',
+      prevPrice24h: 15098039.00,
+      prevPrice: 15098039.00
+    },
+    {
+      symbol: 'BigChangeCOIN/USDT',
+      displaySymbol: 'BigChangeCOIN/USDT',
+      price: 282.50,
+      priceChange: 195.50,
+      priceChangePercent: 130.00,
+      turnover: 1234567,
+      label: '급등',
+      prevPrice24h: 87.00,
+      prevPrice: 87.00
+    },
+    {
+      symbol: 'BiggerChangeCOIN/USDT',
+      displaySymbol: 'BiggerChangeCOIN/USDT',
+      price: 190.00,
+      priceChange: 180.00,
+      priceChangePercent: 1700.00,
+      turnover: 7654321,
+      label: '초급등',
+      prevPrice24h: 10.00,
+      prevPrice: 10.00
+    },
   ]);
 
   // 초기 데이터의 소수점 자리수 추적
