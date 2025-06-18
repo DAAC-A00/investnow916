@@ -113,15 +113,15 @@ export default function TickerSettingPage() {
       prevPrice: 5000.00
     },
     {
-      symbol: 'LONGNAMECOIN999/USDT',
-      displaySymbol: 'LONGNAMECOIN999/USDT',
-      price: 99999999.99,
-      priceChange: 8181818.18,
-      priceChangePercent: 9000.00,
+      symbol: 'LongNameCoin999/USDT',
+      displaySymbol: 'LongNameCoin999/USDT',
+      price: 630000.00,
+      priceChange: 540000.00,
+      priceChangePercent: 600.00,
       turnover: 50000000000,
       label: '급등',
-      prevPrice24h: 1010101.01,
-      prevPrice: 1010101.01
+      prevPrice24h: 90000.00,
+      prevPrice: 90000.00
     },
     {
       symbol: 'COIN2/USDT', 
@@ -135,15 +135,15 @@ export default function TickerSettingPage() {
       prevPrice: 5000.00
     },
     {
-      symbol: 'LONGNAMECOIN000/USDT',
-      displaySymbol: 'LONGNAMECOIN000/USDT',
-      price: 0.000123456789,
-      priceChange: -0.006009876,
+      symbol: 'LongNameCoin000/USDT',
+      displaySymbol: 'LongNameCoin000/USDT',
+      price: 0.00123456789,
+      priceChange: -0.0006049382661,
       priceChangePercent: -98.00,
       turnover: 120000,
       label: '급락',
-      prevPrice24h: 0.006133332789,
-      prevPrice: 0.006133332789
+      prevPrice24h: 0.0617283945,
+      prevPrice: 0.0617283945
     },
     {
       symbol: 'COIN3/USDT',
@@ -247,6 +247,30 @@ export default function TickerSettingPage() {
     return () => clearInterval(interval);
   }, [animationManager]);
 
+  // LongNameCoin999/USDT: 1초마다 +1000, 0, -1000 중 하나 변동
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerData(prev => prev.map(ticker => {
+        if (ticker.symbol !== 'LongNameCoin999/USDT') return ticker;
+        const possibleChanges = [1000, 0, -1000];
+        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
+        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
+        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+        const priceChange = newPrice - ticker.prevPrice24h;
+        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
+        return {
+          ...ticker,
+          prevPrice: ticker.price,
+          price: newPrice,
+          priceChange,
+          priceChangePercent,
+        };
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [animationManager]);
 
   // 컴포넌트가 마운트되지 않았거나 테마 색상이 로드되지 않은 경우
   if (!mounted || !themeColors) {
@@ -473,6 +497,7 @@ export default function TickerSettingPage() {
                   <Ticker
                     key={ticker.symbol}
                     data={formattedTicker}
+                    maxDecimals={priceDecimals}
                     onPriceChange={(symbol, oldPrice, newPrice) => {
                       console.log(`${symbol}: ${oldPrice} → ${newPrice}`);
                     }}

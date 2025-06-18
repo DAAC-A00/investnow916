@@ -19,6 +19,7 @@ interface TickerProps {
   data: TickerData;
   className?: string;
   onPriceChange?: (symbol: string, oldPrice: number, newPrice: number) => void;
+  maxDecimals?: number; // symbol별 최대 소수점 자리수
 }
 
 // 텍스트 길이에 따라 폰트 크기를 계산하는 함수
@@ -35,7 +36,7 @@ const calculateFontSize = (text: string, baseFontSize: number, maxLength: number
 // 폰트 크기를 rem 단위로 변환하는 함수
 const toRemSize = (size: number) => `${size}rem`;
 
-export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
+export function Ticker({ data, className = '', onPriceChange, maxDecimals }: TickerProps) {
   const { 
     tickerColorMode,
     borderAnimationEnabled,
@@ -121,27 +122,51 @@ export function Ticker({ data, className = '', onPriceChange }: TickerProps) {
     
     // 가격 범위에 따라 소수점 자리수 결정
     if (price >= 1000) {
-      decimals = 2; // 1000 이상: 소수점 2자리
+      decimals = 2;
     } else if (price >= 100) {
-      decimals = 2; // 100 이상: 소수점 2자리
+      decimals = 2;
     } else if (price >= 1) {
-      decimals = 4; // 1 이상: 소수점 4자리
+      decimals = 4;
     } else if (price >= 0.01) {
-      decimals = 6; // 0.01 이상: 소수점 6자리
+      decimals = 6;
     } else {
-      decimals = 12; // 매우 작은 가격: 소수점 12자리
+      decimals = 12;
     }
-    
-    const formattedPrice = price.toFixed(decimals);
-    
+    // maxDecimals가 있으면 그 값과 비교해 더 큰 값을 사용
+    if (typeof maxDecimals === 'number' && maxDecimals > decimals) {
+      decimals = maxDecimals;
+    }
+    // 반올림 후 0 생략, 단 maxDecimals가 있으면 해당 자리수까지는 0도 표기
+    let formatted = price.toFixed(decimals);
+    if (typeof maxDecimals !== 'number') {
+      // maxDecimals가 없으면 소수점 뒤 0 생략
+      formatted = formatted.replace(/(\.[0-9]*[1-9])0+$/, '$1').replace(/\.0+$/, '');
+    } else {
+      // maxDecimals가 있으면 해당 자리수까지는 0도 표기
+      // 단, 소수점 이하가 모두 0이면 .0... 형태로 유지
+      const [intPart, decPart] = formatted.split('.');
+      if (decPart) {
+        // 오른쪽 0을 자르되, 최소 maxDecimals까지는 남김
+        let trimIndex = decPart.length;
+        for (let i = decPart.length - 1; i >= maxDecimals; i--) {
+          if (decPart[i] === '0') trimIndex = i;
+          else break;
+        }
+        const trimmedDec = decPart.slice(0, trimIndex);
+        formatted = trimmedDec ? `${intPart}.${trimmedDec}` : intPart;
+        // 만약 모두 0이면 maxDecimals만큼 0을 붙임
+        if (!trimmedDec && maxDecimals > 0) {
+          formatted = `${intPart}.${'0'.repeat(maxDecimals)}`;
+        }
+      }
+    }
     // 1000 이상인 경우 콤마 추가
     if (price >= 1000) {
-      const [integerPart, decimalPart] = formattedPrice.split('.');
+      const [integerPart, decimalPart] = formatted.split('.');
       const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
       return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
     }
-    
-    return formattedPrice;
+    return formatted;
   };
 
   const formattedTurnover = formatNumber(data.turnover);
