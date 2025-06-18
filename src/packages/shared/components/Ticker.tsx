@@ -153,11 +153,61 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   };
 
   const formattedTurnover = formatNumber(data.turnover);
-  const formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${
-    Math.abs(data.priceChange) >= 1000 
-      ? data.priceChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : data.priceChange.toFixed(2)
-  }`;
+  
+  // Calculate decimals for price
+  let decimals: number;
+  if (data.price >= 1000) {
+    decimals = 2;
+  } else if (data.price >= 100) {
+    decimals = 2;
+  } else if (data.price >= 1) {
+    decimals = 4;
+  } else if (data.price >= 0.01) {
+    decimals = 6;
+  } else {
+    decimals = 12;
+  }
+  // Use maxDecimals if provided and greater than calculated decimals
+  if (typeof maxDecimals === 'number' && maxDecimals > decimals) {
+    decimals = maxDecimals;
+  }
+
+  // Format price change with the same rules as price
+  let formattedPriceChange: string;
+  let formatted = data.priceChange.toFixed(decimals);
+  if (typeof maxDecimals !== 'number') {
+    // maxDecimals가 없으면 소수점 뒤 0 생략
+    formatted = formatted.replace(/(\.[0-9]*[1-9])0+$/, '$1').replace(/\.0+$/, '');
+  } else {
+    // maxDecimals가 있으면 해당 자리수까지는 0도 표기
+    // 단, 소수점 이하가 모두 0이면 .0... 형태로 유지
+    const [intPart, decPart] = formatted.split('.');
+    if (decPart) {
+      // 오른쪽 0을 자르되, 최소 maxDecimals까지는 남김
+      let trimIndex = decPart.length;
+      for (let i = decPart.length - 1; i >= maxDecimals; i--) {
+        if (decPart[i] === '0') trimIndex = i;
+        else break;
+      }
+      const trimmedDec = decPart.slice(0, trimIndex);
+      formatted = trimmedDec ? `${intPart}.${trimmedDec}` : intPart;
+      // 만약 모두 0이면 maxDecimals만큼 0을 붙임
+      if (!trimmedDec && maxDecimals > 0) {
+        formatted = `${intPart}.${'0'.repeat(maxDecimals)}`;
+      }
+    }
+  }
+  // 1000 이상인 경우 콤마 추가
+  if (Math.abs(data.priceChange) >= 1000) {
+    const [integerPart, decimalPart] = formatted.split('.');
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    formattedPriceChange = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+  } else {
+    formattedPriceChange = formatted;
+  }
+  // Add plus sign for positive values
+  formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${formattedPriceChange}`;
+
   let percentAbs = Math.abs(data.priceChangePercent);
   let percentStr = '';
   if (percentAbs >= 1000) {

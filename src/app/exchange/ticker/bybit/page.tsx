@@ -301,11 +301,37 @@ export default function BybitTickersPage() {
             const flashColor = getFlashColor(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none');
             
             const formattedTurnover = formatNumber(ticker.turnover24h);
-            const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${
-              Math.abs(ticker.priceChange24h) >= 1000 
-                ? ticker.priceChange24h.toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
-                : ticker.priceChange24h.toFixed(priceDecimals)
-            }`;
+            
+            // Format price change with the same rules as lastPrice
+            let formattedPriceChange: string;
+            let formatted = ticker.priceChange24h.toFixed(priceDecimals);
+            // priceDecimals가 있으면 해당 자리수까지는 0도 표기
+            const [intPart, decPart] = formatted.split('.');
+            if (decPart) {
+              // 오른쪽 0을 자르되, 최소 priceDecimals까지는 남김
+              let trimIndex = decPart.length;
+              for (let i = decPart.length - 1; i >= priceDecimals; i--) {
+                if (decPart[i] === '0') trimIndex = i;
+                else break;
+              }
+              const trimmedDec = decPart.slice(0, trimIndex);
+              formatted = trimmedDec ? `${intPart}.${trimmedDec}` : intPart;
+              // 만약 모두 0이면 priceDecimals만큼 0을 붙임
+              if (!trimmedDec && priceDecimals > 0) {
+                formatted = `${intPart}.${'0'.repeat(priceDecimals)}`;
+              }
+            }
+            // 1000 이상인 경우 콤마 추가
+            if (Math.abs(ticker.priceChange24h) >= 1000) {
+              const [integerPart, decimalPart] = formatted.split('.');
+              const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+              formattedPriceChange = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+            } else {
+              formattedPriceChange = formatted;
+            }
+            // Add plus sign for positive values
+            formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${formattedPriceChange}`;
+
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
             const formattedLastPrice = Number(ticker.lastPrice) >= 1000 
               ? Number(ticker.lastPrice).toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
