@@ -277,7 +277,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
       <div className="flex justify-between items-start">
         <div className="space-y-1">
           <div 
-            className="font-semibold overflow-hidden"
+            className="font-semibold overflow-hidden flex items-center"
             style={{ 
               fontSize: toRemSize(symbolFontSize),
               lineHeight: '1.2', // 2줄 표시를 위한 적절한 line-height
@@ -285,6 +285,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               maxHeight: '2.4em', // 2줄 높이 고정 (line-height 1.2 * 2)
+              minHeight: '1.75em', // 2줄 높이 고정 (line-height 1.2 * 2)
               wordBreak: 'break-all' // 긴 단어도 줄바꿈되도록
             }}
           >
@@ -300,13 +301,14 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
         <div className="text-right">
           <div className="font-bold text-right flex items-center justify-end gap-1">
             <span
-              className="px-1 inline-block whitespace-nowrap flex-shrink-0"
+              className="px-1 inline-flex items-center justify-center whitespace-nowrap flex-shrink-0"
               style={{ 
                 ...borderStyle,
                 ...priceStyle,
                 borderRadius: '0rem',
                 fontSize: toRemSize(priceFontSize),
-                lineHeight: '1.75rem' // 기본 폰트 크기(1.125rem)에 맞는 고정 line-height
+                lineHeight: '1.75rem', // 기본 폰트 크기(1.125rem)에 맞는 고정 line-height
+                height: '1.75em'
               }}
             >
               {formattedLastPrice}
