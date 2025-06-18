@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration, BottomDisplayMode, BOTTOM_DISPLAY_MODE_LABELS } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
 import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
 import { Ticker, TickerData } from '@/packages/shared/components';
@@ -16,10 +16,10 @@ export default function TickerSettingPage() {
     setBorderAnimationDuration,
     showPercentSymbol,
     setShowPercentSymbol,
-    showPriceChange,
-    setShowPriceChange,
     showPercentBackground,
-    setShowPercentBackground
+    setShowPercentBackground,
+    bottomDisplayMode,
+    setBottomDisplayMode
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
@@ -54,9 +54,9 @@ export default function TickerSettingPage() {
         setShowPercentSymbol(savedShowPercentSymbol === 'true');
       }
       
-      const savedShowPriceChange = localStorage.getItem('ticker-setting-showPriceChange');
-      if (savedShowPriceChange !== null && (savedShowPriceChange === 'true') !== store.showPriceChange) {
-        setShowPriceChange(savedShowPriceChange === 'true');
+      const savedBottomDisplayMode = localStorage.getItem('ticker-setting-bottomDisplayMode');
+      if (savedBottomDisplayMode && savedBottomDisplayMode !== store.bottomDisplayMode) {
+        setBottomDisplayMode(savedBottomDisplayMode as BottomDisplayMode);
       }
       
       const savedShowPercentBackground = localStorage.getItem('ticker-setting-showPercentBackground');
@@ -108,6 +108,7 @@ export default function TickerSettingPage() {
       priceChange: 300.00,
       priceChangePercent: 6.00,
       turnover: 2340000000,
+      volume: 1200000,
       label: '거래유의',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
@@ -119,6 +120,7 @@ export default function TickerSettingPage() {
       priceChange: 540000.00,
       priceChangePercent: 600.00,
       turnover: 50000000000,
+      volume: 89000000,
       label: '급등',
       prevPrice24h: 90000.00,
       prevPrice: 90000.00
@@ -130,6 +132,7 @@ export default function TickerSettingPage() {
       priceChange: -300.00,
       priceChangePercent: -6.00,
       turnover: 15600000,
+      volume: 3500000,
       label: '가격 급락',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
@@ -141,6 +144,7 @@ export default function TickerSettingPage() {
       priceChange: -0.0006049382661,
       priceChangePercent: -98.00,
       turnover: 120000,
+      volume: 95000000,
       label: '급락',
       prevPrice24h: 0.0617283945,
       prevPrice: 0.0617283945
@@ -152,6 +156,7 @@ export default function TickerSettingPage() {
       priceChange: 0.00,
       priceChangePercent: 0.00,
       turnover: 890000,
+      volume: 12000,
       label: '입금량 급등',
       prevPrice24h: 73.19,
       prevPrice: 73.19
@@ -163,6 +168,7 @@ export default function TickerSettingPage() {
       priceChange: 754901961.00,
       priceChangePercent: 5000.00,
       turnover: 999999999999,
+      volume: 1500000000,
       label: '가격 급등',
       prevPrice24h: 15098039.00,
       prevPrice: 15098039.00
@@ -174,6 +180,7 @@ export default function TickerSettingPage() {
       priceChange: 195.50,
       priceChangePercent: 130.00,
       turnover: 1234567,
+      volume: 4500,
       label: '급등',
       prevPrice24h: 87.00,
       prevPrice: 87.00
@@ -185,6 +192,7 @@ export default function TickerSettingPage() {
       priceChange: 180.00,
       priceChangePercent: 1700.00,
       turnover: 7654321,
+      volume: 40000,
       label: '초급등',
       prevPrice24h: 10.00,
       prevPrice: 10.00
@@ -456,26 +464,38 @@ export default function TickerSettingPage() {
           </p>
         </div>
 
-        {/* 가격 변동 정보 표시 */}
+        {/* 하단 표시 모드 선택 */}
         <div className="mb-4">
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">가격 변동 정보 표시</span>
-              {showPriceChange && (
-                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                  활성화
-                </span>
-              )}
-            </div>
-            <Toggle
-              active={showPriceChange}
-              onChange={(active) => setShowPriceChange(active)}
-              themeColors={themeColors}
-              currentTheme={currentTheme}
-            />
+          <label className="block font-medium mb-2">
+            하단 표시 정보 선택
+            <span className="ml-2 text-xs text-muted-foreground">
+              (현재: {BOTTOM_DISPLAY_MODE_LABELS[bottomDisplayMode]})
+            </span>
           </label>
-          <p className="text-sm text-muted-foreground mt-1">
-            가격 변동 금액 정보 표시 여부 (예: +100.00)
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(BOTTOM_DISPLAY_MODE_LABELS).map(([mode, label]) => {
+              const isActive = bottomDisplayMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setBottomDisplayMode(mode as BottomDisplayMode)}
+                  className={`p-3 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
+                    ${isActive
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
+                      : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'}
+                    cursor-pointer`}
+                >
+                  {label}
+                  {isActive && (
+                    <span className="ml-1 text-xs">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            티커 하단에 표시할 정보를 선택하세요
           </p>
         </div>
 

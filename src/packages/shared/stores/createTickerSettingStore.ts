@@ -226,14 +226,24 @@ export const getTickerPercentBackgroundStyle = (
   };
 };
 
+// 하단 표시 모드 타입
+export type BottomDisplayMode = 'priceChange' | 'turnover' | 'volume';
+
+// 하단 표시 모드 라벨
+export const BOTTOM_DISPLAY_MODE_LABELS: Record<BottomDisplayMode, string> = {
+  priceChange: '가격 변동 정보',
+  turnover: '거래대금 정보',
+  volume: '거래량 정보'
+};
+
 // localStorage 키 상수
 const STORAGE_KEYS = {
   tickerColorMode: 'ticker-setting-tickerColorMode',
   borderAnimationEnabled: 'ticker-setting-isBorderAnimation',
   borderAnimationDuration: 'ticker-setting-borderDuration',
   showPercentSymbol: 'ticker-setting-showChangePercentSign',
-  showPriceChange: 'ticker-setting-showPriceChange',
-  showPercentBackground: 'ticker-setting-showPercentBackground'
+  showPercentBackground: 'ticker-setting-showPercentBackground',
+  bottomDisplayMode: 'ticker-setting-bottomDisplayMode'
 } as const;
 
 // localStorage 유틸리티 함수들
@@ -288,8 +298,8 @@ interface TickerSettingState {
   borderAnimationEnabled: boolean;
   borderAnimationDuration: BorderAnimationDuration;
   showPercentSymbol: boolean;
-  showPriceChange: boolean;
   showPercentBackground: boolean;
+  bottomDisplayMode: BottomDisplayMode;
 }
 
 interface TickerSettingActions {
@@ -297,8 +307,8 @@ interface TickerSettingActions {
   setBorderAnimationEnabled: (enabled: boolean) => void;
   setBorderAnimationDuration: (duration: BorderAnimationDuration) => void;
   setShowPercentSymbol: (show: boolean) => void;
-  setShowPriceChange: (show: boolean) => void;
   setShowPercentBackground: (show: boolean) => void;
+  setBottomDisplayMode: (mode: BottomDisplayMode) => void;
 }
 
 export const useTickerSettingStore = create<TickerSettingState & TickerSettingActions>()((set, get) => ({
@@ -307,8 +317,8 @@ export const useTickerSettingStore = create<TickerSettingState & TickerSettingAc
   borderAnimationEnabled: getStorageValue(STORAGE_KEYS.borderAnimationEnabled, true),
   borderAnimationDuration: getStorageValue(STORAGE_KEYS.borderAnimationDuration, 150 as BorderAnimationDuration),
   showPercentSymbol: getStorageValue(STORAGE_KEYS.showPercentSymbol, true),
-  showPriceChange: getStorageValue(STORAGE_KEYS.showPriceChange, false),
   showPercentBackground: getStorageValue(STORAGE_KEYS.showPercentBackground, true),
+  bottomDisplayMode: getStorageValue(STORAGE_KEYS.bottomDisplayMode, 'priceChange' as BottomDisplayMode),
   
   // 액션들 - 상태 업데이트와 동시에 localStorage에 저장
   setTickerColorMode: (mode) => {
@@ -327,12 +337,12 @@ export const useTickerSettingStore = create<TickerSettingState & TickerSettingAc
     setStorageValue(STORAGE_KEYS.showPercentSymbol, show);
     set({ showPercentSymbol: show });
   },
-  setShowPriceChange: (show) => {
-    setStorageValue(STORAGE_KEYS.showPriceChange, show);
-    set({ showPriceChange: show });
-  },
   setShowPercentBackground: (show) => {
     setStorageValue(STORAGE_KEYS.showPercentBackground, show);
     set({ showPercentBackground: show });
+  },
+  setBottomDisplayMode: (mode) => {
+    setStorageValue(STORAGE_KEYS.bottomDisplayMode, mode);
+    set({ bottomDisplayMode: mode });
   },
 }));

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager } from '@/packages/shared/stores/createTickerSettingStore';
+import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BottomDisplayMode } from '@/packages/shared/stores/createTickerSettingStore';
 
 export interface TickerData {
   symbol: string;
@@ -10,6 +10,7 @@ export interface TickerData {
   priceChange: number;
   priceChangePercent: number;
   turnover: number;
+  volume: number;
   label?: string;
   prevPrice24h: number;
   prevPrice?: number; // 이전 가격 (애니메이션용)
@@ -59,8 +60,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
     borderAnimationEnabled,
     borderAnimationDuration,
     showPercentSymbol,
-    showPriceChange,
-    showPercentBackground
+    showPercentBackground,
+    bottomDisplayMode
   } = useTickerSettingStore();
 
   // 이전 가격 저장 (애니메이션 트리거용) - data.prevPrice가 있으면 사용, 없으면 현재 가격으로 초기화
@@ -153,6 +154,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   };
 
   const formattedTurnover = formatNumber(data.turnover);
+  const formattedVolume = formatNumber(data.volume);
   
   // Calculate decimals for price
   let decimals: number;
@@ -291,7 +293,6 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
           >
             {data.displaySymbol}
           </div>
-          <div className="text-sm text-muted-foreground">{formattedTurnover} USDT</div>
           {data.label && (
             <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
               {data.label}
@@ -327,14 +328,16 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
               {formattedPriceChangePercent}
             </span>
           </div>
-          {showPriceChange && (
-            <div 
-              className="text-sm mt-1"
-              style={priceStyle}
-            >
-              {formattedPriceChange}
-            </div>
-          )}
+          <div 
+            className="text-sm mt-1"
+            style={bottomDisplayMode === 'priceChange' ? priceStyle : { color: 'hsl(var(--muted-foreground))' }}
+          >
+            {bottomDisplayMode === 'priceChange' 
+              ? formattedPriceChange 
+              : bottomDisplayMode === 'turnover' 
+                ? `${formattedTurnover} USDT`
+                : `${formattedVolume} Vol`}
+          </div>
         </div>
       </div>
     </div>
