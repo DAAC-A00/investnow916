@@ -153,7 +153,11 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   };
 
   const formattedTurnover = formatNumber(data.turnover);
-  const formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${data.priceChange.toFixed(2)}`;
+  const formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${
+    Math.abs(data.priceChange) >= 1000 
+      ? data.priceChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : data.priceChange.toFixed(2)
+  }`;
   let percentAbs = Math.abs(data.priceChangePercent);
   let percentStr = '';
   if (percentAbs >= 1000) {

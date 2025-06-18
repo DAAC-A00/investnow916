@@ -301,9 +301,15 @@ export default function BybitTickersPage() {
             const flashColor = getFlashColor(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none');
             
             const formattedTurnover = formatNumber(ticker.turnover24h);
-            const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${Number(ticker.priceChange24h).toFixed(priceDecimals)}`;
+            const formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${
+              Math.abs(ticker.priceChange24h) >= 1000 
+                ? ticker.priceChange24h.toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
+                : ticker.priceChange24h.toFixed(priceDecimals)
+            }`;
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
-            const formattedLastPrice = Number(ticker.lastPrice).toFixed(priceDecimals);
+            const formattedLastPrice = Number(ticker.lastPrice) >= 1000 
+              ? Number(ticker.lastPrice).toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
+              : Number(ticker.lastPrice).toFixed(priceDecimals);
 
             return (
               <div
