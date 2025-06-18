@@ -223,8 +223,16 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
       <div className="flex justify-between items-start">
         <div className="space-y-1">
           <div 
-            className="font-semibold whitespace-nowrap overflow-hidden"
-            style={{ fontSize: toRemSize(symbolFontSize) }}
+            className="font-semibold overflow-hidden"
+            style={{ 
+              fontSize: toRemSize(symbolFontSize),
+              lineHeight: '1.2', // 2줄 표시를 위한 적절한 line-height
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              maxHeight: '2.4em', // 2줄 높이 고정 (line-height 1.2 * 2)
+              wordBreak: 'break-all' // 긴 단어도 줄바꿈되도록
+            }}
           >
             {data.displaySymbol}
           </div>
@@ -243,7 +251,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
                 ...borderStyle,
                 ...priceStyle,
                 borderRadius: '0rem',
-                fontSize: toRemSize(priceFontSize)
+                fontSize: toRemSize(priceFontSize),
+                lineHeight: '1.75rem' // 기본 폰트 크기(1.125rem)에 맞는 고정 line-height
               }}
             >
               {formattedLastPrice}
@@ -255,7 +264,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
                 ...percentBackgroundStyle,
                 fontSize: toRemSize(percentFontSize),
                 width: `${percentFixedWidth}rem`,
-                minWidth: `${percentFixedWidth}rem`
+                minWidth: `${percentFixedWidth}rem`,
+                lineHeight: '1.75rem' // 기본 폰트 크기에 맞는 고정 line-height
               }}
             >
               {formattedPriceChangePercent}
