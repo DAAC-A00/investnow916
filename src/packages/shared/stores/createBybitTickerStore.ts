@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { 
   BybitTickerResponse, 
   BybitTicker,
-  TickerInfo, 
+  TickerData, 
   ExchangeType
 } from '../types/exchange';
 import { BybitRawCategory } from '../constants/bybitCategories';
@@ -13,19 +13,19 @@ import { BybitRawCategory } from '../constants/bybitCategories';
 interface BybitTickerState {
   isLoading: boolean;
   error: string | null;
-  tickers: Record<string, TickerInfo[]>; // category별로 티커 데이터 저장
+  tickers: Record<string, TickerData[]>; // category별로 티커 데이터 저장
   lastUpdated: Record<string, string>; // category별 마지막 업데이트 시간
   
   // 액션들
   fetchTickers: (category: BybitRawCategory) => Promise<boolean>;
   fetchAllTickers: () => Promise<boolean>;
-  getTickersForCategory: (category: BybitRawCategory) => TickerInfo[];
+  getTickersForCategory: (category: BybitRawCategory) => TickerData[];
   getFilteredTickers: (filter: {
     category?: BybitRawCategory;
     symbol?: string;
     sortField?: string;
     sortDirection?: 'asc' | 'desc';
-  }) => TickerInfo[];
+  }) => TickerData[];
   clearTickers: (category?: BybitRawCategory) => void;
 }
 
@@ -42,8 +42,8 @@ const getTickerApiUrl = (rawCategory: BybitRawCategory): string => {
   return `https://api.bybit.com/v5/market/tickers?category=${rawCategory}`;
 };
 
-// Bybit 티커 데이터를 TickerInfo 형식으로 변환
-const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory): TickerInfo => {
+// Bybit 티커 데이터를 TickerData 형식으로 변환
+const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory): TickerData => {
   const lastPrice = parseFloat(ticker.lastPrice) || 0;
   const prevPrice = parseFloat(ticker.prevPrice24h) || 0;
   const priceChange = lastPrice - prevPrice;
@@ -62,13 +62,14 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
   return {
     rawSymbol: ticker.symbol,
     displaySymbol: symbol,
-    lastPrice,
+    price: lastPrice,
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,
+    prevPrice24h: prevPrice,
+    volume: parseFloat(ticker.volume24h) || 0,
+    turnover: parseFloat(ticker.turnover24h) || 0,
     highPrice24h: parseFloat(ticker.highPrice24h) || 0,
     lowPrice24h: parseFloat(ticker.lowPrice24h) || 0,
-    volume24h: parseFloat(ticker.volume24h) || 0,
-    turnover24h: parseFloat(ticker.turnover24h) || 0,
     bidPrice: parseFloat(ticker.bid1Price) || 0,
     askPrice: parseFloat(ticker.ask1Price) || 0,
     exchange: 'bybit' as ExchangeType,
@@ -161,7 +162,7 @@ export const useBybitTickerStore = create<BybitTickerState>()(
       },
 
       // 특정 카테고리의 티커 목록 가져오기
-      getTickersForCategory: (category: BybitRawCategory): TickerInfo[] => {
+      getTickersForCategory: (category: BybitRawCategory): TickerData[] => {
         return get().tickers[category] || [];
       },
 
@@ -171,9 +172,9 @@ export const useBybitTickerStore = create<BybitTickerState>()(
         symbol?: string;
         sortField?: string;
         sortDirection?: 'asc' | 'desc';
-      }): TickerInfo[] => {
-        const { category, symbol, sortField = 'volume24h', sortDirection = 'desc' } = filter;
-        let result: TickerInfo[] = [];
+      }): TickerData[] => {
+        const { category, symbol, sortField = 'volume', sortDirection = 'desc' } = filter;
+        let result: TickerData[] = [];
 
         // 새로운 배열을 생성하여 할당
         if (category) {
@@ -193,8 +194,8 @@ export const useBybitTickerStore = create<BybitTickerState>()(
 
         // 정렬 로직
         return [...result].sort((a, b) => {
-          let aValue = a[sortField as keyof TickerInfo];
-          let bValue = b[sortField as keyof TickerInfo];
+          let aValue = a[sortField as keyof TickerData];
+          let bValue = b[sortField as keyof TickerData];
           
           // 심볼인 경우 문자열 비교
           if (sortField === 'symbol') {

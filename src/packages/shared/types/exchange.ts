@@ -195,22 +195,34 @@ export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
 export type BithumbRawCategory = 'spot';
 export type BithumbDisplayCategory = 'spot';
 
-// 티커 정보 공통 인터페이스
-export interface TickerInfo {
-  rawSymbol: string;      // 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
+// 티커 정보 공통 인터페이스 (통합된 타입)
+export interface TickerData {
+  // 심볼 관련 필드
+  rawSymbol: string;         // 외부 API에서 받은 원본 심볼 (예: BTCUSDT) - 이전 rawSymbol
   displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
-  lastPrice: number;
-  priceChange24h: number;
-  priceChangePercent24h: number;
-  highPrice24h: number;
-  lowPrice24h: number;
-  volume24h: number;
-  turnover24h: number;
-  bidPrice: number;
-  askPrice: number;
-  exchange: ExchangeType;
-  displayCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
-  rawCategory: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
+  
+  // 가격 관련 필드
+  price: number;          // 현재 가격 (이전 lastPrice)
+  priceChange24h: number;    // 24시간 가격 변동 (이전 priceChange24h)
+  priceChangePercent24h: number; // 24시간 가격 변동률 (이전 priceChangePercent24h)
+  prevPrice24h: number;   // 24시간 전 가격
+  prevPrice?: number;     // 이전 가격 (애니메이션용)
+  
+  // 거래량/거래대금 관련 필드
+  volume: number;         // 24시간 거래량 (이전 volume24h)
+  turnover: number;       // 24시간 거래대금 (이전 turnover24h)
+  
+  // 추가 정보 필드
+  label?: string;         // 거래소 경고 라벨 (예: "거래유의", "급등")
+  
+  // 확장 필드 (TickerInfo에만 있던 필드들)
+  highPrice24h?: number;
+  lowPrice24h?: number;
+  bidPrice?: number;
+  askPrice?: number;
+  exchange?: ExchangeType;
+  displayCategory?: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
+  rawCategory?: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
 }
 
 // 거래소 코인 정보 상태 타입

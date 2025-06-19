@@ -2,19 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BottomDisplayMode } from '@/packages/shared/stores/createTickerSettingStore';
-
-export interface TickerData {
-  symbol: string;
-  displaySymbol: string;
-  price: number;
-  priceChange: number;
-  priceChangePercent: number;
-  turnover: number;
-  volume: number;
-  label?: string;
-  prevPrice24h: number;
-  prevPrice?: number; // 이전 가격 (애니메이션용)
-}
+import { TickerData } from '@/packages/shared/types/exchange';
 
 interface TickerProps {
   data: TickerData;
@@ -176,7 +164,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
 
   // Format price change with the same rules as price
   let formattedPriceChange: string;
-  let formatted = data.priceChange.toFixed(decimals);
+  let formatted = data.priceChange24h.toFixed(decimals);
   if (typeof maxDecimals !== 'number') {
     // maxDecimals가 없으면 소수점 뒤 0 생략
     formatted = formatted.replace(/(\.[0-9]*[1-9])0+$/, '$1').replace(/\.0+$/, '');
@@ -200,7 +188,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
     }
   }
   // 1000 이상인 경우 콤마 추가
-  if (Math.abs(data.priceChange) >= 1000) {
+  if (Math.abs(data.priceChange24h) >= 1000) {
     const [integerPart, decimalPart] = formatted.split('.');
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     formattedPriceChange = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
@@ -208,18 +196,18 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
     formattedPriceChange = formatted;
   }
   // Add plus sign for positive values
-  formattedPriceChange = `${data.priceChange >= 0 ? '+' : ''}${formattedPriceChange}`;
+  formattedPriceChange = `${data.priceChange24h >= 0 ? '+' : ''}${formattedPriceChange}`;
 
-  let percentAbs = Math.abs(data.priceChangePercent);
+  let percentAbs = Math.abs(data.priceChangePercent24h);
   let percentStr = '';
   if (percentAbs >= 1000) {
-    percentStr = Math.round(data.priceChangePercent).toLocaleString();
+    percentStr = Math.round(data.priceChangePercent24h).toLocaleString();
   } else if (percentAbs >= 100) {
-    percentStr = data.priceChangePercent.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    percentStr = data.priceChangePercent24h.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   } else {
-    percentStr = data.priceChangePercent.toFixed(2);
+    percentStr = data.priceChangePercent24h.toFixed(2);
   }
-  const formattedPriceChangePercent = `${data.priceChangePercent >= 0 ? '+' : ''}${percentStr}${showPercentSymbol ? '%' : ''}`;
+  const formattedPriceChangePercent = `${data.priceChangePercent24h >= 0 ? '+' : ''}${percentStr}${showPercentSymbol ? '%' : ''}`;
   const formattedLastPrice = formatPrice(data.price);
 
   // 데이터 변경 감지 및 애니메이션 트리거
@@ -233,13 +221,13 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
       
       // 가격 변동 콜백 호출
       if (onPriceChange) {
-        onPriceChange(data.symbol, oldPrice, newPrice);
+        onPriceChange(data.rawSymbol, oldPrice, newPrice);
       }
 
       // 애니메이션 트리거 (가격이 실제로 다를 때만)
       if (borderAnimationEnabled && oldPrice !== newPrice) {
         animationManager.triggerPriceChangeAnimation(
-          data.symbol,
+          data.rawSymbol,
           oldPrice,
           newPrice,
           (symbol, isAnimating) => {
@@ -265,8 +253,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   const percentFontSize = calculatePercentFontSize(formattedPriceChangePercent, 0.875, percentFixedWidth); // 기본 text-sm (0.875rem)
 
   // 스토어에서 색상 및 스타일 설정 가져오기
-  const priceStyle = getTickerPriceStyle(tickerColorMode, data.priceChange);
-  const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, data.priceChange, showPercentBackground);
+  const priceStyle = getTickerPriceStyle(tickerColorMode, data.priceChange24h);
+  const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, data.priceChange24h, showPercentBackground);
   
   // 애니메이션용 이전 가격 계산
   const animationPrevPrice = data.prevPrice ?? previousPrice;

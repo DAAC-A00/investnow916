@@ -8,12 +8,12 @@ import {
   ALL_RAW_CATEGORIES 
 } from '@/packages/shared/constants/bybitCategories';
 
-type SortField = 'symbol' | 'lastPrice' | 'priceChange24h' | 'priceChangePercent24h' | 'highPrice24h' | 'lowPrice24h' | 'volume24h' | 'turnover24h';
+type SortField = 'symbol' | 'price' | 'priceChange' | 'priceChangePercent' | 'highPrice24h' | 'lowPrice24h' | 'volume' | 'turnover';
 type SortDirection = 'asc' | 'desc';
 
 import { useTickerSettingStore, TickerColorMode } from '@/packages/shared/stores/createTickerSettingStore';
 import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
-import { TickerInfo } from '@/packages/shared/types/exchange';
+import { TickerData } from '@/packages/shared/types/exchange';
 
 export default function BybitTickersPage() {
   // 글로벌 티커 색상 모드 상태 사용
@@ -26,7 +26,7 @@ export default function BybitTickersPage() {
 
   const [selectedCategory, setSelectedCategory] = useState<BybitRawCategory>('linear');
   const [symbolFilter, setSymbolFilter] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField>('turnover24h');
+  const [sortField, setSortField] = useState<SortField>('turnover');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [lastRefreshed, setLastRefreshed] = useState<string>('데이터 로드 중...');
   
@@ -104,8 +104,8 @@ export default function BybitTickersPage() {
       const prev = prevPrices.current[symbol];
       let flash: 'up' | 'down' | 'none' = 'none';
       if (prev !== undefined) {
-        if (ticker.lastPrice > prev) flash = 'up';
-        else if (ticker.lastPrice < prev) flash = 'down';
+        if (ticker.price > prev) flash = 'up';
+        else if (ticker.price < prev) flash = 'down';
       }
       if (flash !== 'none') {
         setFlashStates((s) => ({ ...s, [symbol]: flash }));
@@ -113,10 +113,10 @@ export default function BybitTickersPage() {
           setFlashStates((s) => ({ ...s, [symbol]: 'none' }));
         }, 100);
       }
-      prevPrices.current[symbol] = ticker.lastPrice;
+      prevPrices.current[symbol] = ticker.price;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTickers.map(t => t.rawSymbol + ':' + t.lastPrice).join(',')]);
+  }, [filteredTickers.map(t => t.rawSymbol + ':' + t.price).join(',')]);
 
 
   // Bybit instrument 정보 로딩 및 매핑
@@ -234,13 +234,13 @@ export default function BybitTickersPage() {
               onChange={(e) => setSortField(e.target.value as SortField)}
             >
               <option value="symbol">심볼</option>
-              <option value="lastPrice">현재가</option>
-              <option value="priceChange24h">24시간 변화</option>
-              <option value="priceChangePercent24h">24시간 변화율</option>
+              <option value="price">현재가</option>
+              <option value="priceChange">24시간 변화</option>
+              <option value="priceChangePercent">24시간 변화율</option>
               <option value="highPrice24h">24시간 최고가</option>
               <option value="lowPrice24h">24시간 최저가</option>
-              <option value="volume24h">24시간 거래량</option>
-              <option value="turnover24h">24시간 거래대금</option>
+              <option value="volume">24시간 거래량</option>
+              <option value="turnover">24시간 거래대금</option>
             </select>
             <button
               className="p-2 border rounded hover:bg-muted/50"
@@ -270,7 +270,7 @@ export default function BybitTickersPage() {
               const s = num.toString();
               if (s.includes('.')) return s.split('.')[1].length;
               return 0;
-            })(ticker.lastPrice);
+            })(ticker.price);
             if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
           });
 
@@ -282,7 +282,7 @@ export default function BybitTickersPage() {
             );
           }
 
-          return filteredTickers.map((ticker: TickerInfo) => {
+          return filteredTickers.map((ticker: TickerData) => {
             const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
             // 색상 값들
             const priceColor = getTickerColor(tickerColorMode, ticker.priceChange24h > 0 ? 'up' : ticker.priceChange24h < 0 ? 'down' : 'unchanged');
@@ -300,7 +300,7 @@ export default function BybitTickersPage() {
             };
             const flashColor = getFlashColor(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none');
             
-            const formattedTurnover = formatNumber(ticker.turnover24h);
+            const formattedTurnover = formatNumber(ticker.turnover);
             
             // Format price change with the same rules as lastPrice
             let formattedPriceChange: string;
@@ -333,9 +333,9 @@ export default function BybitTickersPage() {
             formattedPriceChange = `${ticker.priceChange24h >= 0 ? '+' : ''}${formattedPriceChange}`;
 
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
-            const formattedLastPrice = Number(ticker.lastPrice) >= 1000 
-              ? Number(ticker.lastPrice).toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
-              : Number(ticker.lastPrice).toFixed(priceDecimals);
+            const formattedLastPrice = Number(ticker.price) >= 1000 
+              ? Number(ticker.price).toLocaleString(undefined, { minimumFractionDigits: priceDecimals, maximumFractionDigits: priceDecimals })
+              : Number(ticker.price).toFixed(priceDecimals);
 
             return (
               <div
