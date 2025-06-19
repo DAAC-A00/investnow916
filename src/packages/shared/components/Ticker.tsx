@@ -245,7 +245,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   }, [data, onPriceChange, animationManager, borderAnimationEnabled, previousPrice]);
 
   // 동적 폰트 크기 계산
-  const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 12); // 기본 text-lg (1.125rem), 최대 12글자
+  const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
   const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
   
   // percent 영역의 고정 너비 설정 (5rem = 80px, +100.00% 정도가 적당히 들어갈 크기)
@@ -262,21 +262,21 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
 
   return (
     <div 
-      className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-border ${className}`}
+      className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-1 border border-border ${className}`}
     >
       <div className="flex justify-between items-start">
-        <div className="space-y-1">
+        <div className="text-left">
           <div 
-            className="font-semibold overflow-hidden flex items-center"
+            className="px-1 py-1 font-semibold overflow-hidden"
             style={{ 
               fontSize: toRemSize(symbolFontSize),
               lineHeight: '1.2', // 2줄 표시를 위한 적절한 line-height
-              display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              maxHeight: '2.4em', // 2줄 높이 고정 (line-height 1.2 * 2)
-              minHeight: '1.75em', // 2줄 높이 고정 (line-height 1.2 * 2)
-              wordBreak: 'break-all' // 긴 단어도 줄바꿈되도록
+              maxHeight: '2.5em',
+              wordBreak: 'break-all', // 긴 단어도 줄바꿈되도록
+              alignItems: 'center', // 세로 가운데 정렬
+              justifyContent: 'flex-start' // 가로는 왼쪽 정렬
             }}
           >
             {data.displaySymbol}
@@ -303,7 +303,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
               {formattedLastPrice}
             </span>
             <span 
-              className="px-1.5 py-0.5 rounded font-semibold whitespace-nowrap overflow-hidden text-center"
+              className="px-1.5 py-0.0 rounded font-semibold whitespace-nowrap overflow-hidden text-center"
               style={{ 
                 ...priceStyle,
                 ...percentBackgroundStyle,

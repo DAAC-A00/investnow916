@@ -269,7 +269,7 @@ interface SymbolInfo {
 }
 
 // localStorage 저장 형식
-"BTC/KRW=KRW-BTC+caution@DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION@TRADING_VOLUME_SUDDEN_FLUCTUATION#비트코인"
+"BTC/KRW=KRW-BTC"
 ```
 
 ---
