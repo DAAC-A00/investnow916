@@ -85,7 +85,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
     if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
     if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
     if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-    return num.toFixed(2);
+    return num;
   };
 
   // 가격 포맷팅 함수 (1000 이상인 경우 콤마 추가)

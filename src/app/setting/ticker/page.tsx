@@ -105,8 +105,8 @@ export default function TickerSettingPage() {
       symbol: 'COIN1/USDT',
       displaySymbol: 'COIN1/USDT',
       price: 5300.00,
-      priceChange: 300.00,
-      priceChangePercent: 6.00,
+      priceChange24h: 300.00,
+      priceChangePercent24h: 6.00,
       turnover: 2340000000,
       volume: 1200000,
       label: '거래유의',
@@ -117,8 +117,8 @@ export default function TickerSettingPage() {
       symbol: 'LongNameCoin999/USDT',
       displaySymbol: 'LongNameCoin999/USDT',
       price: 630000.00,
-      priceChange: 540000.00,
-      priceChangePercent: 600.00,
+      priceChange24h: 540000.00,
+      priceChangePercent24h: 600.00,
       turnover: 50000000000,
       volume: 89000000,
       label: '급등',
@@ -129,8 +129,8 @@ export default function TickerSettingPage() {
       symbol: 'COIN2/USDT', 
       displaySymbol: 'COIN2/USDT',
       price: 4700.00,
-      priceChange: -300.00,
-      priceChangePercent: -6.00,
+      priceChange24h: -300.00,
+      priceChangePercent24h: -6.00,
       turnover: 15600000,
       volume: 3500000,
       label: '가격 급락',
@@ -141,8 +141,8 @@ export default function TickerSettingPage() {
       symbol: 'LongNameCoin000/USDT',
       displaySymbol: 'LongNameCoin000/USDT',
       price: 0.00123456789,
-      priceChange: -0.0006049382661,
-      priceChangePercent: -98.00,
+      priceChange24h: -0.0006049382661,
+      priceChangePercent24h: -98.00,
       turnover: 120000,
       volume: 95000000,
       label: '급락',
@@ -153,8 +153,8 @@ export default function TickerSettingPage() {
       symbol: 'COIN3/USDT',
       displaySymbol: 'COIN3/USDT', 
       price: 73.19,
-      priceChange: 0.00,
-      priceChangePercent: 0.00,
+      priceChange24h: 0.00,
+      priceChangePercent24h: 0.00,
       turnover: 890000,
       volume: 12000,
       label: '입금량 급등',
@@ -165,8 +165,8 @@ export default function TickerSettingPage() {
       symbol: 'PrettyMuchLongNameCoin777/USDT',
       displaySymbol: 'PrettyMuchLongNameCoin777/USDT',
       price: 770000000.00,
-      priceChange: 754901961.00,
-      priceChangePercent: 5000.00,
+      priceChange24h: 754901961.00,
+      priceChangePercent24h: 5000.00,
       turnover: 999999999999,
       volume: 1500000000,
       label: '가격 급등',
@@ -177,8 +177,8 @@ export default function TickerSettingPage() {
       symbol: 'BigChangeCOIN/USDT',
       displaySymbol: 'BigChangeCOIN/USDT',
       price: 282.50,
-      priceChange: 195.50,
-      priceChangePercent: 130.00,
+      priceChange24h: 195.50,
+      priceChangePercent24h: 130.00,
       turnover: 1234567,
       volume: 4500,
       label: '급등',
@@ -189,8 +189,8 @@ export default function TickerSettingPage() {
       symbol: 'BiggerChangeCOIN/USDT',
       displaySymbol: 'BiggerChangeCOIN/USDT',
       price: 190.00,
-      priceChange: 180.00,
-      priceChangePercent: 1700.00,
+      priceChange24h: 180.00,
+      priceChangePercent24h: 1700.00,
       turnover: 7654321,
       volume: 40000,
       label: '초급등',
@@ -241,15 +241,15 @@ export default function TickerSettingPage() {
         if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
         
         // 가격 변동 및 퍼센트 계산
-        const priceChange = newPrice - ticker.prevPrice24h;
-        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
         
         return {
           ...ticker,
           prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
           price: newPrice,
-          priceChange,
-          priceChangePercent,
+          priceChange24h,
+          priceChangePercent24h,
         };
       }));
     }, 700);
@@ -273,15 +273,15 @@ export default function TickerSettingPage() {
         const current = getDecimals(newPrice);
         if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
         
-        const priceChange = newPrice - ticker.prevPrice24h;
-        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
         
         return {
           ...ticker,
           prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
           price: newPrice,
-          priceChange,
-          priceChangePercent,
+          priceChange24h,
+          priceChangePercent24h,
         };
       }));
     }, 1100);
@@ -299,14 +299,14 @@ export default function TickerSettingPage() {
         const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
         const current = getDecimals(newPrice);
         if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
-        const priceChange = newPrice - ticker.prevPrice24h;
-        const priceChangePercent = (priceChange / ticker.prevPrice24h) * 100;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
         return {
           ...ticker,
           prevPrice: ticker.price,
           price: newPrice,
-          priceChange,
-          priceChangePercent,
+          priceChange24h,
+          priceChangePercent24h,
         };
       }));
     }, 1000);
@@ -464,10 +464,37 @@ export default function TickerSettingPage() {
           </p>
         </div>
 
-        {/* 하단 표시 모드 선택 */}
+        {/* 변동률 배경색 표시 */}
         <div className="mb-4">
+          <label className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">변동률 배경색 표시</span>
+              {showPercentBackground && (
+                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                  활성화
+                </span>
+              )}
+            </div>
+            <Toggle
+              active={showPercentBackground}
+              onChange={(active) => setShowPercentBackground(active)}
+              themeColors={themeColors}
+              currentTheme={currentTheme}
+            />
+          </label>
+          <p className="text-sm text-muted-foreground mt-1">
+            변동률 퍼센트 표시에 배경색 적용 여부
+          </p>
+        </div>
+      </div>
+
+      {/* 하단 표시 정보 설정 */}
+      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+        <h2 className="text-lg font-semibold mb-4">하단 표시 정보 설정</h2>
+        
+        <div>
           <label className="block font-medium mb-2">
-            하단 표시 정보 선택
+            표시 정보 선택
             <span className="ml-2 text-xs text-muted-foreground">
               (현재: {BOTTOM_DISPLAY_MODE_LABELS[bottomDisplayMode]})
             </span>
@@ -496,29 +523,6 @@ export default function TickerSettingPage() {
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             티커 하단에 표시할 정보를 선택하세요
-          </p>
-        </div>
-
-        {/* 변동률 배경색 표시 */}
-        <div className="mb-4">
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">변동률 배경색 표시</span>
-              {showPercentBackground && (
-                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                  활성화
-                </span>
-              )}
-            </div>
-            <Toggle
-              active={showPercentBackground}
-              onChange={(active) => setShowPercentBackground(active)}
-              themeColors={themeColors}
-              currentTheme={currentTheme}
-            />
-          </label>
-          <p className="text-sm text-muted-foreground mt-1">
-            변동률 퍼센트 표시에 배경색 적용 여부
           </p>
         </div>
       </div>

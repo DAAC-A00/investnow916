@@ -200,6 +200,9 @@ export interface TickerData {
   // 심볼 관련 필드
   rawSymbol: string;         // 외부 API에서 받은 원본 심볼 (예: BTCUSDT) - 이전 rawSymbol
   displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
+  quantity: number;       // 거래쌍의 양 (예: 1000)
+  baseCode: string;       // 거래쌍의 기준(기본) 코인 (예: BTC)
+  quoteCode: string;      // 거래쌍의 상대(견적) 코인 (예: USDT)
   
   // 가격 관련 필드
   price: number;          // 현재 가격 (이전 lastPrice)

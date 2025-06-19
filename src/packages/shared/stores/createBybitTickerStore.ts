@@ -62,6 +62,10 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
   return {
     rawSymbol: ticker.symbol,
     displaySymbol: symbol,
+    quantity: 1,
+    // TODO: localStorage에 저장된 instrumentData에서 가져오기
+    baseCode: ticker.symbol.slice(0, 3),
+    quoteCode: ticker.symbol.slice(3),
     price: lastPrice,
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,

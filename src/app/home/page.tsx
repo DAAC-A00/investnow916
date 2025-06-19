@@ -16,31 +16,40 @@ export default function HomePage() {
   // 홈 페이지용 샘플 티커 데이터
   const [sampleTickers] = useState<TickerData[]>([
     {
-      symbol: 'BTC/USDT',
+      rawSymbol: 'BTCUSDT',
       displaySymbol: 'BTC/USDT',
+      quantity: 1,
+      baseCode: 'BTC',
+      quoteCode: 'USDT',
       price: 43250.50,
-      priceChange: 1250.50,
-      priceChangePercent: 2.98,
+      priceChange24h: 1250.50,
+      priceChangePercent24h: 2.98,
       turnover: 1250000000,
       prevPrice24h: 42000.00,
       prevPrice: 42000.00
     },
     {
-      symbol: 'ETH/USDT',
+      rawSymbol: 'ETHUSDT',
       displaySymbol: 'ETH/USDT',
+      quantity: 1,
+      baseCode: 'ETH',
+      quoteCode: 'USDT',
       price: 2580.75,
-      priceChange: -45.25,
-      priceChangePercent: -1.72,
+      priceChange24h: -45.25,
+      priceChangePercent24h: -1.72,
       turnover: 850000000,
       prevPrice24h: 2626.00,
       prevPrice: 2626.00
     },
     {
-      symbol: 'ADA/USDT',
+      rawSymbol: 'ADAUSDT',
       displaySymbol: 'ADA/USDT',
+      quantity: 1,
+      baseCode: 'ADA',
+      quoteCode: 'USDT',
       price: 0.4521,
-      priceChange: 0.00,
-      priceChangePercent: 0.00,
+      priceChange24h: 0.00,
+      priceChangePercent24h: 0.00,
       turnover: 125000000,
       prevPrice24h: 0.4521,
       prevPrice: 0.4521
@@ -88,7 +97,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sampleTickers.map((ticker) => (
               <Ticker
-                key={ticker.symbol}
+                key={ticker.rawSymbol}
                 data={ticker}
                 className="hover:scale-105 transition-transform duration-200"
                 onPriceChange={(symbol, oldPrice, newPrice) => {
