@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BottomDisplayMode } from '@/packages/shared/stores/createTickerSettingStore';
-import { TickerData } from '@/packages/shared/types/exchange';
+import { TickerData, WARNING_TYPE_LABELS } from '@/packages/shared/types/exchange';
 
 interface TickerProps {
   data: TickerData;
@@ -281,9 +281,9 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
           >
             {data.displaySymbol}
           </div>
-          {data.label && (
+          {data.warningType && (
             <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
-              {data.label}
+              {WARNING_TYPE_LABELS[data.warningType]}
             </div>
           )}
         </div>

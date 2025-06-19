@@ -102,98 +102,122 @@ export default function TickerSettingPage() {
   // 실시간 티커 데이터 상태
   const [tickerData, setTickerData] = useState<TickerData[]>([
     {
-      symbol: 'COIN1/USDT',
+      rawSymbol: 'COIN1USDT',
       displaySymbol: 'COIN1/USDT',
+      quantity: 1,
+      baseCode: 'COIN1',
+      quoteCode: 'USDT',
       price: 5300.00,
       priceChange24h: 300.00,
       priceChangePercent24h: 6.00,
       turnover: 2340000000,
       volume: 1200000,
-      label: '거래유의',
+      warningType: 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
     {
-      symbol: 'LongNameCoin999/USDT',
+      rawSymbol: 'LongNameCoin999USDT',
       displaySymbol: 'LongNameCoin999/USDT',
+      quantity: 1,
+      baseCode: 'LongNameCoin999',
+      quoteCode: 'USDT',
       price: 630000.00,
       priceChange24h: 540000.00,
       priceChangePercent24h: 600.00,
       turnover: 50000000000,
       volume: 89000000,
-      label: '급등',
+      warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
       prevPrice24h: 90000.00,
       prevPrice: 90000.00
     },
     {
-      symbol: 'COIN2/USDT', 
+      rawSymbol: 'COIN2USDT',
       displaySymbol: 'COIN2/USDT',
+      quantity: 1,
+      baseCode: 'COIN2',
+      quoteCode: 'USDT',
       price: 4700.00,
       priceChange24h: -300.00,
       priceChangePercent24h: -6.00,
       turnover: 15600000,
       volume: 3500000,
-      label: '가격 급락',
+      warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 5000.00,
       prevPrice: 5000.00
     },
     {
-      symbol: 'LongNameCoin000/USDT',
+      rawSymbol: 'LongNameCoin000USDT',
       displaySymbol: 'LongNameCoin000/USDT',
+      quantity: 1,
+      baseCode: 'LongNameCoin000',
+      quoteCode: 'USDT',
       price: 0.00123456789,
       priceChange24h: -0.0006049382661,
       priceChangePercent24h: -98.00,
       turnover: 120000,
       volume: 95000000,
-      label: '급락',
+      warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 0.0617283945,
       prevPrice: 0.0617283945
     },
     {
-      symbol: 'COIN3/USDT',
-      displaySymbol: 'COIN3/USDT', 
+      rawSymbol: 'COIN3USDT',
+      displaySymbol: 'COIN3/USDT',
+      quantity: 1,
+      baseCode: 'COIN3',
+      quoteCode: 'USDT',
       price: 73.19,
       priceChange24h: 0.00,
       priceChangePercent24h: 0.00,
       turnover: 890000,
       volume: 12000,
-      label: '입금량 급등',
+      warningType: 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION',
       prevPrice24h: 73.19,
       prevPrice: 73.19
     },
     {
-      symbol: 'PrettyMuchLongNameCoin777/USDT',
+      rawSymbol: 'PrettyMuchLongNameCoin777USDT',
       displaySymbol: 'PrettyMuchLongNameCoin777/USDT',
+      quantity: 1,
+      baseCode: 'PrettyMuchLongNameCoin777',
+      quoteCode: 'USDT',
       price: 770000000.00,
       priceChange24h: 754901961.00,
       priceChangePercent24h: 5000.00,
       turnover: 999999999999,
       volume: 1500000000,
-      label: '가격 급등',
+      warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 15098039.00,
       prevPrice: 15098039.00
     },
     {
-      symbol: 'BigChangeCOIN/USDT',
+      rawSymbol: 'BigChangeCOINUSDT',
       displaySymbol: 'BigChangeCOIN/USDT',
+      quantity: 1,
+      baseCode: 'BigChangeCOIN',
+      quoteCode: 'USDT',
       price: 282.50,
       priceChange24h: 195.50,
       priceChangePercent24h: 130.00,
       turnover: 1234567,
       volume: 4500,
-      label: '급등',
+      warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
       prevPrice24h: 87.00,
       prevPrice: 87.00
     },
     {
-      symbol: 'BiggerChangeCOIN/USDT',
+      rawSymbol: 'BiggerChangeCOINUSDT',
       displaySymbol: 'BiggerChangeCOIN/USDT',
+      quantity: 1,
+      baseCode: 'BiggerChangeCOIN',
+      quoteCode: 'USDT',
       price: 190.00,
       priceChange24h: 180.00,
       priceChangePercent24h: 1700.00,
       turnover: 7654321,
       volume: 40000,
-      label: '초급등',
+      warningType: 'EXCHANGE_TRADING_CONCENTRATION',
       prevPrice24h: 10.00,
       prevPrice: 10.00
     },
@@ -203,7 +227,7 @@ export default function TickerSettingPage() {
   useEffect(() => {
     tickerData.forEach(ticker => {
       const decimals = getDecimals(ticker.price);
-      symbolMaxDecimals.current[ticker.symbol] = decimals;
+      symbolMaxDecimals.current[ticker.rawSymbol] = decimals;
     });
   }, []);
 
@@ -226,7 +250,7 @@ export default function TickerSettingPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTickerData(prev => prev.map(ticker => {
-        if (ticker.symbol !== 'COIN1/USDT') return ticker;
+        if (ticker.rawSymbol !== 'COIN1USDT') return ticker;
         
         // -1.0, -0.5, 0, +0.5, +1.0 중 하나 무작위 선택
         const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
@@ -236,9 +260,9 @@ export default function TickerSettingPage() {
         const newPrice = Math.max(ticker.price + change, 0.05); 
         
         // 소수점 자리수 추적
-        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
         const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
         
         // 가격 변동 및 퍼센트 계산
         const priceChange24h = newPrice - ticker.prevPrice24h;
@@ -260,7 +284,7 @@ export default function TickerSettingPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTickerData(prev => prev.map(ticker => {
-        if (ticker.symbol !== 'COIN2/USDT') return ticker;
+        if (ticker.rawSymbol !== 'COIN2USDT') return ticker;
         
         // -1.0, -0.5, 0, +0.5, +1.0 중 하나 무작위 선택
         const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
@@ -269,9 +293,9 @@ export default function TickerSettingPage() {
         const newPrice = Math.max(ticker.price + change, 0.05); // 변동 후 가격
         
         // 소수점 자리수 추적
-        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
         const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
         
         const priceChange24h = newPrice - ticker.prevPrice24h;
         const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
@@ -292,13 +316,13 @@ export default function TickerSettingPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setTickerData(prev => prev.map(ticker => {
-        if (ticker.symbol !== 'LongNameCoin999/USDT') return ticker;
+        if (ticker.rawSymbol !== 'LongNameCoin999USDT') return ticker;
         const possibleChanges = [1000, 0, -1000];
         const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
         const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
-        const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
         const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
         const priceChange24h = newPrice - ticker.prevPrice24h;
         const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
         return {
@@ -535,24 +559,24 @@ export default function TickerSettingPage() {
             {(() => {
               // symbol별 price의 최대 소수점 자리수 추적 (렌더 직전)
               tickerData.forEach(ticker => {
-                const prev = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+                const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
                 const current = getDecimals(ticker.price);
-                if (current > prev) symbolMaxDecimals.current[ticker.symbol] = current;
+                if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
               });
 
               return tickerData.map((ticker) => {
-                const priceDecimals = symbolMaxDecimals.current[ticker.symbol] ?? 0;
+                const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
                 
                 // 포맷팅된 데이터로 업데이트
                 const formattedTicker = {
                   ...ticker,
                   price: Number(Number(ticker.price).toFixed(priceDecimals)),
-                  priceChange: Number(Number(ticker.priceChange).toFixed(priceDecimals)),
+                  priceChange24h: Number(Number(ticker.priceChange24h).toFixed(priceDecimals)),
                 };
 
                 return (
                   <Ticker
-                    key={ticker.symbol}
+                    key={ticker.rawSymbol}
                     data={formattedTicker}
                     maxDecimals={priceDecimals}
                     onPriceChange={(symbol, oldPrice, newPrice) => {

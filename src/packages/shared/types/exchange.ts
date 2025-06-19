@@ -191,6 +191,12 @@ export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
   'EXCHANGE_TRADING_CONCENTRATION': '거래소 거래 집중'
 };
 
+// 일반적인 경고 타입 (BithumbWarningType과 동일)
+export type WarningType = BithumbWarningType;
+
+// 경고 타입별 한글 설명 (통합)
+export const WARNING_TYPE_LABELS: Record<WarningType, string> = BITHUMB_WARNING_LABELS;
+
 // Bithumb 카테고리 타입 (spot만 지원)
 export type BithumbRawCategory = 'spot';
 export type BithumbDisplayCategory = 'spot';
@@ -216,7 +222,7 @@ export interface TickerData {
   turnover: number;       // 24시간 거래대금 (이전 turnover24h)
   
   // 추가 정보 필드
-  label?: string;         // 거래소 경고 라벨 (예: "거래유의", "급등")
+  warningType?: WarningType;         // 경고 유형 (예: "TRADING_VOLUME_SUDDEN_FLUCTUATION", "DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION")
   
   // 확장 필드 (TickerInfo에만 있던 필드들)
   highPrice24h?: number;
