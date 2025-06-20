@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, createPriceChangeAnimationManager, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration, BottomDisplayMode, BOTTOM_DISPLAY_MODE_LABELS } from '@/packages/shared/stores/createTickerSettingStore';
+import { useState, useEffect } from 'react';
+import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration, BottomDisplayMode, BOTTOM_DISPLAY_MODE_LABELS } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
 import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
-import { Ticker, TickerData } from '@/packages/shared/components';
+import { TickerExampleCard } from '@/packages/shared/components';
 
 export default function TickerSettingPage() {
   const { 
@@ -23,9 +23,6 @@ export default function TickerSettingPage() {
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
-  
-  // symbol별 lastPrice 최대 소수점 자리수 추적
-  const symbolMaxDecimals = useRef<Record<string, number>>({});
   
   // localStorage에서 설정값 초기화 (하이드레이션 문제 해결)
   useEffect(() => {
@@ -91,512 +88,236 @@ export default function TickerSettingPage() {
   // 현재 테마의 색상 토큰
   const themeColors = colorTokens[currentTheme];
 
-  // 숫자의 소수점 자리수를 계산하는 함수
-  const getDecimals = (num: number) => {
-    if (!isFinite(num)) return 0;
-    const s = num.toString();
-    if (s.includes('.')) return s.split('.')[1].length;
-    return 0;
-  };
-
-  // 실시간 티커 데이터 상태
-  const [tickerData, setTickerData] = useState<TickerData[]>([
-    {
-      rawSymbol: 'COIN1USDT',
-      displaySymbol: 'COIN1/USDT',
-      quantity: 1,
-      baseCode: 'COIN1',
-      quoteCode: 'USDT',
-      price: 5300.00,
-      priceChange24h: 300.00,
-      priceChangePercent24h: 6.00,
-      turnover: 2340000000,
-      volume: 1200000,
-      warningType: 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION',
-      prevPrice24h: 5000.00,
-      prevPrice: 5000.00
-    },
-    {
-      rawSymbol: 'LongNameCoin999USDT',
-      displaySymbol: 'LongNameCoin999/USDT',
-      quantity: 1,
-      baseCode: 'LongNameCoin999',
-      quoteCode: 'USDT',
-      price: 630000.00,
-      priceChange24h: 540000.00,
-      priceChangePercent24h: 600.00,
-      turnover: 50000000000,
-      volume: 89000000,
-      warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
-      prevPrice24h: 90000.00,
-      prevPrice: 90000.00
-    },
-    {
-      rawSymbol: 'COIN2USDT',
-      displaySymbol: 'COIN2/USDT',
-      quantity: 1,
-      baseCode: 'COIN2',
-      quoteCode: 'USDT',
-      price: 4700.00,
-      priceChange24h: -300.00,
-      priceChangePercent24h: -6.00,
-      turnover: 15600000,
-      volume: 3500000,
-      warningType: 'PRICE_DIFFERENCE_HIGH',
-      prevPrice24h: 5000.00,
-      prevPrice: 5000.00
-    },
-    {
-      rawSymbol: 'LongNameCoin000USDT',
-      displaySymbol: 'LongNameCoin000/USDT',
-      quantity: 1,
-      baseCode: 'LongNameCoin000',
-      quoteCode: 'USDT',
-      price: 0.00123456789,
-      priceChange24h: -0.0006049382661,
-      priceChangePercent24h: -98.00,
-      turnover: 120000,
-      volume: 95000000,
-      warningType: 'PRICE_DIFFERENCE_HIGH',
-      prevPrice24h: 0.0617283945,
-      prevPrice: 0.0617283945
-    },
-    {
-      rawSymbol: 'COIN3USDT',
-      displaySymbol: 'COIN3/USDT',
-      quantity: 1,
-      baseCode: 'COIN3',
-      quoteCode: 'USDT',
-      price: 73.19,
-      priceChange24h: 0.00,
-      priceChangePercent24h: 0.00,
-      turnover: 890000,
-      volume: 12000,
-      warningType: 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION',
-      prevPrice24h: 73.19,
-      prevPrice: 73.19
-    },
-    {
-      rawSymbol: 'PrettyMuchLongNameCoin777USDT',
-      displaySymbol: 'PrettyMuchLongNameCoin777/USDT',
-      quantity: 1,
-      baseCode: 'PrettyMuchLongNameCoin777',
-      quoteCode: 'USDT',
-      price: 770000000.00,
-      priceChange24h: 754901961.00,
-      priceChangePercent24h: 5000.00,
-      turnover: 999999999999,
-      volume: 1500000000,
-      warningType: 'PRICE_DIFFERENCE_HIGH',
-      prevPrice24h: 15098039.00,
-      prevPrice: 15098039.00
-    },
-    {
-      rawSymbol: 'BigChangeCOINUSDT',
-      displaySymbol: 'BigChangeCOIN/USDT',
-      quantity: 1,
-      baseCode: 'BigChangeCOIN',
-      quoteCode: 'USDT',
-      price: 282.50,
-      priceChange24h: 195.50,
-      priceChangePercent24h: 130.00,
-      turnover: 1234567,
-      volume: 4500,
-      warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
-      prevPrice24h: 87.00,
-      prevPrice: 87.00
-    },
-    {
-      rawSymbol: 'BiggerChangeCOINUSDT',
-      displaySymbol: 'BiggerChangeCOIN/USDT',
-      quantity: 1,
-      baseCode: 'BiggerChangeCOIN',
-      quoteCode: 'USDT',
-      price: 190.00,
-      priceChange24h: 180.00,
-      priceChangePercent24h: 1700.00,
-      turnover: 7654321,
-      volume: 40000,
-      warningType: 'EXCHANGE_TRADING_CONCENTRATION',
-      prevPrice24h: 10.00,
-      prevPrice: 10.00
-    },
-  ]);
-
-  // 초기 데이터의 소수점 자리수 추적
-  useEffect(() => {
-    tickerData.forEach(ticker => {
-      const decimals = getDecimals(ticker.price);
-      symbolMaxDecimals.current[ticker.rawSymbol] = decimals;
-    });
-  }, []);
-
-  // 애니메이션 매니저 생성 (설정된 지속 시간 사용)
-  const [animationManager, setAnimationManager] = useState(() => createPriceChangeAnimationManager(borderAnimationDuration));
-
-  // 컴포넌트 언마운트 시 애니메이션 정리
-  useEffect(() => {
-    return () => {
-      animationManager.cleanup();
-    };
-  }, [animationManager]);
-
-  // 애니메이션 지속 시간이 변경되면 매니저 재생성
-  useEffect(() => {
-    setAnimationManager(createPriceChangeAnimationManager(borderAnimationDuration));
-  }, [borderAnimationDuration]);
-
-  // COIN1: 0.7초마다 -0.2, -0.1, 0, +0.1, +0.2 중 무작위 변동
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerData(prev => prev.map(ticker => {
-        if (ticker.rawSymbol !== 'COIN1USDT') return ticker;
-        
-        // -1.0, -0.5, 0, +0.5, +1.0 중 하나 무작위 선택
-        const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
-        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
-        
-        // 변동 후 가격 계산 (최소 0.01)
-        const newPrice = Math.max(ticker.price + change, 0.05); 
-        
-        // 소수점 자리수 추적
-        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-        const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
-        
-        // 가격 변동 및 퍼센트 계산
-        const priceChange24h = newPrice - ticker.prevPrice24h;
-        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
-        
-        return {
-          ...ticker,
-          prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
-          price: newPrice,
-          priceChange24h,
-          priceChangePercent24h,
-        };
-      }));
-    }, 700);
-    return () => clearInterval(interval);
-  }, [animationManager]);
-
-  // COIN2: 1.1초마다 -0.2, -0.1, 0, +0.1, +0.2 중 무작위 변동
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerData(prev => prev.map(ticker => {
-        if (ticker.rawSymbol !== 'COIN2USDT') return ticker;
-        
-        // -1.0, -0.5, 0, +0.5, +1.0 중 하나 무작위 선택
-        const possibleChanges = [-1.0, -0.5, 0, 0.5, 1.0];
-        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
-        
-        const newPrice = Math.max(ticker.price + change, 0.05); // 변동 후 가격
-        
-        // 소수점 자리수 추적
-        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-        const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
-        
-        const priceChange24h = newPrice - ticker.prevPrice24h;
-        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
-        
-        return {
-          ...ticker,
-          prevPrice: ticker.price, // 현재 가격을 이전 가격으로 저장
-          price: newPrice,
-          priceChange24h,
-          priceChangePercent24h,
-        };
-      }));
-    }, 1100);
-    return () => clearInterval(interval);
-  }, [animationManager]);
-
-  // LongNameCoin999/USDT: 1초마다 +1000, 0, -1000 중 하나 변동
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerData(prev => prev.map(ticker => {
-        if (ticker.rawSymbol !== 'LongNameCoin999USDT') return ticker;
-        const possibleChanges = [1000, 0, -1000];
-        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
-        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
-        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-        const current = getDecimals(newPrice);
-        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
-        const priceChange24h = newPrice - ticker.prevPrice24h;
-        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
-        return {
-          ...ticker,
-          prevPrice: ticker.price,
-          price: newPrice,
-          priceChange24h,
-          priceChangePercent24h,
-        };
-      }));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [animationManager]);
-
   // 컴포넌트가 마운트되지 않았거나 테마 색상이 로드되지 않은 경우
   if (!mounted || !themeColors) {
     return <div className="p-6">로딩 중...</div>;
   }
 
   return (
-    <div className="container max-w-xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">티커 색상 모드 설정</h1>
-      
-      {/* 색상 모드 선택 섹션 */}
-      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
-        <h2 className="text-lg font-semibold mb-4">색상 모드 선택</h2>
-        <div className="grid grid-cols-1 gap-3">
-          {(Object.entries(TICKER_COLOR_MODE_LABELS) as [TickerColorMode, string][]).map(([mode, label]) => {
-            const isActive = tickerColorMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setTickerColorMode(mode)}
-                className={`p-4 rounded-lg border-2 transition-all text-left
-                  ${isActive 
-                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
-                    : 'border-border hover:border-primary/50'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-medium text-base">{label}</span>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {TICKER_COLOR_MODE_DESCRIPTIONS[mode]}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <span 
-                      className="px-2 py-1 rounded text-xs font-semibold"
-                      style={{ color: `hsl(${getTickerColor(mode, 'up')})` }}
-                    >
-                      ▲
-                    </span>
-                    <span 
-                      className="px-2 py-1 rounded text-xs font-semibold"
-                      style={{ color: `hsl(${getTickerColor(mode, 'down')})` }}
-                    >
-                      ▼
-                    </span>
-                    <span 
-                      className="px-2 py-1 rounded text-xs font-semibold"
-                      style={{ color: `hsl(${getTickerColor(mode, 'unchanged')})` }}
-                    >
-                      ━
-                    </span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 테두리 애니메이션 설정 */}
-      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
-        <h2 className="text-lg font-semibold mb-4">테두리 애니메이션 설정</h2>
+    <>
+      <div className="container max-w-xl mx-auto py-10 px-4">
+        <h1 className="text-2xl font-bold mb-6">티커 색상 모드 설정</h1>
         
-        {/* 애니메이션 활성화/비활성화 */}
-        <div className="mb-4">
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">테두리 애니메이션</span>
-              {borderAnimationEnabled && (
-                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                  활성화
-                </span>
-              )}
-            </div>
-            <Toggle
-              active={borderAnimationEnabled}
-              onChange={(active) => setBorderAnimationEnabled(active)}
-              themeColors={themeColors}
-              currentTheme={currentTheme}
-            />
-          </label>
-          <p className="text-sm text-muted-foreground mt-1">
-            가격 변동 시 테두리 색상 강조 표시 여부
-          </p>
-        </div>
-
-        {/* 애니메이션 지속 시간 */}
-        <div className="mb-4">
-          <label className="block font-medium mb-2">
-            애니메이션 지속 시간
-            {borderAnimationEnabled && (
-              <span className="ml-2 text-xs text-muted-foreground">
-                (현재: {BORDER_ANIMATION_DURATION_LABELS[borderAnimationDuration]})
-              </span>
-            )}
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(BORDER_ANIMATION_DURATION_LABELS).map(([duration, label]) => {
-              const isActive = borderAnimationDuration === Number(duration);
-              return (
-                <button
-                  key={duration}
-                  type="button"
-                  onClick={() => setBorderAnimationDuration(Number(duration) as BorderAnimationDuration)}
-                  disabled={!borderAnimationEnabled}
-                  className={`p-2 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
-                    ${isActive && borderAnimationEnabled
-                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
-                      : borderAnimationEnabled
-                        ? 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'
-                        : 'border-border/50 bg-muted/50 text-muted-foreground'}
-                    ${!borderAnimationEnabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  {label}
-                  {isActive && borderAnimationEnabled && (
-                    <span className="ml-1 text-xs">✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* 표시 옵션 설정 */}
-      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
-        <h2 className="text-lg font-semibold mb-4">표시 옵션</h2>
-        
-        {/* 퍼센트 기호 표시 */}
-        <div className="mb-4">
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">퍼센트 기호 (%) 표시</span>
-              {showPercentSymbol && (
-                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                  활성화
-                </span>
-              )}
-            </div>
-            <Toggle
-              active={showPercentSymbol}
-              onChange={(active) => setShowPercentSymbol(active)}
-              themeColors={themeColors}
-              currentTheme={currentTheme}
-            />
-          </label>
-          <p className="text-sm text-muted-foreground mt-1">
-            변동률 정보에 % 기호 표시 여부
-          </p>
-        </div>
-
-        {/* 변동률 배경색 표시 */}
-        <div className="mb-4">
-          <label className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">변동률 배경색 표시</span>
-              {showPercentBackground && (
-                <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                  활성화
-                </span>
-              )}
-            </div>
-            <Toggle
-              active={showPercentBackground}
-              onChange={(active) => setShowPercentBackground(active)}
-              themeColors={themeColors}
-              currentTheme={currentTheme}
-            />
-          </label>
-          <p className="text-sm text-muted-foreground mt-1">
-            변동률 퍼센트 표시에 배경색 적용 여부
-          </p>
-        </div>
-      </div>
-
-      {/* 하단 표시 정보 설정 */}
-      <div className="mb-8 p-4 bg-card rounded-lg border border-border">
-        <h2 className="text-lg font-semibold mb-4">하단 표시 정보 설정</h2>
-        
-        <div>
-          <label className="block font-medium mb-2">
-            표시 정보 선택
-            <span className="ml-2 text-xs text-muted-foreground">
-              (현재: {BOTTOM_DISPLAY_MODE_LABELS[bottomDisplayMode]})
-            </span>
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(BOTTOM_DISPLAY_MODE_LABELS).map(([mode, label]) => {
-              const isActive = bottomDisplayMode === mode;
+        {/* 색상 모드 선택 섹션 */}
+        <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-4">색상 모드 선택</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {(Object.entries(TICKER_COLOR_MODE_LABELS) as [TickerColorMode, string][]).map(([mode, label]) => {
+              const isActive = tickerColorMode === mode;
               return (
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setBottomDisplayMode(mode as BottomDisplayMode)}
-                  className={`p-3 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
-                    ${isActive
-                      ? 'border-primary bg-primary/10 text-primary shadow-sm' 
-                      : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'}
-                    cursor-pointer`}
+                  onClick={() => setTickerColorMode(mode)}
+                  className={`p-4 rounded-lg border-2 transition-all text-left
+                    ${isActive 
+                      ? 'border-primary ring-2 ring-primary/20 bg-primary/5' 
+                      : 'border-border hover:border-primary/50'}`}
                 >
-                  {label}
-                  {isActive && (
-                    <span className="ml-1 text-xs">✓</span>
-                  )}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-medium text-base">{label}</span>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {TICKER_COLOR_MODE_DESCRIPTIONS[mode]}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <span 
+                        className="px-2 py-1 rounded text-xs font-semibold"
+                        style={{ color: `hsl(${getTickerColor(mode, 'up')})` }}
+                      >
+                        ▲
+                      </span>
+                      <span 
+                        className="px-2 py-1 rounded text-xs font-semibold"
+                        style={{ color: `hsl(${getTickerColor(mode, 'down')})` }}
+                      >
+                        ▼
+                      </span>
+                      <span 
+                        className="px-2 py-1 rounded text-xs font-semibold"
+                        style={{ color: `hsl(${getTickerColor(mode, 'unchanged')})` }}
+                      >
+                        ━
+                      </span>
+                    </div>
+                  </div>
                 </button>
               );
             })}
           </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            티커 하단에 표시할 정보를 선택하세요
-          </p>
         </div>
-      </div>
 
-      {/* 예시 */}
-      <div className="mb-6 p-4 bg-card rounded-lg border border-border">
-        <h2 className="text-lg font-semibold mb-4">예시</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {(() => {
-              // symbol별 price의 최대 소수점 자리수 추적 (렌더 직전)
-              tickerData.forEach(ticker => {
-                const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-                const current = getDecimals(ticker.price);
-                if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
-              });
-
-              return tickerData.map((ticker) => {
-                const priceDecimals = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
-                
-                // 포맷팅된 데이터로 업데이트
-                const formattedTicker = {
-                  ...ticker,
-                  price: Number(Number(ticker.price).toFixed(priceDecimals)),
-                  priceChange24h: Number(Number(ticker.priceChange24h).toFixed(priceDecimals)),
-                };
-
-                return (
-                  <Ticker
-                    key={ticker.rawSymbol}
-                    data={formattedTicker}
-                    maxDecimals={priceDecimals}
-                    onPriceChange={(symbol, oldPrice, newPrice) => {
-                      console.log(`${symbol}: ${oldPrice} → ${newPrice}`);
-                    }}
-                  />
-                );
-              });
-            })()}
-          </div>
+        {/* 테두리 애니메이션 설정 */}
+        <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-4">테두리 애니메이션 설정</h2>
           
-          <div className="mt-6 p-3 bg-muted/30 rounded-md">
-            <h3 className="text-sm font-medium mb-2">현재 선택된 모드: <span className="font-bold text-primary">{TICKER_COLOR_MODE_LABELS[tickerColorMode]}</span></h3>
+          {/* 애니메이션 활성화/비활성화 */}
+          <div className="mb-4">
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">테두리 애니메이션</span>
+                {borderAnimationEnabled && (
+                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                    활성화
+                  </span>
+                )}
+              </div>
+              <Toggle
+                active={borderAnimationEnabled}
+                onChange={(active) => setBorderAnimationEnabled(active)}
+                themeColors={themeColors}
+                currentTheme={currentTheme}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground mt-1">
+              가격 변동 시 테두리 색상 강조 표시 여부
+            </p>
+          </div>
+
+          {/* 애니메이션 지속 시간 */}
+          <div className="mb-4">
+            <label className="block font-medium mb-2">
+              애니메이션 지속 시간
+              {borderAnimationEnabled && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  (현재: {BORDER_ANIMATION_DURATION_LABELS[borderAnimationDuration]})
+                </span>
+              )}
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(BORDER_ANIMATION_DURATION_LABELS).map(([duration, label]) => {
+                const isActive = borderAnimationDuration === Number(duration);
+                return (
+                  <button
+                    key={duration}
+                    type="button"
+                    onClick={() => setBorderAnimationDuration(Number(duration) as BorderAnimationDuration)}
+                    disabled={!borderAnimationEnabled}
+                    className={`p-2 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
+                      ${isActive && borderAnimationEnabled
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm' 
+                        : borderAnimationEnabled
+                          ? 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'
+                          : 'border-border/50 bg-muted/50 text-muted-foreground'}
+                      ${!borderAnimationEnabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    {label}
+                    {isActive && borderAnimationEnabled && (
+                      <span className="ml-1 text-xs">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 표시 옵션 설정 */}
+        <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-4">표시 옵션</h2>
+          
+          {/* 퍼센트 기호 표시 */}
+          <div className="mb-4">
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">퍼센트 기호 (%) 표시</span>
+                {showPercentSymbol && (
+                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                    활성화
+                  </span>
+                )}
+              </div>
+              <Toggle
+                active={showPercentSymbol}
+                onChange={(active) => setShowPercentSymbol(active)}
+                themeColors={themeColors}
+                currentTheme={currentTheme}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground mt-1">
+              변동률 정보에 % 기호 표시 여부
+            </p>
+          </div>
+
+          {/* 변동률 배경색 표시 */}
+          <div className="mb-4">
+            <label className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">변동률 배경색 표시</span>
+                {showPercentBackground && (
+                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                    활성화
+                  </span>
+                )}
+              </div>
+              <Toggle
+                active={showPercentBackground}
+                onChange={(active) => setShowPercentBackground(active)}
+                themeColors={themeColors}
+                currentTheme={currentTheme}
+              />
+            </label>
+            <p className="text-sm text-muted-foreground mt-1">
+              변동률 퍼센트 표시에 배경색 적용 여부
+            </p>
+          </div>
+        </div>
+
+        {/* 하단 표시 정보 설정 */}
+        <div className="mb-8 p-4 bg-card rounded-lg border border-border">
+          <h2 className="text-lg font-semibold mb-4">하단 표시 정보 설정</h2>
+          
+          <div>
+            <label className="block font-medium mb-2">
+              표시 정보 선택
+              <span className="ml-2 text-xs text-muted-foreground">
+                (현재: {BOTTOM_DISPLAY_MODE_LABELS[bottomDisplayMode]})
+              </span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(BOTTOM_DISPLAY_MODE_LABELS).map(([mode, label]) => {
+                const isActive = bottomDisplayMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setBottomDisplayMode(mode as BottomDisplayMode)}
+                    className={`p-3 rounded-md border text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-1
+                      ${isActive
+                        ? 'border-primary bg-primary/10 text-primary shadow-sm' 
+                        : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5 text-foreground'}
+                      cursor-pointer`}
+                  >
+                    {label}
+                    {isActive && (
+                      <span className="ml-1 text-xs">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              티커 하단에 표시할 정보를 선택하세요
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="text-center text-sm text-muted-foreground">
-        <p>이 설정은 앱의 모든 티커에 자동으로 적용됩니다.</p>
+      {/* 예시 섹션 - 전체 너비 사용 */}
+      <div className="w-full px-4 mb-8">
+        <TickerExampleCard 
+          borderAnimationDuration={borderAnimationDuration}
+          description={`현재 선택된 모드: ${TICKER_COLOR_MODE_LABELS[tickerColorMode]}`}
+          className="w-full"
+        />
       </div>
-    </div>
+
+      <div className="container max-w-xl mx-auto px-4 pb-10">
+        <div className="text-center text-sm text-muted-foreground">
+          <p>이 설정은 앱의 모든 티커에 자동으로 적용됩니다.</p>
+        </div>
+      </div>
+    </>
   );
 }
