@@ -82,8 +82,8 @@ export function TickerExampleCard({
       quantity: 1,
       baseCode: 'LongNameCoin000',
       quoteCode: 'USDT',
-      price: 0.00123456789,
-      priceChange24h: -0.00123456789,
+      price: 0.000123455555,
+      priceChange24h: -0.000123455555,
       priceChangePercent24h: -50.00,
       turnover: 120000,
       volume: 95000000,
@@ -264,6 +264,106 @@ export function TickerExampleCard({
         };
       }));
     }, 1000);
+    return () => clearInterval(interval);
+  }, [animationManager]);
+
+  // LongNameCoin000/USDT: 1초마다 +0.00001, 0, -0.00001 중 하나 변동
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerData(prev => prev.map(ticker => {
+        if (ticker.rawSymbol !== 'LongNameCoin000USDT') return ticker;
+        const possibleChanges = [0.00001, 0, -0.00001];
+        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
+        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
+        return {
+          ...ticker,
+          prevPrice: ticker.price,
+          price: newPrice,
+          priceChange24h,
+          priceChangePercent24h,
+        };
+      }));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [animationManager]);
+
+  // PrettyMuchLongNameCoin777/USDT: 8초마다 +500000, 0, -500000 중 하나 변동
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerData(prev => prev.map(ticker => {
+        if (ticker.rawSymbol !== 'PrettyMuchLongNameCoin777USDT') return ticker;
+        const possibleChanges = [500000, 0, -500000];
+        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
+        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
+        return {
+          ...ticker,
+          prevPrice: ticker.price,
+          price: newPrice,
+          priceChange24h,
+          priceChangePercent24h,
+        };
+      }));
+    }, 800);
+    return () => clearInterval(interval);
+  }, [animationManager]);
+
+  // BigChangeCOIN/USDT: 1.2초마다 -1, 0, +1 중 하나 변동
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerData(prev => prev.map(ticker => {
+        if (ticker.rawSymbol !== 'BigChangeCOINUSDT') return ticker;
+        const possibleChanges = [-1, 0, 1];
+        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
+        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
+        return {
+          ...ticker,
+          prevPrice: ticker.price,
+          price: newPrice,
+          priceChange24h,
+          priceChangePercent24h,
+        };
+      }));
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [animationManager]);
+
+  // BiggerChangeCOIN/USDT: 1.3초마다 +0.5, 0, -0.5 중 하나 변동
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerData(prev => prev.map(ticker => {
+        if (ticker.rawSymbol !== 'BiggerChangeCOINUSDT') return ticker;
+        const possibleChanges = [0.5, 0, -0.5];
+        const change = possibleChanges[Math.floor(Math.random() * possibleChanges.length)];
+        const newPrice = Math.max(ticker.price + change, 0); // 음수 방지
+        const prev = symbolMaxDecimals.current[ticker.rawSymbol] ?? 0;
+        const current = getDecimals(newPrice);
+        if (current > prev) symbolMaxDecimals.current[ticker.rawSymbol] = current;
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = (priceChange24h / ticker.prevPrice24h) * 100;
+        return {
+          ...ticker,
+          prevPrice: ticker.price,
+          price: newPrice,
+          priceChange24h,
+          priceChangePercent24h,
+        };
+      }));
+    }, 1300);
     return () => clearInterval(interval);
   }, [animationManager]);
 
