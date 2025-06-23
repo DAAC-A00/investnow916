@@ -337,7 +337,7 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
             {bottomDisplayMode === 'priceChange' 
               ? formattedPriceChange 
               : bottomDisplayMode === 'turnover' 
-                ? `${formattedTurnover} USDT`
+                ? `${formattedTurnover} ${data.quoteCode}`
                 : `${formattedVolume} Vol`}
           </div>
         </div>

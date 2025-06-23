@@ -67,6 +67,14 @@ const defaultMenuItems: MenuItemType[] = [
     isAdminOnly: false,
   },
   {
+    id: 'exchange-bithumb',
+    label: 'Bithumb',
+    icon: '🏢',
+    route: '/exchange/ticker/bithumb',
+    description: '빗썸 거래소 코인 정보 조회',
+    isAdminOnly: false,
+  },
+  {
     id: 'exchange-bybit-instrument',
     label: '계측',
     icon: '🛠️',

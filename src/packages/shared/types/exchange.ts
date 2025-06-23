@@ -160,6 +160,29 @@ export interface BithumbInstrument {
 // Bithumb API 응답은 배열 형태
 export type BithumbInstrumentsResponse = BithumbInstrument[];
 
+// Bithumb Ticker API 응답 타입
+export interface BithumbTickerResponse {
+  status: string;         // "0000" = 성공
+  data: {
+    [symbol: string]: BithumbTicker | string;
+    date: string;
+  };
+}
+
+export interface BithumbTicker {
+  opening_price: string;
+  closing_price: string;
+  min_price: string;
+  max_price: string;
+  units_traded: string;
+  acc_trade_value: string;
+  prev_closing_price: string;
+  units_traded_24H: string;
+  acc_trade_value_24H: string;
+  fluctate_24H: string;
+  fluctate_rate_24H: string;
+}
+
 // Bithumb Warning API 응답 타입
 export interface BithumbWarning {
   market: string;         // 예: "KRW-LINK"
