@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
 import { Ticker } from '@/packages/shared/components';
-import { TickerData, BithumbTickerResponse, BithumbTicker } from '@/packages/shared/types/exchange';
+import { 
+  TickerData, 
+  BithumbTickerResponse, 
+  BithumbTicker,
+  BithumbMarketInfoResponse,
+  BithumbMarketInfo,
+  BithumbVirtualAssetWarningResponse,
+  BithumbVirtualAssetWarning,
+  BithumbWarningType
+} from '@/packages/shared/types/exchange';
 
 interface BithumbCombinedTicker {
   symbol: string;
@@ -23,12 +32,41 @@ export default function BithumbTickerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [sortBy, setSortBy] = useState<'changePercent' | 'price' | 'volume' | 'turnover' | 'symbol'>('changePercent');
+  const [sortBy, setSortBy] = useState<'changePercent' | 'price' | 'volume' | 'turnover' | 'symbol' | 'warning'>('changePercent');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [marketInfo, setMarketInfo] = useState<BithumbMarketInfo[]>([]);
+  const [virtualAssetWarnings, setVirtualAssetWarnings] = useState<BithumbVirtualAssetWarning[]>([]);
+  const [lastMarketInfoUpdate, setLastMarketInfoUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     setCurrentRoute('/exchange/ticker/bithumb');
   }, [setCurrentRoute]);
+
+  // 빗썸 시장 정보 및 경고 정보 가져오기 (1분마다)
+  const fetchMarketInfoAndWarnings = useCallback(async () => {
+    try {
+      // 두 API를 병렬로 호출
+      const [marketInfoResponse, warningsResponse] = await Promise.all([
+        fetch('https://api.bithumb.com/v1/market/all?isDetails=true'),
+        fetch('https://api.bithumb.com/v1/market/virtual_asset_warning')
+      ]);
+
+      if (!marketInfoResponse.ok || !warningsResponse.ok) {
+        throw new Error('시장 정보 API 요청 실패');
+      }
+
+      const marketInfoData: BithumbMarketInfoResponse = await marketInfoResponse.json();
+      const warningsData: BithumbVirtualAssetWarningResponse = await warningsResponse.json();
+
+      setMarketInfo(marketInfoData);
+      setVirtualAssetWarnings(warningsData);
+      setLastMarketInfoUpdate(new Date());
+      
+      console.log(`시장 정보 업데이트: ${marketInfoData.length}개 코인, ${warningsData.length}개 경고`);
+    } catch (err) {
+      console.error('시장 정보 가져오기 실패:', err);
+    }
+  }, []);
 
   // 빗썸 API에서 티커 데이터 가져오기
   const fetchTickerData = useCallback(async () => {
@@ -89,6 +127,7 @@ export default function BithumbTickerPage() {
       const tickerDataList: TickerData[] = combinedTickers.map(({ symbol, baseCode, quoteCode, ticker }) => {
         const rawSymbol = `${symbol}${quoteCode}`;
         const displaySymbol = `${baseCode}/${quoteCode}`;
+        const marketSymbol = `${quoteCode}-${symbol}`;
         
         // 가격 관련 값들을 숫자로 변환
         const price = parseFloat(ticker.closing_price);
@@ -99,6 +138,14 @@ export default function BithumbTickerPage() {
         const turnover = parseFloat(ticker.acc_trade_value_24H);
         const highPrice24h = parseFloat(ticker.max_price);
         const lowPrice24h = parseFloat(ticker.min_price);
+
+        // 경고 정보 찾기
+        const warning = virtualAssetWarnings.find(w => w.market === marketSymbol);
+        const warningType: BithumbWarningType | undefined = warning?.warning_type;
+
+        // 시장 정보 찾기 (유의 종목 여부)
+        const market = marketInfo.find(m => m.market === marketSymbol);
+        const hasMarketWarning = market?.market_warning === 'CAUTION';
 
         return {
           rawSymbol,
@@ -116,7 +163,10 @@ export default function BithumbTickerPage() {
           lowPrice24h,
           exchange: 'bithumb',
           displayCategory: 'spot',
-          rawCategory: 'spot'
+          rawCategory: 'spot',
+          warningType,
+          // 유의 종목이나 주의 종목 경고가 있으면 warningType 설정
+          ...(hasMarketWarning && !warningType ? { warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION' as BithumbWarningType } : {})
         };
       });
 
@@ -130,7 +180,7 @@ export default function BithumbTickerPage() {
     }
   }, [getFilteredCoins]);
 
-  // 1초마다 데이터 갱신
+  // 1초마다 티커 데이터 갱신
   useEffect(() => {
     // 초기 데이터 로드
     fetchTickerData();
@@ -141,12 +191,51 @@ export default function BithumbTickerPage() {
     return () => clearInterval(interval);
   }, [fetchTickerData]);
 
+  // 1분마다 시장 정보 및 경고 정보 갱신
+  useEffect(() => {
+    // 초기 시장 정보 로드
+    fetchMarketInfoAndWarnings();
+
+    // 1분마다 갱신 (60초)
+    const marketInfoInterval = setInterval(fetchMarketInfoAndWarnings, 60000);
+
+    return () => clearInterval(marketInfoInterval);
+  }, [fetchMarketInfoAndWarnings]);
+
   const handlePriceChange = (symbol: string, oldPrice: number, newPrice: number) => {
     console.log(`빗썸 티커 - ${symbol}: ${oldPrice} → ${newPrice}`);
   };
 
   // 정렬 함수
   const sortTickers = useCallback((tickersToSort: TickerData[]) => {
+    if (sortBy === 'warning') {
+      // 주의 정렬: 경고가 있는 티커를 상단에, 없는 티커를 하단에 배치
+      // 각 그룹 내에서는 거래대금 내림차순으로 정렬
+      const withWarnings: TickerData[] = [];
+      const withoutWarnings: TickerData[] = [];
+
+      tickersToSort.forEach(ticker => {
+        const hasWarning = ticker.warningType !== undefined;
+        const marketSymbol = `${ticker.quoteCode}-${ticker.baseCode}`;
+        const market = marketInfo.find(m => m.market === marketSymbol);
+        const hasMarketWarning = market?.market_warning === 'CAUTION';
+        
+        if (hasWarning || hasMarketWarning) {
+          withWarnings.push(ticker);
+        } else {
+          withoutWarnings.push(ticker);
+        }
+      });
+
+      // 각 그룹 내에서 거래대금 내림차순 정렬
+      const sortByTurnover = (a: TickerData, b: TickerData) => b.turnover - a.turnover;
+      withWarnings.sort(sortByTurnover);
+      withoutWarnings.sort(sortByTurnover);
+
+      // 경고가 있는 티커를 상단에, 없는 티커를 하단에 배치
+      return [...withWarnings, ...withoutWarnings];
+    }
+
     const sorted = [...tickersToSort].sort((a, b) => {
       let valueA: number | string;
       let valueB: number | string;
@@ -189,14 +278,18 @@ export default function BithumbTickerPage() {
     });
 
     return sorted;
-  }, [sortBy, sortOrder]);
+  }, [sortBy, sortOrder, marketInfo]);
 
   // 정렬된 티커 목록
   const sortedTickers = sortTickers(tickers);
 
   // 정렬 변경 핸들러
   const handleSortChange = (newSortBy: typeof sortBy) => {
-    if (newSortBy === sortBy) {
+    if (newSortBy === 'warning') {
+      // 주의 정렬은 항상 경고가 있는 티커를 상단에 배치 (정렬 순서 변경 없음)
+      setSortBy('warning');
+      setSortOrder('desc'); // 기본값으로 설정하지만 실제로는 사용되지 않음
+    } else if (newSortBy === sortBy) {
       // 같은 항목 클릭시 정렬 순서 변경
       setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
     } else {
@@ -255,11 +348,16 @@ export default function BithumbTickerPage() {
             </div>
             {lastUpdate && (
               <div>
-                마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
+                가격 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
+              </div>
+            )}
+            {lastMarketInfoUpdate && (
+              <div>
+                시장 정보 업데이트: {lastMarketInfoUpdate.toLocaleTimeString('ko-KR')}
               </div>
             )}
             <div>
-              총 {tickers.length}개 코인
+              총 {tickers.length}개 코인 ({virtualAssetWarnings.length}개 경고)
             </div>
           </div>
 
@@ -315,6 +413,16 @@ export default function BithumbTickerPage() {
               }`}
             >
               심볼명 {sortBy === 'symbol' && (sortOrder === 'desc' ? '↓' : '↑')}
+            </button>
+            <button
+              onClick={() => handleSortChange('warning')}
+              className={`px-3 py-1 rounded-lg text-sm transition-colors duration-200 ${
+                sortBy === 'warning'
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              }`}
+            >
+              ⚠️ 주의 {sortBy === 'warning' && '📌'}
             </button>
           </div>
         </div>

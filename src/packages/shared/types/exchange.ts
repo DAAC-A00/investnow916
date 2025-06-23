@@ -160,6 +160,27 @@ export interface BithumbInstrument {
 // Bithumb API 응답은 배열 형태
 export type BithumbInstrumentsResponse = BithumbInstrument[];
 
+// Bithumb Market Info API 응답 타입 (더 자세한 정보 포함)
+export interface BithumbMarketInfo {
+  market: string;         // 예: "KRW-BTC", "BTC-ETH" 
+  korean_name: string;    // 예: "비트코인"
+  english_name: string;   // 예: "Bitcoin"
+  market_warning: 'NONE' | 'CAUTION'; // 유의 종목 여부
+}
+
+// Bithumb Market Info API 응답은 배열 형태
+export type BithumbMarketInfoResponse = BithumbMarketInfo[];
+
+// Bithumb Virtual Asset Warning API 응답 타입
+export interface BithumbVirtualAssetWarning {
+  market: string;         // 예: "KRW-ORBS"
+  warning_type: BithumbWarningType;
+  end_date: string;       // 예: "2025-06-24 07:04:59"
+}
+
+// Bithumb Virtual Asset Warning API 응답은 배열 형태
+export type BithumbVirtualAssetWarningResponse = BithumbVirtualAssetWarning[];
+
 // Bithumb Ticker API 응답 타입
 export interface BithumbTickerResponse {
   status: string;         // "0000" = 성공
@@ -199,6 +220,7 @@ export interface BithumbWarningsResponse {
 
 // Bithumb Warning 타입 정의
 export type BithumbWarningType = 
+  | 'PRICE_SUDDEN_FLUCTUATION'             // 가격 급등락
   | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
   | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
   | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
@@ -207,6 +229,7 @@ export type BithumbWarningType =
 
 // Bithumb Warning 타입별 한글 설명
 export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
+  'PRICE_SUDDEN_FLUCTUATION': '가격 급등락',
   'TRADING_VOLUME_SUDDEN_FLUCTUATION': '거래량 급등',
   'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION': '입금량 급등',
   'PRICE_DIFFERENCE_HIGH': '가격 차이',
