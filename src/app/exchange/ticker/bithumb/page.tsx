@@ -528,6 +528,11 @@ export default function BithumbTickerPage() {
                 data={ticker}
                 className="hover:scale-105 transition-transform duration-200"
                 onPriceChange={handlePriceChange}
+                onClick={(data) => {
+                  // ticker 데이터를 localStorage에 저장 (실제로는 store나 API를 사용해야 함)
+                  localStorage.setItem(`ticker_${data.rawSymbol}`, JSON.stringify(data));
+                  router.push(`/exchange/ticker/bithumb/spot/${data.rawSymbol}`);
+                }}
               />
             ))}
           </div>

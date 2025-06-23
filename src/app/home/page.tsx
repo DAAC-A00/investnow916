@@ -98,6 +98,16 @@ export default function HomePage() {
                 onPriceChange={(symbol, oldPrice, newPrice) => {
                   console.log(`홈 페이지 - ${symbol}: ${oldPrice} → ${newPrice}`);
                 }}
+                onClick={(data) => {
+                  // ticker 데이터를 localStorage에 저장 (실제로는 store나 API를 사용해야 함)
+                  localStorage.setItem(`ticker_${data.rawSymbol}`, JSON.stringify(data));
+                  // 거래소별 상세 페이지로 이동 (빗썸의 경우 새 URL 구조 사용)
+                  if (data.exchange === 'bithumb') {
+                    router.push(`/exchange/ticker/bithumb/spot/${data.rawSymbol}`);
+                  } else {
+                    router.push(`/ticker/${data.rawSymbol}`);
+                  }
+                }}
               />
             ))}
           </div>

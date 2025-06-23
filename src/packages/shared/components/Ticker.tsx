@@ -9,6 +9,7 @@ interface TickerProps {
   className?: string;
   onPriceChange?: (symbol: string, oldPrice: number, newPrice: number) => void;
   maxDecimals?: number; // symbol별 최대 소수점 자리수
+  onClick?: (data: TickerData) => void; // 클릭 이벤트 핸들러 추가
 }
 
 // 텍스트 길이에 따라 폰트 크기를 계산하는 함수
@@ -42,7 +43,7 @@ const calculatePercentFontSize = (text: string, baseFontSize: number, fixedWidth
 // 폰트 크기를 rem 단위로 변환하는 함수
 const toRemSize = (size: number) => `${size}rem`;
 
-export function Ticker({ data, className = '', onPriceChange, maxDecimals }: TickerProps) {
+export function Ticker({ data, className = '', onPriceChange, maxDecimals, onClick }: TickerProps) {
   const { 
     tickerColorMode,
     borderAnimationEnabled,
@@ -276,7 +277,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
 
   return (
     <div 
-      className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-1 border border-border ${className}`}
+      className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-1 border border-border cursor-pointer ${className}`}
+      onClick={() => onClick?.(data)}
     >
       <div className="flex justify-between items-start">
         <div className="text-left">

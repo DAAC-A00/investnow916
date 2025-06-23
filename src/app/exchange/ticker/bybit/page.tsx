@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { 
   BybitRawCategory, 
@@ -16,6 +17,7 @@ import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
 import { TickerData } from '@/packages/shared/types/exchange';
 
 export default function BybitTickersPage() {
+  const router = useRouter();
   // 글로벌 티커 색상 모드 상태 사용
   const tickerColorMode = useTickerSettingStore((s) => s.tickerColorMode);
   // 가격 변동 효과: 상승/하락/없음 상태 관리 (컴포넌트 전체에서 관리)
@@ -341,9 +343,15 @@ export default function BybitTickersPage() {
               <div
                 key={`${ticker.displayCategory}-${ticker.rawSymbol}`}
                 className={
-                  "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4"
+                  "bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer"
                 }
                 style={{ borderRadius: '0rem' }}
+                onClick={() => {
+                  // ticker 데이터를 localStorage에 저장 (실제로는 store나 API를 사용해야 함)
+                  localStorage.setItem(`ticker_${ticker.rawSymbol}`, JSON.stringify(ticker));
+                  // 일반 ticker 상세 페이지로 이동 (bybit는 기존 구조 유지)
+                  router.push(`/ticker/${ticker.rawSymbol}`);
+                }}
               >
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
