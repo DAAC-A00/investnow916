@@ -248,8 +248,22 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
   const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
   const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
   
-  // percent 영역의 고정 너비 설정 (5rem = 80px, +100.00% 정도가 적당히 들어갈 크기)
-  const percentFixedWidth = 5; // rem 단위
+  // percent 영역의 동적 너비 설정 - 배경색과 % 기호 표시 여부에 따라 조정
+  let percentFixedWidth = 5; // 기본값: 5rem (80px, +100.00% 정도가 적당히 들어갈 크기)
+  
+  // 배경색이 disabled되면 너비 감소 (0.5rem 감소)
+  if (!showPercentBackground) {
+    percentFixedWidth -= 0.5;
+  }
+  
+  // % 기호가 disabled되면 너비 추가 감소 (0.3rem 감소)
+  if (!showPercentSymbol) {
+    percentFixedWidth -= 1.0;
+  }
+  
+  // 최소 너비 보장 (3rem 이하로는 줄어들지 않도록)
+  percentFixedWidth = Math.max(percentFixedWidth, 3);
+  
   const percentFontSize = calculatePercentFontSize(formattedPriceChangePercent, 0.875, percentFixedWidth); // 기본 text-sm (0.875rem)
 
   // 스토어에서 색상 및 스타일 설정 가져오기
