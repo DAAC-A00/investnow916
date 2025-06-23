@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { TickerData } from '@/packages/shared/types/exchange';
+import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
 
 interface OrderbookUnit {
   ask_price: number;
@@ -53,6 +54,9 @@ export default function BithumbTickerDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  // 가격 추적기 생성
+  const priceTracker = useRef(new PriceDecimalTracker());
 
   useEffect(() => {
     setCurrentRoute(`/exchange/ticker/bithumb/${displayCategory}/${symbol}`);
@@ -119,6 +123,9 @@ export default function BithumbTickerDetailPage() {
             lowPrice24h: parseFloat(tickerInfo.min_price),
           };
           setTickerData(newTickerData);
+          
+          // 가격 추적
+          priceTracker.current.trackPrice(symbol, newTickerData.price);
         }
       }
     } catch (error) {
@@ -226,28 +233,20 @@ export default function BithumbTickerDetailPage() {
     return num.toLocaleString();
   };
 
-  const formatPrice = (price: number, isKRW: boolean = true) => {
-    if (isKRW) {
-      return price.toLocaleString(undefined, { 
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      });
-    }
-    return price.toLocaleString(undefined, { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 8 
-    });
-  };
+  // 공통 포맷터 사용
+  const maxDecimals = priceTracker.current.getMaxDecimals(tickerData.rawSymbol);
+  const formattedPrice = formatPrice(tickerData.price, maxDecimals, tickerData.quoteCode === 'KRW');
+  const formattedPriceChange = formatPriceChange(tickerData.priceChange24h, maxDecimals, tickerData.quoteCode === 'KRW');
 
   const getPriceChangeColor = (change: number) => {
-    if (change > 0) return 'text-red-600'; // 빗썸은 상승시 빨간색
-    if (change < 0) return 'text-blue-600'; // 하락시 파란색
+    if (change > 0) return 'text-green-600 dark:text-green-400';
+    if (change < 0) return 'text-red-600 dark:text-red-400';
     return 'text-muted-foreground';
   };
 
   const getPriceChangeBgColor = (change: number) => {
-    if (change > 0) return 'bg-red-100 text-red-800';
-    if (change < 0) return 'bg-blue-100 text-blue-800';
+    if (change > 0) return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200';
+    if (change < 0) return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200';
     return 'bg-muted text-muted-foreground';
   };
 
@@ -295,14 +294,14 @@ export default function BithumbTickerDetailPage() {
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">현재가</div>
                 <div className="text-3xl font-bold text-foreground">
-                  {formatPrice(tickerData.price, isKRW)} {tickerData.quoteCode}
+                  {formattedPrice} {tickerData.quoteCode}
                 </div>
               </div>
               
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">24시간 변동</div>
                 <div className={`text-2xl font-semibold ${getPriceChangeColor(tickerData.priceChange24h)}`}>
-                  {tickerData.priceChange24h >= 0 ? '+' : ''}{formatPrice(tickerData.priceChange24h, isKRW)}
+                  {formattedPriceChange}
                 </div>
               </div>
               
@@ -332,7 +331,7 @@ export default function BithumbTickerDetailPage() {
                   {orderbookData.orderbook_units.slice(0, 20).map((unit, index) => (
                     <div key={index} className="grid grid-cols-4 gap-2 text-sm py-1 hover:bg-muted/50">
                       <div className="text-right text-blue-600 font-medium">
-                        {formatPrice(unit.ask_price, isKRW)}
+                        {formatPrice(unit.ask_price, maxDecimals, isKRW)}
                       </div>
                       <div className="text-right">
                         {unit.ask_size.toFixed(4)}
@@ -341,7 +340,7 @@ export default function BithumbTickerDetailPage() {
                         {unit.bid_size.toFixed(4)}
                       </div>
                       <div className="text-right text-red-600 font-medium">
-                        {formatPrice(unit.bid_price, isKRW)}
+                        {formatPrice(unit.bid_price, maxDecimals, isKRW)}
                       </div>
                     </div>
                   ))}
@@ -363,19 +362,19 @@ export default function BithumbTickerDetailPage() {
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">24시간 최고가</span>
                 <span className="font-medium">
-                  {tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, isKRW) : '-'} {tickerData.quoteCode}
+                  {tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, maxDecimals, isKRW) : '-'} {tickerData.quoteCode}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">24시간 최저가</span>
                 <span className="font-medium">
-                  {tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, isKRW) : '-'} {tickerData.quoteCode}
+                  {tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, maxDecimals, isKRW) : '-'} {tickerData.quoteCode}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">24시간 전 가격</span>
                 <span className="font-medium">
-                  {formatPrice(tickerData.prevPrice24h, isKRW)} {tickerData.quoteCode}
+                  {formatPrice(tickerData.prevPrice24h, maxDecimals, isKRW)} {tickerData.quoteCode}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">

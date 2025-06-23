@@ -3,47 +3,43 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BottomDisplayMode } from '@/packages/shared/stores/createTickerSettingStore';
 import { TickerData, WARNING_TYPE_LABELS } from '@/packages/shared/types/exchange';
+import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
 
 interface TickerProps {
   data: TickerData;
   className?: string;
   onPriceChange?: (symbol: string, oldPrice: number, newPrice: number) => void;
-  maxDecimals?: number; // symbol별 최대 소수점 자리수
+  priceTracker?: PriceDecimalTracker; // 가격 추적기 (선택사항)  
   onClick?: (data: TickerData) => void; // 클릭 이벤트 핸들러 추가
 }
 
-// 텍스트 길이에 따라 폰트 크기를 계산하는 함수
+// 동적 폰트 크기 계산 함수
 const calculateFontSize = (text: string, baseFontSize: number, maxLength: number) => {
-  if (text.length <= maxLength) {
-    return baseFontSize;
-  }
+  const length = text.length;
+  if (length <= maxLength) return baseFontSize;
   
-  // 텍스트가 길어질수록 폰트 크기를 줄임 (최소 0.7배까지)
-  const ratio = Math.max(0.7, maxLength / text.length);
-  return baseFontSize * ratio;
+  // 길이가 초과하면 비례적으로 폰트 크기 감소
+  const reduction = Math.min((length - maxLength) * 0.05, 0.3); // 최대 0.3rem까지만 감소
+  return Math.max(baseFontSize - reduction, baseFontSize * 0.6); // 최소 기본 크기의 60%까지만
 };
 
-// 고정 너비 기준으로 폰트 크기를 동적으로 계산하는 함수
+// percent 영역의 동적 폰트 크기 계산 함수 (고정 너비를 고려)
 const calculatePercentFontSize = (text: string, baseFontSize: number, fixedWidthRem: number) => {
-  // rem을 픽셀로 변환 (보통 1rem = 16px)
-  const fixedWidthPx = fixedWidthRem * 16;
+  const estimatedWidthPerChar = 0.5; // rem 단위로 문자당 예상 너비
+  const availableWidth = fixedWidthRem - 0.5; // 여백을 위한 패딩 고려
+  const estimatedTextWidth = text.length * estimatedWidthPerChar;
   
-  // 기본적으로 한 글자당 약 0.6em 정도의 너비를 가정
-  const estimatedTextWidth = text.length * baseFontSize * 16 * 0.6;
+  if (estimatedTextWidth <= availableWidth) return baseFontSize;
   
-  if (estimatedTextWidth <= fixedWidthPx) {
-    return baseFontSize;
-  }
-  
-  // 고정 너비에 맞도록 폰트 크기 조정 (최소 0.6배까지)
-  const ratio = Math.max(0.6, fixedWidthPx / estimatedTextWidth);
-  return baseFontSize * ratio;
+  // 텍스트가 너무 길면 폰트 크기 축소
+  const scaleFactor = availableWidth / estimatedTextWidth;
+  return Math.max(baseFontSize * scaleFactor, baseFontSize * 0.6); // 최소 기본 크기의 60%까지만
 };
 
-// 폰트 크기를 rem 단위로 변환하는 함수
+// rem 변환 함수
 const toRemSize = (size: number) => `${size}rem`;
 
-export function Ticker({ data, className = '', onPriceChange, maxDecimals, onClick }: TickerProps) {
+export function Ticker({ data, className = '', onPriceChange, priceTracker, onClick }: TickerProps) {
   const { 
     tickerColorMode,
     borderAnimationEnabled,
@@ -81,6 +77,13 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals, onCli
     });
   }, [borderAnimationDuration]);
 
+  // 가격 추적 및 포맷팅
+  useEffect(() => {
+    if (priceTracker) {
+      priceTracker.trackPrice(data.rawSymbol, data.price);
+    }
+  }, [data.price, data.rawSymbol, priceTracker]);
+
   // 숫자 포맷팅 함수
   const formatNumber = (num: number) => {
     if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
@@ -89,115 +92,13 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals, onCli
     return num;
   };
 
-  // 가격 포맷팅 함수 (1000 이상인 경우 콤마 추가)
-  const formatPrice = (price: number) => {
-    let decimals: number;
-    
-    // 가격 범위에 따라 소수점 자리수 결정
-    if (price >= 1000) {
-      decimals = 2;
-    } else if (price >= 100) {
-      decimals = 2;
-    } else if (price >= 1) {
-      decimals = 4;
-    } else if (price >= 0.01) {
-      decimals = 6;
-    } else {
-      decimals = 12;
-    }
-    // maxDecimals가 있으면 그 값과 비교해 더 큰 값을 사용
-    if (typeof maxDecimals === 'number' && maxDecimals > decimals) {
-      decimals = maxDecimals;
-    }
-    // 반올림 후 0 생략, 단 maxDecimals가 있으면 해당 자리수까지는 0도 표기
-    let formatted = price.toFixed(decimals);
-    if (typeof maxDecimals !== 'number') {
-      // maxDecimals가 없으면 소수점 뒤 0 생략
-      formatted = formatted.replace(/(\.[0-9]*[1-9])0+$/, '$1').replace(/\.0+$/, '');
-    } else {
-      // maxDecimals가 있으면 해당 자리수까지는 0도 표기
-      // 단, 소수점 이하가 모두 0이면 .0... 형태로 유지
-      const [intPart, decPart] = formatted.split('.');
-      if (decPart) {
-        // 오른쪽 0을 자르되, 최소 maxDecimals까지는 남김
-        let trimIndex = decPart.length;
-        for (let i = decPart.length - 1; i >= maxDecimals; i--) {
-          if (decPart[i] === '0') trimIndex = i;
-          else break;
-        }
-        const trimmedDec = decPart.slice(0, trimIndex);
-        formatted = trimmedDec ? `${intPart}.${trimmedDec}` : intPart;
-        // 만약 모두 0이면 maxDecimals만큼 0을 붙임
-        if (!trimmedDec && maxDecimals > 0) {
-          formatted = `${intPart}.${'0'.repeat(maxDecimals)}`;
-        }
-      }
-    }
-    // 1000 이상인 경우 콤마 추가
-    if (price >= 1000) {
-      const [integerPart, decimalPart] = formatted.split('.');
-      const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
-    }
-    return formatted;
-  };
-
   const formattedTurnover = formatNumber(data.turnover24h);
   const formattedVolume = formatNumber(data.volume24h);
   
-  // Calculate decimals for price
-  let decimals: number;
-  if (data.price >= 1000) {
-    decimals = 2;
-  } else if (data.price >= 100) {
-    decimals = 2;
-  } else if (data.price >= 1) {
-    decimals = 4;
-  } else if (data.price >= 0.01) {
-    decimals = 6;
-  } else {
-    decimals = 12;
-  }
-  // Use maxDecimals if provided and greater than calculated decimals
-  if (typeof maxDecimals === 'number' && maxDecimals > decimals) {
-    decimals = maxDecimals;
-  }
-
-  // Format price change with the same rules as price
-  let formattedPriceChange: string;
-  let formatted = data.priceChange24h.toFixed(decimals);
-  if (typeof maxDecimals !== 'number') {
-    // maxDecimals가 없으면 소수점 뒤 0 생략
-    formatted = formatted.replace(/(\.[0-9]*[1-9])0+$/, '$1').replace(/\.0+$/, '');
-  } else {
-    // maxDecimals가 있으면 해당 자리수까지는 0도 표기
-    // 단, 소수점 이하가 모두 0이면 .0... 형태로 유지
-    const [intPart, decPart] = formatted.split('.');
-    if (decPart) {
-      // 오른쪽 0을 자르되, 최소 maxDecimals까지는 남김
-      let trimIndex = decPart.length;
-      for (let i = decPart.length - 1; i >= maxDecimals; i--) {
-        if (decPart[i] === '0') trimIndex = i;
-        else break;
-      }
-      const trimmedDec = decPart.slice(0, trimIndex);
-      formatted = trimmedDec ? `${intPart}.${trimmedDec}` : intPart;
-      // 만약 모두 0이면 maxDecimals만큼 0을 붙임
-      if (!trimmedDec && maxDecimals > 0) {
-        formatted = `${intPart}.${'0'.repeat(maxDecimals)}`;
-      }
-    }
-  }
-  // 1000 이상인 경우 콤마 추가
-  if (Math.abs(data.priceChange24h) >= 1000) {
-    const [integerPart, decimalPart] = formatted.split('.');
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    formattedPriceChange = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
-  } else {
-    formattedPriceChange = formatted;
-  }
-  // Add plus sign for positive values
-  formattedPriceChange = `${data.priceChange24h >= 0 ? '+' : ''}${formattedPriceChange}`;
+  // 가격 포맷팅 (공통 유틸리티 사용)
+  const maxDecimals = priceTracker ? priceTracker.getMaxDecimals(data.rawSymbol) : 0;
+  const formattedLastPrice = formatPrice(data.price, maxDecimals, true);
+  const formattedPriceChange = formatPriceChange(data.priceChange24h, maxDecimals, true);
 
   let percentAbs = Math.abs(data.priceChangePercent24h);
   let percentStr = '';
@@ -209,7 +110,6 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals, onCli
     percentStr = data.priceChangePercent24h.toFixed(2);
   }
   const formattedPriceChangePercent = `${data.priceChangePercent24h >= 0 ? '+' : ''}${percentStr}${showPercentSymbol ? '%' : ''}`;
-  const formattedLastPrice = formatPrice(data.price);
 
   // 데이터 변경 감지 및 애니메이션 트리거
   useEffect(() => {

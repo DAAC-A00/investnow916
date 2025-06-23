@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { Ticker, TickerData } from '@/packages/shared/components';
+import { PriceDecimalTracker } from '@/packages/shared/utils';
 
 export default function HomePage() {
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
+  
+  // 가격 추적기 생성
+  const priceTracker = useRef(new PriceDecimalTracker());
 
   useEffect(() => {
     setCurrentRoute('/home');
@@ -50,6 +54,13 @@ export default function HomePage() {
       prevPrice: 2626.00
     },
   ]);
+
+  // 초기 데이터의 가격 추적
+  useEffect(() => {
+    sampleTickers.forEach(ticker => {
+      priceTracker.current.trackPrice(ticker.rawSymbol, ticker.price);
+    });
+  }, [sampleTickers]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-muted">
@@ -94,6 +105,7 @@ export default function HomePage() {
               <Ticker
                 key={ticker.rawSymbol}
                 data={ticker}
+                priceTracker={priceTracker.current}
                 className="hover:scale-105 transition-transform duration-200"
                 onPriceChange={(symbol, oldPrice, newPrice) => {
                   console.log(`홈 페이지 - ${symbol}: ${oldPrice} → ${newPrice}`);
