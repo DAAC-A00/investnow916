@@ -300,7 +300,7 @@ export default function BybitTickersPage() {
             };
             const flashColor = getFlashColor(tickerColorMode, flashStates[ticker.rawSymbol] ?? 'none');
             
-            const formattedTurnover = formatNumber(ticker.turnover);
+            const formattedTurnover = formatNumber(ticker.turnover24h);
             
             // Format price change with the same rules as lastPrice
             let formattedPriceChange: string;

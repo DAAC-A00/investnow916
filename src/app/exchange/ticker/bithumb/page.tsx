@@ -124,7 +124,7 @@ export default function BithumbTickerPage() {
         category: 'spot'
       });
 
-      // TickerData 형식으로 변환
+      // TickerData 형식으로 변환 (새로운 통합 구조 사용)
       const tickerDataList: TickerData[] = combinedTickers.map(({ symbol, baseCode, quoteCode, ticker }) => {
         const rawSymbol = `${symbol}${quoteCode}`;
         const displaySymbol = `${baseCode}/${quoteCode}`;
@@ -135,8 +135,8 @@ export default function BithumbTickerPage() {
         const prevPrice24h = parseFloat(ticker.prev_closing_price);
         const priceChange24h = parseFloat(ticker.fluctate_24H);
         const priceChangePercent24h = parseFloat(ticker.fluctate_rate_24H);
-        const volume = parseFloat(ticker.units_traded_24H);
-        const turnover = parseFloat(ticker.acc_trade_value_24H);
+        const volume24h = parseFloat(ticker.units_traded_24H);
+        const turnover24h = parseFloat(ticker.acc_trade_value_24H);
         const highPrice24h = parseFloat(ticker.max_price);
         const lowPrice24h = parseFloat(ticker.min_price);
 
@@ -148,26 +148,67 @@ export default function BithumbTickerPage() {
         const market = marketInfo.find(m => m.market === marketSymbol);
         const hasMarketWarning = market?.market_warning === 'CAUTION';
 
+        // 최종 경고 유형 결정
+        const finalWarningType = warningType || (hasMarketWarning ? 'TRADING_VOLUME_SUDDEN_FLUCTUATION' as BithumbWarningType : undefined);
+
         return {
+          // === 기본 식별 정보 ===
           rawSymbol,
           displaySymbol,
-          quantity: 1,
           baseCode,
           quoteCode,
-          price,
-          priceChange24h,
-          priceChangePercent24h,
-          prevPrice24h,
-          volume,
-          turnover,
-          highPrice24h,
-          lowPrice24h,
-          exchange: 'bithumb',
+          exchange: 'bithumb' as const,
+          
+          // === 카테고리 정보 ===
           displayCategory: 'spot',
           rawCategory: 'spot',
-          warningType,
-          // 유의 종목이나 주의 종목 경고가 있으면 warningType 설정
-          ...(hasMarketWarning && !warningType ? { warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION' as BithumbWarningType } : {})
+          
+          // === 현재 가격 정보 ===
+          price,
+          prevPrice24h,
+          priceChange24h,
+          priceChangePercent24h,
+          
+          // === 거래 정보 ===
+          volume24h,
+          turnover24h,
+          highPrice24h,
+          lowPrice24h,
+          quantity: 1,
+          
+          // === Instrument 세부 정보 ===
+          instrumentInfo: {
+            status: 'Trading',
+            koreanName: market?.korean_name,
+            englishName: market?.english_name,
+          },
+          
+          // === Warning 정보 ===
+          warningInfo: finalWarningType ? {
+            warningType: finalWarningType,
+            warningEndDate: warning?.end_date,
+            marketWarning: hasMarketWarning ? 'CAUTION' : 'NONE',
+            hasActiveWarning: !!finalWarningType,
+          } : undefined,
+          
+          // === 메타데이터 ===
+          metadata: {
+            lastUpdated: new Date(),
+            dataSource: 'https://api.bithumb.com',
+            rawApiResponse: ticker,
+            reliability: 'HIGH',
+          },
+          
+          // === 거래소별 확장 정보 ===
+          exchangeSpecific: {
+            bithumb: {
+              openingPrice: ticker.opening_price,
+              prevClosingPrice: ticker.prev_closing_price,
+              accTradeValue: ticker.acc_trade_value_24H,
+              unitsTraded: ticker.units_traded_24H,
+              marketType: quoteCode as 'KRW' | 'BTC',
+            }
+          }
         };
       });
 
@@ -216,10 +257,8 @@ export default function BithumbTickerPage() {
       const withoutWarnings: TickerData[] = [];
 
       tickersToSort.forEach(ticker => {
-        const hasWarning = ticker.warningType !== undefined;
-        const marketSymbol = `${ticker.quoteCode}-${ticker.baseCode}`;
-        const market = marketInfo.find(m => m.market === marketSymbol);
-        const hasMarketWarning = market?.market_warning === 'CAUTION';
+        const hasWarning = ticker.warningInfo?.warningType !== undefined;
+        const hasMarketWarning = ticker.warningInfo?.marketWarning === 'CAUTION';
         
         if (hasWarning || hasMarketWarning) {
           withWarnings.push(ticker);
@@ -229,7 +268,7 @@ export default function BithumbTickerPage() {
       });
 
       // 각 그룹 내에서 거래대금 내림차순 정렬
-      const sortByTurnover = (a: TickerData, b: TickerData) => b.turnover - a.turnover;
+      const sortByTurnover = (a: TickerData, b: TickerData) => b.turnover24h - a.turnover24h;
       withWarnings.sort(sortByTurnover);
       withoutWarnings.sort(sortByTurnover);
 
@@ -251,12 +290,12 @@ export default function BithumbTickerPage() {
           valueB = b.price;
           break;
         case 'volume':
-          valueA = a.volume;
-          valueB = b.volume;
+          valueA = a.volume24h;
+          valueB = b.volume24h;
           break;
         case 'turnover':
-          valueA = a.turnover;
-          valueB = b.turnover;
+          valueA = a.turnover24h;
+          valueB = b.turnover24h;
           break;
         case 'symbol':
           valueA = a.displaySymbol;
@@ -370,7 +409,7 @@ export default function BithumbTickerPage() {
               </div>
             )}
             <div>
-              총 {tickers.length}개 코인 ({virtualAssetWarnings.length}개 경고)
+              총 {tickers.length}개 코인 ({tickers.filter(t => t.warningInfo?.hasActiveWarning).length}개 경고)
             </div>
           </div>
 

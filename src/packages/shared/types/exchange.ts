@@ -247,37 +247,271 @@ export const WARNING_TYPE_LABELS: Record<WarningType, string> = BITHUMB_WARNING_
 export type BithumbRawCategory = 'spot';
 export type BithumbDisplayCategory = 'spot';
 
-// 티커 정보 공통 인터페이스 (통합된 타입)
+/**
+ * 통합된 티커 데이터 구조
+ * 
+ * 이 인터페이스는 다음 정보들을 통합적으로 관리합니다:
+ * - 기본 티커 정보 (가격, 거래량 등)
+ * - Instrument 정보 (거래소, 카테고리, 심볼 등)
+ * - Warning 정보 (경고 유형, 시장 주의 사항 등)
+ * - 메타데이터 (타임스탬프, 상태 등)
+ */
 export interface TickerData {
-  // 심볼 관련 필드
-  rawSymbol: string;         // 외부 API에서 받은 원본 심볼 (예: BTCUSDT) - 이전 rawSymbol
-  displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
-  quantity: number;       // 거래쌍의 양 (예: 1000)
-  baseCode: string;       // 거래쌍의 기준(기본) 코인 (예: BTC)
-  quoteCode: string;      // 거래쌍의 상대(견적) 코인 (예: USDT)
+  // === 기본 식별 정보 ===
+  /** 외부 API에서 받은 원본 심볼 (예: BTCUSDT, BTCKRW) */
+  rawSymbol: string;
+  /** 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT, BTC/KRW) */
+  displaySymbol: string;
+  /** 거래쌍의 기준(기본) 코인 (예: BTC) */
+  baseCode: string;
+  /** 거래쌍의 상대(견적) 코인 (예: USDT, KRW) */
+  quoteCode: string;
+  /** 거래소 */
+  exchange: ExchangeType;
+  warningType?: WarningType;
   
-  // 가격 관련 필드
-  price: number;          // 현재 가격 (이전 lastPrice)
-  priceChange24h: number;    // 24시간 가격 변동 (이전 priceChange24h)
-  priceChangePercent24h: number; // 24시간 가격 변동률 (이전 priceChangePercent24h)
-  prevPrice24h: number;   // 24시간 전 가격
-  prevPrice?: number;     // 이전 가격 (애니메이션용)
+  // === 카테고리 정보 ===
+  /** 내부 프로젝트에서 표시하는 카테고리 (예: spot, um, cm) */
+  displayCategory: string;
+  /** 외부 API에서 받은 카테고리 (예: linear, inverse, spot) */
+  rawCategory: string;
+  /** 정산 화폐 코드 (선물의 경우, 예: USD, USDT) */
+  settlementCode?: string;
   
-  // 거래량/거래대금 관련 필드
-  volume: number;         // 24시간 거래량 (이전 volume24h)
-  turnover: number;       // 24시간 거래대금 (이전 turnover24h)
+  // === 현재 가격 정보 ===
+  /** 현재 가격 */
+  price: number;
+  /** 이전 가격 (애니메이션용) */
+  prevPrice?: number;
+  /** 24시간 전 가격 */
+  prevPrice24h: number;
+  /** 24시간 가격 변동 */
+  priceChange24h: number;
+  /** 24시간 가격 변동률 (%) */
+  priceChangePercent24h: number;
   
-  // 추가 정보 필드
-  warningType?: WarningType;         // 경고 유형 (예: "TRADING_VOLUME_SUDDEN_FLUCTUATION", "DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION")
-  
-  // 확장 필드 (TickerInfo에만 있던 필드들)
+  // === 거래 정보 ===
+  /** 24시간 거래량 */
+  volume24h: number;
+  /** 24시간 거래대금 */
+  turnover24h: number;
+  /** 24시간 최고가 */
   highPrice24h?: number;
+  /** 24시간 최저가 */
   lowPrice24h?: number;
+  /** 매수 1호가 */
   bidPrice?: number;
+  /** 매도 1호가 */
   askPrice?: number;
-  exchange?: ExchangeType;
-  displayCategory?: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
-  rawCategory?: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
+  /** 거래 수량 (UI 표시용) */
+  quantity?: number;
+  
+  // === Instrument 세부 정보 ===
+  instrumentInfo?: {
+    /** 상장 상태 */
+    status?: string;
+    /** 계약 타입 (선물의 경우) */
+    contractType?: string;
+    /** 상장 시간 */
+    launchTime?: string;
+    /** 만료 시간 (선물의 경우) */
+    deliveryTime?: string;
+    /** 만료 수수료율 (선물의 경우) */
+    deliveryFeeRate?: string;
+    /** 가격 스케일 */
+    priceScale?: string;
+    /** 레버리지 정보 */
+    leverageFilter?: {
+      minLeverage?: string;
+      maxLeverage?: string;
+      leverageStep?: string;
+    };
+    /** 가격 필터 */
+    priceFilter?: {
+      minPrice?: string;
+      maxPrice?: string;
+      tickSize?: string;
+    };
+    /** 로트 사이즈 필터 */
+    lotSizeFilter?: any;
+    /** 통합 마진 거래 가능 여부 */
+    unifiedMarginTrade?: boolean;
+    /** 펀딩 간격 (선물의 경우) */
+    fundingInterval?: number;
+    /** 정산 코인 */
+    settleCoin?: string;
+    /** 카피 트레이딩 지원 여부 */
+    copyTrading?: string;
+    /** 최대 펀딩률 */
+    upperFundingRate?: string;
+    /** 최소 펀딩률 */
+    lowerFundingRate?: string;
+    /** 프리 리스팅 여부 */
+    isPreListing?: boolean;
+    /** 프리 리스팅 정보 */
+    preListingInfo?: any;
+    /** 리스크 파라미터 */
+    riskParameters?: any;
+    /** 표시 이름 */
+    displayName?: string;
+    /** 혁신존 여부 (현물의 경우) */
+    innovation?: string;
+    /** 마진 거래 지원 여부 (현물의 경우) */
+    marginTrading?: string;
+    /** ST 태그 (현물의 경우) */
+    stTag?: string;
+    /** 옵션 타입 (옵션의 경우: Put, Call) */
+    optionsType?: string;
+    /** 한국어 이름 (Bithumb의 경우) */
+    koreanName?: string;
+    /** 영어 이름 (Bithumb의 경우) */
+    englishName?: string;
+  };
+  
+  // === Warning 정보 ===
+  warningInfo?: {
+    /** 경고 유형 */
+    warningType?: WarningType;
+    /** 경고 종료 날짜 */
+    warningEndDate?: string;
+    /** 시장 경고 (유의 종목 등) */
+    marketWarning?: 'NONE' | 'CAUTION';
+    /** 경고 활성 여부 */
+    hasActiveWarning?: boolean;
+    /** 사용자 정의 경고 메시지 */
+    customWarningMessage?: string;
+  };
+  
+  // === 메타데이터 ===
+  metadata?: {
+    /** 데이터 마지막 업데이트 시간 */
+    lastUpdated?: Date;
+    /** 데이터 소스 URL */
+    dataSource?: string;
+    /** 원본 API 응답 데이터 */
+    rawApiResponse?: any;
+    /** 데이터 품질 점수 (0-100) */
+    qualityScore?: number;
+    /** 데이터 신뢰도 */
+    reliability?: 'HIGH' | 'MEDIUM' | 'LOW';
+    /** 사용자 즐겨찾기 여부 */
+    isFavorite?: boolean;
+    /** 알림 설정 여부 */
+    hasAlert?: boolean;
+    /** 사용자 메모 */
+    userNote?: string;
+  };
+  
+  
+  // === 거래소별 확장 정보 ===
+  exchangeSpecific?: {
+    /** Bybit 전용 정보 */
+    bybit?: {
+      /** USD 인덱스 가격 */
+      usdIndexPrice?: string;
+      /** 카테고리 */
+      category?: string;
+      /** 펀딩률 */
+      fundingRate?: string;
+      /** 다음 펀딩 시간 */
+      nextFundingTime?: string;
+      /** 오픈 인터레스트 */
+      openInterest?: string;
+      /** 오픈 인터레스트 값 */
+      openInterestValue?: string;
+    };
+    /** Bithumb 전용 정보 */
+    bithumb?: {
+      /** 시가 */
+      openingPrice?: string;
+      /** 전일 종가 */
+      prevClosingPrice?: string;
+      /** 거래대금 */
+      accTradeValue?: string;
+      /** 거래량 */
+      unitsTraded?: string;
+      /** 시장 분류 (KRW, BTC) */
+      marketType?: 'KRW' | 'BTC';
+    };
+    /** Binance 전용 정보 */
+    binance?: {
+      /** 가중 평균 가격 */
+      weightedAvgPrice?: string;
+      /** 거래 횟수 */
+      count?: number;
+      /** 첫 거래 ID */
+      firstId?: number;
+      /** 마지막 거래 ID */
+      lastId?: number;
+    };
+    /** Upbit 전용 정보 */
+    upbit?: {
+      /** 누적 거래량 */
+      accTradeVolume?: number;
+      /** 누적 거래대금 */
+      accTradePrice?: number;
+      /** 전일 종가 */
+      prevClosingPrice?: number;
+      /** 전일 거래량 */
+      prevAccTradeVolume?: number;
+    };
+  };
+}
+
+// 기존 warningType 필드는 warningInfo.warningType으로 이동하여 호환성 유지
+// 하지만 기존 코드와의 호환성을 위해 루트 레벨에도 유지
+export interface TickerDataLegacy extends TickerData {
+  /** @deprecated warningInfo.warningType 사용 권장 */
+  warningType?: WarningType;
+}
+
+/**
+ * 티커 데이터 생성을 위한 유틸리티 함수 타입
+ */
+export interface TickerDataBuilder {
+  /** 기본 티커 정보 설정 */
+  setBasicInfo(info: {
+    rawSymbol: string;
+    displaySymbol: string;
+    baseCode: string;
+    quoteCode: string;
+    exchange: ExchangeType;
+    displayCategory: string;
+    rawCategory: string;
+  }): TickerDataBuilder;
+  
+  /** 가격 정보 설정 */
+  setPriceInfo(info: {
+    price: number;
+    prevPrice24h: number;
+    priceChange24h: number;
+    priceChangePercent24h: number;
+    highPrice24h?: number;
+    lowPrice24h?: number;
+  }): TickerDataBuilder;
+  
+  /** 거래 정보 설정 */
+  setTradeInfo(info: {
+    volume24h: number;
+    turnover24h: number;
+    bidPrice?: number;
+    askPrice?: number;
+  }): TickerDataBuilder;
+  
+  /** Instrument 정보 설정 */
+  setInstrumentInfo(info: NonNullable<TickerData['instrumentInfo']>): TickerDataBuilder;
+  
+  /** Warning 정보 설정 */
+  setWarningInfo(info: NonNullable<TickerData['warningInfo']>): TickerDataBuilder;
+  
+  /** 메타데이터 설정 */
+  setMetadata(info: NonNullable<TickerData['metadata']>): TickerDataBuilder;
+  
+  /** 거래소별 확장 정보 설정 */
+  setExchangeSpecific(info: NonNullable<TickerData['exchangeSpecific']>): TickerDataBuilder;
+  
+  /** 최종 TickerData 객체 생성 */
+  build(): TickerData;
 }
 
 // 거래소 코인 정보 상태 타입

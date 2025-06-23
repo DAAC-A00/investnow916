@@ -141,8 +141,8 @@ export function Ticker({ data, className = '', onPriceChange, maxDecimals }: Tic
     return formatted;
   };
 
-  const formattedTurnover = formatNumber(data.turnover);
-  const formattedVolume = formatNumber(data.volume);
+  const formattedTurnover = formatNumber(data.turnover24h);
+  const formattedVolume = formatNumber(data.volume24h);
   
   // Calculate decimals for price
   let decimals: number;
