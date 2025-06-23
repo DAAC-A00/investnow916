@@ -37,6 +37,7 @@ export default function BithumbTickerPage() {
   const [marketInfo, setMarketInfo] = useState<BithumbMarketInfo[]>([]);
   const [virtualAssetWarnings, setVirtualAssetWarnings] = useState<BithumbVirtualAssetWarning[]>([]);
   const [lastMarketInfoUpdate, setLastMarketInfoUpdate] = useState<Date | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     setCurrentRoute('/exchange/ticker/bithumb');
@@ -283,6 +284,18 @@ export default function BithumbTickerPage() {
   // 정렬된 티커 목록
   const sortedTickers = sortTickers(tickers);
 
+  // 검색 필터링된 티커 목록
+  const filteredTickers = sortedTickers.filter(ticker => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const searchableText = `${ticker.rawSymbol}${ticker.displaySymbol}${ticker.baseCode}${ticker.quoteCode}${ticker.displayCategory}${ticker.rawCategory}`.toLowerCase();
+
+    // 검색어를 공백으로 분리하여 AND 검색 수행
+    const searchTerms = searchLower.split(/\s+/).filter(term => term.length > 0);
+    return searchTerms.every(term => searchableText.includes(term));
+  });
+
   // 정렬 변경 핸들러
   const handleSortChange = (newSortBy: typeof sortBy) => {
     if (newSortBy === 'warning') {
@@ -425,6 +438,39 @@ export default function BithumbTickerPage() {
               ⚠️ 주의 {sortBy === 'warning' && '📌'}
             </button>
           </div>
+
+          {/* 검색 기능 */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="코인 검색 (예: BTC KRW, ETH spot)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mt-2">
+                "{searchTerm}" 검색 결과: {filteredTickers.length}개
+              </p>
+            )}
+          </div>
         </div>
 
         {/* 티커 목록 */}
@@ -436,8 +482,8 @@ export default function BithumbTickerPage() {
             </div>
           </div>
         ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {sortedTickers.map((ticker) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTickers.map((ticker) => (
               <Ticker
                 key={ticker.rawSymbol}
                 data={ticker}
@@ -449,7 +495,25 @@ export default function BithumbTickerPage() {
         )}
 
         {/* 빈 상태 */}
-                 {!isLoading && sortedTickers.length === 0 && (
+        {!isLoading && filteredTickers.length === 0 && tickers.length > 0 && (
+          <div className="text-center py-16">
+            <div className="text-4xl mb-4">🔍</div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              검색 결과가 없습니다
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              "{searchTerm}" 검색어와 일치하는 코인이 없습니다
+            </p>
+            <button
+              onClick={() => setSearchTerm('')}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg"
+            >
+              검색 초기화
+            </button>
+          </div>
+        )}
+
+        {!isLoading && sortedTickers.length === 0 && (
           <div className="text-center py-16">
             <div className="text-4xl mb-4">📊</div>
             <h3 className="text-xl font-semibold text-foreground mb-2">
