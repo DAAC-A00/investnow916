@@ -25,6 +25,7 @@ export default function HomePage() {
       priceChange24h: 1250.50,
       priceChangePercent24h: 2.98,
       turnover: 1250000000,
+      volume: 28901.4,
       prevPrice24h: 42000.00,
       prevPrice: 42000.00
     },
@@ -38,22 +39,10 @@ export default function HomePage() {
       priceChange24h: -45.25,
       priceChangePercent24h: -1.72,
       turnover: 850000000,
+      volume: 329362,
       prevPrice24h: 2626.00,
       prevPrice: 2626.00
     },
-    {
-      rawSymbol: 'ADAUSDT',
-      displaySymbol: 'ADA/USDT',
-      quantity: 1,
-      baseCode: 'ADA',
-      quoteCode: 'USDT',
-      price: 0.4521,
-      priceChange24h: 0.00,
-      priceChangePercent24h: 0.00,
-      turnover: 125000000,
-      prevPrice24h: 0.4521,
-      prevPrice: 0.4521
-    }
   ]);
 
   return (
@@ -94,7 +83,7 @@ export default function HomePage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {sampleTickers.map((ticker) => (
               <Ticker
                 key={ticker.rawSymbol}
