@@ -34,6 +34,9 @@ interface BithumbTickerData {
   date: string;
 }
 
+// 정렬 상태 저장/복원을 위한 키 상수
+const SORT_STORAGE_KEY = 'bithumb_ticker_sort_settings';
+
 export default function BithumbTickerPage() {
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
@@ -46,9 +49,34 @@ export default function BithumbTickerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // 정렬 설정을 저장하는 함수
+  const saveSortSettings = useCallback((sortBy: string, sortOrder: string) => {
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ sortBy, sortOrder }));
+    } catch (error) {
+      console.warn('정렬 설정을 저장하는데 실패했습니다:', error);
+    }
+  }, []);
+
+  // 초기 정렬 상태 설정 (기본값)
   const [sortBy, setSortBy] = useState<'changePercent' | 'price' | 'volume' | 'turnover' | 'symbol' | 'warning'>('changePercent');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // 컴포넌트 마운트 시 localStorage에서 정렬 설정 복원
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SORT_STORAGE_KEY);
+      if (saved) {
+        const { sortBy: savedSortBy, sortOrder: savedSortOrder } = JSON.parse(saved);
+        setSortBy(savedSortBy);
+        setSortOrder(savedSortOrder);
+      }
+    } catch (error) {
+      console.warn('정렬 설정을 불러오는데 실패했습니다:', error);
+    }
+  }, []);
 
   useEffect(() => {
     setCurrentRoute('/exchange/ticker/bithumb');
@@ -317,19 +345,23 @@ export default function BithumbTickerPage() {
     return searchTerms.every(term => searchableText.includes(term));
   });
 
-  // 정렬 변경 핸들러
+  // 정렬 변경 핸들러 (localStorage 저장 기능 추가)
   const handleSortChange = (newSortBy: typeof sortBy) => {
     if (newSortBy === 'warning') {
       // 주의 정렬은 항상 경고가 있는 티커를 상단에 배치 (정렬 순서 변경 없음)
       setSortBy('warning');
       setSortOrder('desc'); // 기본값으로 설정하지만 실제로는 사용되지 않음
+      saveSortSettings('warning', 'desc');
     } else if (newSortBy === sortBy) {
       // 같은 항목 클릭시 정렬 순서 변경
-      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+      const newSortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      setSortOrder(newSortOrder);
+      saveSortSettings(sortBy, newSortOrder);
     } else {
       // 다른 항목 클릭시 해당 항목으로 변경하고 내림차순으로 설정
       setSortBy(newSortBy);
       setSortOrder('desc');
+      saveSortSettings(newSortBy, 'desc');
     }
   };
 
