@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
+import { get as apiGet } from '@/packages/shared/utils/apiClient';
 
 // 심볼 정보 타입 정의
 interface SymbolInfo {
@@ -46,15 +47,6 @@ import {
 
 // 초기 상태에 포함될 데이터 부분
 type ExchangeInstrumentStateData = Pick<ExchangeInstrumentState, 'isLoading' | 'error'>;
-
-// 초기 상태 정의
-// Bybit instrument 원본 데이터를 임시로 저장
-interface BybitInstrumentRawState {
-  bybitInstrumentRaw: {
-    [rawCategory in BybitRawCategory]?: BybitInstrument[];
-  };
-  fetchBybitInstrumentRaw: () => Promise<void>;
-}
 
 const initialState: ExchangeInstrumentStateData = {
   isLoading: false,
@@ -313,14 +305,9 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
 
     console.log(`Bybit ${rawCategory} 데이터를 갱신합니다...`);
 
-    // API 요청은 원래 카테고리로
-    const response = await fetch(API_URLS.bybit.getInstrumentUrl(rawCategory));
-    
-    if (!response.ok) {
-      throw new Error(`API 요청 실패: ${response.status}`);
-    }
-    
-    const data = await response.json() as BybitInstrumentsResponse;
+    // API 요청은 원래 카테고리로 (공통 API 클라이언트 사용)
+    const response = await apiGet<BybitInstrumentsResponse>(API_URLS.bybit.getInstrumentUrl(rawCategory));
+    const data = response.data;
     
     if (data.retCode !== 0) {
       throw new Error(`Bybit API 에러: ${data.retMsg}`);
@@ -506,15 +493,10 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       return true;
     }
 
-    // Bithumb API 요청
+    // Bithumb API 요청 (공통 API 클라이언트 사용)
     console.log(`📡 Bithumb API 요청 중... (${API_URLS.bithumb.getInstrumentUrl()})`);
-    const instrumentResponse = await fetch(API_URLS.bithumb.getInstrumentUrl());
-    
-    if (!instrumentResponse.ok) {
-      throw new Error(`Bithumb API 요청 실패: ${instrumentResponse.status} ${instrumentResponse.statusText}`);
-    }
-    
-    const instrumentData = await instrumentResponse.json() as BithumbInstrumentsResponse;
+    const response = await apiGet<BithumbInstrumentsResponse>(API_URLS.bithumb.getInstrumentUrl());
+    const instrumentData = response.data;
     
     // 배열이 아니거나 비어있는 경우 에러 처리
     if (!Array.isArray(instrumentData) || instrumentData.length === 0) {
@@ -957,33 +939,6 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           });
           const quoteCodes = new Set(filteredCoins.map(coin => coin.quoteCode));
           return Array.from(quoteCodes).sort();
-        },
-        
-        // Bybit instrument 원본 데이터 임시 저장 상태 및 fetch 함수 추가
-        bybitInstrumentRaw: {},
-        fetchBybitInstrumentRaw: async () => {
-          const categories: BybitRawCategory[] = ['linear', 'inverse', 'spot', 'option'];
-          const results: { [cat: string]: BybitInstrument[] } = {};
-          await Promise.all(
-            categories.map(async (cat) => {
-              try {
-                const url = API_URLS.bybit.getInstrumentUrl(cat);
-                const res = await fetch(url);
-                const data = (await res.json()) as BybitInstrumentsResponse;
-                if (data.retCode === 0 && data.result?.list) {
-                  results[cat] = data.result.list;
-                } else {
-                  results[cat] = [];
-                }
-              } catch (e) {
-                results[cat] = [];
-              }
-            })
-          );
-          // set으로 상태 반영 (persist에는 저장하지 않음)
-          set((state: any) => {
-            state.bybitInstrumentRaw = results;
-          });
         },
       }))
   )

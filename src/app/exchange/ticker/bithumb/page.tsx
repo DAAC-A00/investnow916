@@ -9,6 +9,7 @@ import {
   TickerData, 
 } from '@/packages/shared/types/exchange';
 import { PriceDecimalTracker } from '@/packages/shared/utils';
+import { defaultApiClient } from '@/packages/shared/utils/apiClient';
 
 // 빗썸 API 타입 정의
 interface BithumbTickerResponse {
@@ -60,23 +61,22 @@ export default function BithumbTickerPage() {
       
       console.log('빗썸 티커 데이터 가져오기 시작...');
       
-      // 빗썸 API를 사용하여 KRW 마켓의 모든 티커 정보 가져오기
-      const response = await fetch('https://api.bithumb.com/public/ticker/ALL_KRW', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors',
-      });
+      // 공통 API 클라이언트를 사용하여 빗썸 API 호출
+      const response = await defaultApiClient.get<BithumbTickerResponse>(
+        'https://api.bithumb.com/public/ticker/ALL_KRW',
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+          retryCount: 2,
+        }
+      );
       
       console.log('빗썸 API 응답 상태:', response.status);
       
-      if (!response.ok) {
-        throw new Error(`빗썸 API 요청 실패: ${response.status} - ${response.statusText}`);
-      }
-
-      const tickerResponse: BithumbTickerResponse = await response.json();
+      const tickerResponse = response.data;
       
       console.log('빗썸 티커 데이터 파싱 성공:', tickerResponse.status);
 

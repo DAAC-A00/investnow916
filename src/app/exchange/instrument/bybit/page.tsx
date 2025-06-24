@@ -28,6 +28,9 @@ import {
   ALL_DISPLAY_CATEGORIES 
 } from '@/packages/shared/constants/bybitCategories';
 
+// 스토어 import 추가
+import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
+
 // 중앙 관리 갱신 설정 import
 import { 
   getUpdateInterval,
@@ -58,50 +61,7 @@ const needsUpdate = (category: string): boolean => {
   return needsDataUpdate(updateTime, 'bybit');
 };
 
-// localStorage 키 생성을 위한 헬퍼 함수
-const getBybitStorageKeys = (): string[] => {
-  return ALL_DISPLAY_CATEGORIES.map(category => `bybit-${category}`);
-};
-
-const parseInstrumentString = (instrumentStr: string, categoryKey: string): InstrumentInfo | null => {
-  try {
-    const parts = instrumentStr.split('=');
-    if (parts.length !== 2) return null;
-    const rawSymbol = parts[1];
-    const displaySymbol = parts[0];
-
-    // 정규식을 사용하여 수량, 베이스코드, 쿼트코드, 정산코드, 추가정보 추출
-    // 수량은 10 이상인 경우에만 추출하고, 그 외에는 baseCode의 일부로 처리
-    const pattern = /^(?:(\d{2,})\*?)?([^/]+)\/([^/()(-]+)(?:\(([^)]+)\))?(?:-([\w-]+))?/;
-    const match = displaySymbol.match(pattern);
-    
-    if (!match) return null;
-
-    const [, quantityStr, baseCode, quoteCode, settlementCode, restOfSymbol] = match;
-    // 수량이 10 미만이거나 없는 경우 1로 설정
-    const quantity = (quantityStr && parseInt(quantityStr, 10) >= 10) ? parseInt(quantityStr, 10) : 1;
-
-    const displayCategory = categoryKey.replace('bybit-', '') as BybitDisplayCategory;
-
-    return {
-      rawSymbol,
-      displaySymbol: `${quantity == 1 ? '' : quantity}${baseCode}/${quoteCode}${settlementCode !== quoteCode ? `(${settlementCode})` : ''}${restOfSymbol ? `-${restOfSymbol}` : ''}`,
-      quantity,
-      baseCode,
-      quoteCode,
-      rawCategory: toRawCategory(displayCategory),
-      displayCategory,
-      pair: `${baseCode}/${quoteCode}`,
-      settlementCode: settlementCode || quoteCode, // 정산코드가 없으면 quoteCode 사용
-      restOfSymbol: restOfSymbol || undefined,
-      remark: '',
-      search: ''
-    };
-  } catch (e) {
-    console.error('Error parsing instrument string:', instrumentStr, e);
-    return null;
-  }
-};
+// 더 이상 localStorage에서 직접 파싱하지 않으므로 관련 함수들 제거됨
 
 const BybitInstrumentPage = () => {
   const [instrumentData, setInstrumentData] = useState<InstrumentInfo[]>([]);
@@ -110,76 +70,165 @@ const BybitInstrumentPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updateTimes, setUpdateTimes] = useState<{[category: string]: Date | null}>({});
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
-  useEffect(() => {
+  // 스토어에서 함수들 가져오기
+  const { fetchBybitCoins, getFilteredCoins } = useExchangeInstrumentStore();
+
+  // 업데이트 시간 정보 수집 함수
+  const collectUpdateTimes = () => {
+    const categoryUpdateTimes: {[category: string]: Date | null} = {};
+    ALL_DISPLAY_CATEGORIES.forEach(category => {
+      categoryUpdateTimes[category] = getUpdateTime(category);
+    });
+    setUpdateTimes(categoryUpdateTimes);
+  };
+
+  // 데이터 로드 및 갱신 함수
+  const loadData = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔄 Bybit 데이터 로드 시작...');
+
+      // 업데이트 시간 정보 먼저 수집
+      collectUpdateTimes();
+
+      // 모든 Bybit 카테고리의 데이터 가져오기
       const allInstruments: InstrumentInfo[] = [];
-      let foundAnyData = false;
-      const categoryUpdateTimes: {[category: string]: Date | null} = {};
+      let hasAnyData = false;
 
-      getBybitStorageKeys().forEach(key => {
-        const storedData = localStorage.getItem(key);
-        const category = key.replace('bybit-', '');
-        categoryUpdateTimes[category] = getUpdateTime(category);
+      for (const rawCategory of ['linear', 'inverse', 'spot', 'option'] as BybitRawCategory[]) {
+        const success = await fetchBybitCoins(rawCategory);
         
-        if (storedData) {
-          foundAnyData = true;
-          const instrumentStrings = storedData.split(',');
-          instrumentStrings.forEach(str => {
-            if (str.trim()) {
-              const parsed = parseInstrumentString(str.trim(), key);
-              if (parsed) {
-                allInstruments.push(parsed);
-              }
+        if (success) {
+          // 스토어에서 필터링된 코인 정보 가져오기
+          const displayCategory = toDisplayCategory(rawCategory);
+          if (displayCategory) {
+            const filteredCoins = getFilteredCoins({
+              exchange: 'bybit',
+              category: displayCategory
+            });
+
+                         // InstrumentInfo 형식으로 변환
+             const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
+               rawSymbol: coin.rawSymbol,
+               displaySymbol: coin.displaySymbol,
+               quantity: (coin as any).quantity || 1,
+               baseCode: coin.baseCode,
+               quoteCode: coin.quoteCode,
+               pair: coin.displaySymbol,
+               rawCategory: rawCategory,
+               displayCategory: displayCategory,
+               settlementCode: coin.settlementCode || coin.quoteCode,
+               restOfSymbol: (coin as any).restOfSymbol,
+               remark: '',
+               search: ''
+             }));
+
+            allInstruments.push(...instrumentInfos);
+            if (instrumentInfos.length > 0) {
+              hasAnyData = true;
             }
-          });
+
+            console.log(`📊 Bybit ${rawCategory} 카테고리에서 ${instrumentInfos.length}개의 코인 정보를 로드했습니다.`);
+          }
         }
-      });
 
-      setUpdateTimes(categoryUpdateTimes);
-
-      if (!foundAnyData) {
-        setError('로컬 스토리지에서 Bybit instrument 정보를 찾을 수 없습니다.');
-      } else if (allInstruments.length === 0 && foundAnyData) {
-        setError('유효한 Bybit instrument 정보를 파싱할 수 없습니다. 데이터 형식을 확인하세요.');
+        // API 요청 간격을 두어 rate limit 방지
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      setInstrumentData(allInstruments);
-      setFilteredData(allInstruments); // 초기에는 모든 데이터 표시
 
-    } catch (e) {
-      console.error('로컬 스토리지 데이터 처리 중 오류 발생:', e);
-      setError('데이터를 불러오는 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+      if (!hasAnyData) {
+        throw new Error('Bybit 데이터를 가져오는데 실패했습니다.');
+      }
+
+      setInstrumentData(allInstruments);
+      setFilteredData(allInstruments);
+
+      // 업데이트 시간 다시 수집 (갱신 후)
+      collectUpdateTimes();
+      setLastRefreshTime(new Date());
+      
+      console.log(`✅ Bybit 데이터 로드 완료 - 총 ${allInstruments.length}개의 instrument`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      console.error('❌ Bybit 데이터 로드 실패:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    loadData();
   }, []);
 
-  // 검색어에 따라 데이터 필터링 (한국어 입력 지원)
-  useEffect(() => {
-    if (!searchTerm.trim()) {
+  // 검색 필터링 함수
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    
+    if (!term.trim()) {
       setFilteredData(instrumentData);
-    } else {
-      // 검색어 정규화 (한국어 자모 → 영어 QWERTY 변환 및 소문자 변환)
-      const normalizedTerm = normalizeSearchTerm(searchTerm);
-      
-      // 검색어로 필터링
-      const filtered = instrumentData.filter(instrument => {
-        const searchText = `${instrument.rawSymbol}${instrument.displaySymbol}${instrument.quantity}${instrument.baseCode}${instrument.quoteCode}${instrument.pair}${instrument.quantity}${instrument.baseCode}${instrument.settlementCode}${instrument.restOfSymbol}${instrument.rawCategory}${instrument.displayCategory}${instrument.remark}${instrument.search}`.toLowerCase();
-        return searchText.includes(normalizedTerm);
-      });
-      
-      setFilteredData(filtered);
+      return;
     }
+
+    const normalizedTerm = normalizeSearchTerm(term);
+    const filtered = instrumentData.filter(instrument => {
+      const searchableText = [
+        instrument.displaySymbol,
+        instrument.baseCode,
+        instrument.quoteCode,
+        instrument.rawSymbol,
+        instrument.displayCategory,
+        instrument.rawCategory
+      ].join(' ').toLowerCase();
+      
+      return searchableText.includes(normalizedTerm.toLowerCase());
+    });
+    
+    setFilteredData(filtered);
+  };
+
+  // 검색어 변경 시 필터링
+  useEffect(() => {
+    handleSearch(searchTerm);
   }, [searchTerm, instrumentData]);
 
-  if (loading) {
-    return <div className="p-5 text-muted-foreground">데이터를 불러오는 중입니다...</div>;
+  // 로딩 상태
+  if (loading && instrumentData.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Bybit 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className="p-5 text-red-600 dark:text-red-400">오류: {error}</div>;
+  // 에러 상태
+  if (error && instrumentData.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h3 className="text-lg font-medium text-foreground mb-2">데이터 로드 실패</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
   }
 
+  // 데이터가 없는 경우
   if (instrumentData.length === 0) {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
@@ -202,41 +251,82 @@ const BybitInstrumentPage = () => {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Bybit Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
-        </h1>
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            placeholder="심볼, 코드, 페어로 검색..."
-            className="w-full px-4 py-2 pl-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background border-border text-foreground"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Bybit Instrument 정보 ({filteredData.length}/{instrumentData.length}개)
+            </h1>
+            {lastRefreshTime && (
+              <p className="text-sm text-muted-foreground">
+                마지막 새로고침: {lastRefreshTime.toLocaleString('ko-KR')}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 검색 및 갱신 버튼 */}
+        <div className="flex gap-4 mb-4">
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              placeholder="심볼, 기초자산, 견적자산으로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
-          </svg>
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {loading ? '갱신 중...' : '수동 갱신'}
+          </button>
         </div>
       </div>
 
+      {/* 에러 메시지 (데이터가 있는 상태에서의 에러) */}
+      {error && instrumentData.length > 0 && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-red-500">⚠️</span>
+            <span className="text-sm text-red-700 dark:text-red-300">
+              최신 데이터 갱신 실패: {error} (기존 데이터를 표시합니다)
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 업데이트 시간 정보 표시 */}
       <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-        <h3 className="text-lg font-medium text-foreground mb-3">카테고리별 업데이트 시간</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium text-foreground">데이터 상태</h3>
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+              갱신 중...
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {ALL_DISPLAY_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
             const needsUpdateFlag = needsUpdate(category);
+            const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;
             
             return (
               <div key={category} className="flex flex-col p-3 bg-background rounded border">
@@ -248,7 +338,14 @@ const BybitInstrumentPage = () => {
                     <>
                       <div>{updateTime.toLocaleDateString('ko-KR')}</div>
                       <div>{updateTime.toLocaleTimeString('ko-KR')}</div>
-                      {needsUpdateFlag && <div className="mt-1 font-medium">⚠️ 갱신 필요</div>}
+                      <div className="mt-1">
+                        {hoursAgo !== null && (
+                          <span className="text-xs">
+                            {hoursAgo < 1 ? '1시간 미만 전' : `${hoursAgo.toFixed(1)}시간 전`}
+                          </span>
+                        )}
+                      </div>
+                      {needsUpdateFlag && <div className="mt-1 font-medium text-yellow-600 dark:text-yellow-400">⚠️ 갱신 필요</div>}
                     </>
                   ) : (
                     <div className="text-red-600 dark:text-red-400">데이터 없음</div>
@@ -259,7 +356,7 @@ const BybitInstrumentPage = () => {
           })}
         </div>
         <div className="mt-3 text-xs text-muted-foreground">
-          💡 데이터는 {getUpdateIntervalDescription('bybit')} 갱신이 필요한 카테고리는 다음 API 호출 시 자동으로 업데이트됩니다.
+          💡 데이터는 {getUpdateIntervalDescription('bybit')} 갱신이 필요한 경우 다음 API 호출 시 자동으로 업데이트됩니다.
         </div>
       </div>
 

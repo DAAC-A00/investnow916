@@ -8,6 +8,7 @@ import {
   ExchangeType
 } from '../types/exchange';
 import { BybitRawCategory } from '../constants/bybitCategories';
+import { defaultApiClient } from '../utils/apiClient';
 
 // 티커 스토어 상태 타입
 interface BybitTickerState {
@@ -70,8 +71,8 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,
     prevPrice24h: prevPrice,
-    volume: parseFloat(ticker.volume24h) || 0,
-    turnover: parseFloat(ticker.turnover24h) || 0,
+    volume24h: parseFloat(ticker.volume24h) || 0,
+    turnover24h: parseFloat(ticker.turnover24h) || 0,
     highPrice24h: parseFloat(ticker.highPrice24h) || 0,
     lowPrice24h: parseFloat(ticker.lowPrice24h) || 0,
     bidPrice: parseFloat(ticker.bid1Price) || 0,
@@ -99,18 +100,16 @@ export const useBybitTickerStore = create<BybitTickerState>()(
           const url = getTickerApiUrl(rawCategory);
           console.log(`🔄 Bybit ${rawCategory} 티커 정보 요청:`, url);
 
-          const response = await fetch(url, {
-            method: 'GET',
+          // 공통 API 클라이언트를 사용하여 Bybit API 호출
+          const response = await defaultApiClient.get<BybitTickerResponse>(url, {
             headers: {
               'Content-Type': 'application/json',
             },
+            timeout: 10000,
+            retryCount: 2,
           });
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data: BybitTickerResponse = await response.json();
+          const data = response.data;
 
           if (data.retCode !== 0) {
             throw new Error(`Bybit API error: ${data.retMsg}`);
