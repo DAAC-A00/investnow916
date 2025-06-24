@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { ALL_RAW_CATEGORIES, toDisplayCategory } from '../constants/bybitCategories';
+import { ALL_RAW_CATEGORIES, bybitToDisplayCategory as toDisplayCategory } from '../constants/exchangeCategories';
 import { 
   getUpdateInterval,
   needsDataUpdate

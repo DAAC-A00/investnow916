@@ -18,11 +18,11 @@ interface SymbolInfo {
 
 import { 
   BybitRawCategory, 
-  BybitDisplayCategory,
-  toDisplayCategory,
+  IntegratedCategory,
+  toIntegratedCategory,
   toRawCategory,
   ALL_DISPLAY_CATEGORIES
-} from '@/packages/shared/constants/bybitCategories';
+} from '@/packages/shared/constants/exchangeCategories';
 
 import { 
   UPDATE_CONFIG,
@@ -74,7 +74,7 @@ const API_URLS = {
 // 거래소별 카테고리 정보를 반환하는 함수
 const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   if (exchange === 'bybit') {
-    const displayCategory = toDisplayCategory(rawCategory as BybitRawCategory) || rawCategory;
+    const displayCategory = toIntegratedCategory('bybit', rawCategory as BybitRawCategory) || rawCategory;
     return {
       rawCategory,
       displayCategory,
@@ -97,20 +97,24 @@ const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
 };
 
 // 빗썸 카테고리 변환 함수들
-const toBithumbDisplayCategory = (rawCategory: BithumbRawCategory): BithumbDisplayCategory => {
+const toBithumbDisplayCategory = (rawCategory: BithumbRawCategory): IntegratedCategory => {
   // 빗썸은 spot만 지원
   return 'spot';
 };
 
-const toBithumbRawCategory = (displayCategory: BithumbDisplayCategory): BithumbRawCategory => {
-  // 빗썸은 spot만 지원
+const toBithumbRawCategory = (integratedCategory: IntegratedCategory): BithumbRawCategory => {
+  // 빗썸은 spot만 지원하므로 통합 카테고리가 spot인 경우만 처리
+  if (integratedCategory === 'spot') {
+    return 'spot';
+  }
+  // 빗썸이 지원하지 않는 카테고리인 경우 spot으로 기본 처리
   return 'spot';
 };
 
 // 내부 저장용 카테고리로 변환 (displayCategory 반환)
 const toStorageCategory = (category: string): string => {
   // Bybit 카테고리 변환 시도
-  const bybitDisplayCategory = toDisplayCategory(category as BybitRawCategory);
+  const bybitDisplayCategory = toIntegratedCategory('bybit', category as BybitRawCategory);
   if (bybitDisplayCategory) {
     return bybitDisplayCategory;
   }
@@ -771,8 +775,8 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 특정 거래소의 모든 카테고리 심볼 데이터 초기화
             const categories = exchange === 'bybit' ? 
               [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 삭제
-              exchange === 'binance' ? ['spot', 'futures', 'options'] :
-              exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] :
+              exchange === 'binance' ? ['spot', 'futures-usdt', 'futures-coin', 'options'] :
+              exchange === 'upbit' ? ['spot'] :
               exchange === 'bithumb' ? ['spot'] : [];
             
             // 모든 카테고리와 변환된 카테고리에 대해 삭제
@@ -793,9 +797,9 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 거래소별 rawCategory 변환
             let rawCategory = category;
             if (exchange === 'bybit') {
-              rawCategory = toRawCategory(category as BybitDisplayCategory);
+              rawCategory = toRawCategory('bybit', category as IntegratedCategory);
             } else if (exchange === 'bithumb') {
-              rawCategory = toBithumbRawCategory(category as BithumbDisplayCategory);
+              rawCategory = toBithumbRawCategory(category as IntegratedCategory);
             }
             
             const keysToRemove = new Set([
@@ -842,7 +846,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
         }): CoinInfo[] => {
           const { exchange, category, baseCode, quoteCode } = filter;
           
-          // 모든 거래소와 카테고리 조합에 대해 필터링
+                      // 모든 거래소와 카테고리 조합에 대해 필터링
           const exchanges = exchange ? [exchange] : (['bybit', 'binance', 'upbit', 'bithumb'] as ExchangeType[]);
           let categories: string[] = [];
           
@@ -850,8 +854,8 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           if (!category) {
             categories = exchange === 'bybit' ? 
               [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 검색
-              exchange === 'binance' ? ['spot', 'futures', 'options'] :
-              exchange === 'upbit' ? ['KRW', 'BTC', 'USDT'] :
+              exchange === 'binance' ? ['spot', 'futures-usdt', 'futures-coin', 'options'] :
+              exchange === 'upbit' ? ['spot'] :
               exchange === 'bithumb' ? ['spot'] : [];
           } else {
             // 카테고리 필터가 있으면 해당 카테고리와 변환된 카테고리 모두 검색
@@ -860,9 +864,9 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             
             // 거래소별 rawCategory 변환
             if (exchange === 'bybit') {
-              rawCategory = toRawCategory(category as BybitDisplayCategory);
+              rawCategory = toRawCategory('bybit', category as IntegratedCategory);
             } else if (exchange === 'bithumb') {
-              rawCategory = toBithumbRawCategory(category as BithumbDisplayCategory);
+              rawCategory = toBithumbRawCategory(category as IntegratedCategory);
             }
             
             categories = [category, storageCategory, rawCategory];
@@ -892,9 +896,9 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
                 // 원본 카테고리 유지 (API 카테고리로 변환)
                 let originalCategory = cat;
                 if (ex === 'bybit') {
-                  originalCategory = toRawCategory(cat as BybitDisplayCategory) || cat;
+                  originalCategory = toRawCategory('bybit', cat as IntegratedCategory) || cat;
                 } else if (ex === 'bithumb') {
-                  originalCategory = toBithumbRawCategory(cat as BithumbDisplayCategory);
+                  originalCategory = toBithumbRawCategory(cat as IntegratedCategory);
                 }
                 
                 // 카테고리 정보 생성

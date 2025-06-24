@@ -10,7 +10,7 @@ interface InstrumentInfo {
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  displayCategory: BybitDisplayCategory;
+  displayCategory: IntegratedCategory;
   settlementCode: string;
   restOfSymbol?: string;
   remark?: string;
@@ -20,13 +20,13 @@ interface InstrumentInfo {
 // 공유 유틸리티에서 한국어 QWERTY 변환 함수 가져오기
 import { normalizeSearchTerm } from '@/packages/shared/utils';
 
-import { 
-  BybitRawCategory, 
-  BybitDisplayCategory,
+import {
+  BybitRawCategory,
+  IntegratedCategory,
   toDisplayCategory,
   toRawCategory,
   ALL_DISPLAY_CATEGORIES 
-} from '@/packages/shared/constants/bybitCategories';
+} from '@/packages/shared/constants/exchangeCategories';
 
 // 스토어 import 추가
 import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
@@ -104,7 +104,7 @@ const BybitInstrumentPage = () => {
         
         if (success) {
           // 스토어에서 필터링된 코인 정보 가져오기
-          const displayCategory = toDisplayCategory(rawCategory);
+          const displayCategory = toDisplayCategory('bybit', rawCategory);
           if (displayCategory) {
             const filteredCoins = getFilteredCoins({
               exchange: 'bybit',
@@ -120,7 +120,7 @@ const BybitInstrumentPage = () => {
                quoteCode: coin.quoteCode,
                pair: coin.displaySymbol,
                rawCategory: rawCategory,
-               displayCategory: displayCategory,
+               displayCategory: displayCategory as IntegratedCategory,
                settlementCode: coin.settlementCode || coin.quoteCode,
                restOfSymbol: (coin as any).restOfSymbol,
                remark: '',

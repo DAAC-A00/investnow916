@@ -2,14 +2,14 @@
  * 환율 및 거래소 정보 관련 타입 정의
  */
 
-// Bybit 카테고리 타입들은 constants/bybitCategories.ts에서 import
+// Bybit 카테고리 타입들은 constants/exchangeCategories.ts에서 import
 export type { 
   BybitRawCategory, 
   BybitDisplayCategory 
-} from '@/packages/shared/constants/bybitCategories';
+} from '@/packages/shared/constants/exchangeCategories';
 
 // 내부에서 사용하기 위한 import
-import type { BybitRawCategory } from '@/packages/shared/constants/bybitCategories';
+import type { BybitRawCategory } from '@/packages/shared/constants/exchangeCategories';
 
 // 환율 API 응답 타입
 export interface ExchangeRateResponse {

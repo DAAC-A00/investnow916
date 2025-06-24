@@ -7,7 +7,7 @@ import {
   BybitRawCategory, 
   toDisplayCategory,
   ALL_RAW_CATEGORIES 
-} from '@/packages/shared/constants/bybitCategories';
+} from '@/packages/shared/constants/exchangeCategories';
 
 type SortField = 'symbol' | 'price' | 'priceChange' | 'priceChangePercent' | 'highPrice24h' | 'lowPrice24h' | 'volume' | 'turnover';
 type SortDirection = 'asc' | 'desc';
@@ -155,7 +155,7 @@ export default function BybitTickersPage() {
   }
 
   // selectedCategory를 storage용 카테고리로 변환
-  const storageCategory = toDisplayCategory(selectedCategory);
+  const storageCategory = toDisplayCategory('bybit', selectedCategory);
   // storage 카테고리로 instrument map 생성
   const instrumentMap = loadInstrumentMap(storageCategory);
 

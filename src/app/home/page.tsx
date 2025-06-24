@@ -20,11 +20,11 @@ export default function HomePage() {
   // 홈 페이지용 샘플 티커 데이터
   const [sampleTickers] = useState<TickerData[]>([
     {
-      rawSymbol: 'BTCUSDT',
-      displaySymbol: 'BTC/USDT',
+      rawSymbol: 'TEST1COIN',
+      displaySymbol: 'TEST1/COIN',
       quantity: 1,
-      baseCode: 'BTC',
-      quoteCode: 'USDT',
+      baseCode: 'TEST1',
+      quoteCode: 'COIN',
       exchange: 'bybit',
       displayCategory: 'spot',
       rawCategory: 'spot',
@@ -37,11 +37,11 @@ export default function HomePage() {
       prevPrice: 42000.00
     },
     {
-      rawSymbol: 'ETHUSDT',
-      displaySymbol: 'ETH/USDT',
+      rawSymbol: 'TEST2COIN',
+      displaySymbol: 'TEST2/COIN',
       quantity: 1,
-      baseCode: 'ETH',
-      quoteCode: 'USDT',
+      baseCode: 'TEST2',
+      quoteCode: 'COIN',
       exchange: 'bybit',
       displayCategory: 'spot',
       rawCategory: 'spot',

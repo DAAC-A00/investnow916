@@ -7,7 +7,7 @@ import {
   TickerData, 
   ExchangeType
 } from '../types/exchange';
-import { BybitRawCategory } from '../constants/bybitCategories';
+import { BybitRawCategory } from '../constants/exchangeCategories';
 import { defaultApiClient } from '../utils/apiClient';
 
 // 티커 스토어 상태 타입
