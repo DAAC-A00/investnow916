@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { TickerData } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
+import { get, ApiError } from '@/packages/shared/utils/apiClient';
 
 interface OrderbookUnit {
   ask_price: number;
@@ -69,20 +70,19 @@ export default function BithumbTickerDetailPage() {
       const baseCode = symbol.replace(/KRW$|BTC$/, '');
       const quoteCode = symbol.includes('KRW') ? 'KRW' : 'BTC';
       const market = `${quoteCode}-${baseCode}`;
-      const response = await fetch(`https://api.bithumb.com/v1/orderbook?markets=${market}`);
+      const response = await get<OrderbookData[]>(`https://api.bithumb.com/v1/orderbook?markets=${market}`);
       
-      if (!response.ok) {
-        throw new Error('호가 정보를 가져올 수 없습니다');
-      }
-
-      const data: OrderbookData[] = await response.json();
-      if (data && data.length > 0) {
-        setOrderbookData(data[0]);
+      if (response.data && response.data.length > 0) {
+        setOrderbookData(response.data[0]);
         setLastUpdate(new Date());
       }
     } catch (error) {
       console.error('호가 정보 가져오기 실패:', error);
-      setError(error instanceof Error ? error.message : '호가 정보를 가져올 수 없습니다');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('호가 정보를 가져올 수 없습니다');
+      }
     }
   }, [symbol]);
 
@@ -92,16 +92,10 @@ export default function BithumbTickerDetailPage() {
       // symbol이 BTCKRW 형태이므로 파싱하여 API 호출
       const baseCode = symbol.replace(/KRW$|BTC$/, '');
       const quoteCode = symbol.includes('KRW') ? 'KRW' : 'BTC';
-      const response = await fetch(`https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`);
+      const response = await get<BithumbTickerResponse>(`https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`);
       
-      if (!response.ok) {
-        throw new Error('티커 정보를 가져올 수 없습니다');
-      }
-
-      const data: BithumbTickerResponse = await response.json();
-      
-      if (data.status === '0000' && data.data) {
-        const tickerInfo = data.data[baseCode];
+      if (response.data.status === '0000' && response.data.data) {
+        const tickerInfo = response.data.data[baseCode];
         if (tickerInfo) {
           const newTickerData: TickerData = {
             rawSymbol: symbol,
@@ -130,7 +124,11 @@ export default function BithumbTickerDetailPage() {
       }
     } catch (error) {
       console.error('티커 정보 가져오기 실패:', error);
-      setError(error instanceof Error ? error.message : '티커 정보를 가져올 수 없습니다');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('티커 정보를 가져올 수 없습니다');
+      }
     }
   }, [displayCategory, symbol]);
 
@@ -147,13 +145,18 @@ export default function BithumbTickerDetailPage() {
           setTickerData(JSON.parse(storedData));
         }
 
-        // API에서 최신 데이터 가져오기
+        // API에서 최신 데이터 가져오기 (병렬 처리)
         await Promise.all([
           fetchTickerInfo(),
           fetchOrderbook()
         ]);
       } catch (error) {
         console.error('데이터 로드 실패:', error);
+        if (error instanceof ApiError) {
+          setError(error.message);
+        } else {
+          setError('데이터를 불러올 수 없습니다');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -169,10 +172,15 @@ export default function BithumbTickerDetailPage() {
     if (!symbol || !displayCategory) return;
 
     const interval = setInterval(async () => {
-      await Promise.all([
-        fetchTickerInfo(),
-        fetchOrderbook()
-      ]);
+      try {
+        await Promise.all([
+          fetchTickerInfo(),
+          fetchOrderbook()
+        ]);
+      } catch (error) {
+        console.error('데이터 갱신 실패:', error);
+        // 실시간 갱신 에러는 조용히 처리
+      }
     }, 800);
 
     return () => clearInterval(interval);
