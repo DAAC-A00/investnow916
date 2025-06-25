@@ -75,12 +75,12 @@ export type ExchangeRateAction =
 
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
-  displaySymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
+  integratedSymbol: string;  // 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT)
   rawSymbol: string;      // 외부 API에서 받은 원본 심볼 (예: BTCUSDT)
   baseCode: string;       // 거래쌍의 기준(기본) 코인 (예: BTC)
   quoteCode: string;      // 거래쌍의 상대(견적) 코인 (예: USDT)
   exchange: ExchangeType;  // 거래소
-  displayCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
+  integratedCategory: string; // 내부 프로젝트에서 표시하는 카테고리 (예: um, cm)
   rawCategory: string;    // 외부 API에서 받은 카테고리 (예: linear, inverse)
   settlementCode?: string; // 정산 화폐 코드 (예: USD, USDT)
   
@@ -268,7 +268,7 @@ export interface TickerData {
   /** 외부 API에서 받은 원본 심볼 (예: BTCUSDT, BTCKRW) */
   rawSymbol: string;
   /** 내부 프로젝트에서 표시하는 심볼 (예: BTC/USDT, BTC/KRW) */
-  displaySymbol: string;
+  integratedSymbol: string;
   /** 거래쌍의 기준(기본) 코인 (예: BTC) */
   baseCode: string;
   /** 거래쌍의 상대(견적) 코인 (예: USDT, KRW) */
@@ -279,7 +279,7 @@ export interface TickerData {
   
   // === 카테고리 정보 ===
   /** 내부 프로젝트에서 표시하는 카테고리 (예: spot, um, cm) */
-  displayCategory: string;
+  integratedCategory: string;
   /** 외부 API에서 받은 카테고리 (예: linear, inverse, spot) */
   rawCategory: string;
   /** 정산 화폐 코드 (선물의 경우, 예: USD, USDT) */
@@ -479,11 +479,11 @@ export interface TickerDataBuilder {
   /** 기본 티커 정보 설정 */
   setBasicInfo(info: {
     rawSymbol: string;
-    displaySymbol: string;
+    integratedSymbol: string;
     baseCode: string;
     quoteCode: string;
     exchange: ExchangeType;
-    displayCategory: string;
+    integratedCategory: string;
     rawCategory: string;
   }): TickerDataBuilder;
   

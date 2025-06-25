@@ -4,12 +4,12 @@ import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
   rawSymbol: string;
-  displaySymbol: string;
+  integratedSymbol: string;
   baseCode: string;
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  displayCategory: BithumbDisplayCategory;
+  integratedCategory: BithumbDisplayCategory;
   settlementCode?: string;
   remark?: string;
   search?: string;
@@ -110,12 +110,12 @@ const BithumbInstrumentPage = () => {
         // InstrumentInfo 형식으로 변환
         const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
           rawSymbol: coin.rawSymbol,
-          displaySymbol: coin.displaySymbol,
+          integratedSymbol: coin.integratedSymbol,
           baseCode: coin.baseCode,
           quoteCode: coin.quoteCode,
-          pair: coin.displaySymbol,
+          pair: coin.integratedSymbol,
           rawCategory: coin.rawCategory,
-          displayCategory: coin.displayCategory as BithumbDisplayCategory,
+          integratedCategory: coin.integratedCategory as BithumbDisplayCategory,
           settlementCode: coin.settlementCode,
           remark: '',
           search: ''
@@ -153,7 +153,7 @@ const BithumbInstrumentPage = () => {
     const normalizedTerm = normalizeSearchTerm(term);
     const filtered = instrumentData.filter(instrument => {
       const searchableText = [
-        instrument.displaySymbol,
+        instrument.integratedSymbol,
         instrument.baseCode,
         instrument.quoteCode,
         instrument.rawSymbol
@@ -176,13 +176,13 @@ const BithumbInstrumentPage = () => {
   }, [searchTerm, instrumentData]);
 
   // 테이블 헤더 정의
-  const tableHeaders = ['displaySymbol', 'baseCode', 'quoteCode', 'rawSymbol', 'displayCategory'] as const;
+  const tableHeaders = ['integratedSymbol', 'baseCode', 'quoteCode', 'rawSymbol', 'integratedCategory'] as const;
   const headerKorean = {
-    displaySymbol: '심볼',
+    integratedSymbol: '심볼',
     baseCode: '기초자산',
     quoteCode: '견적자산',
     rawSymbol: '원시심볼',
-    displayCategory: '카테고리',
+    integratedCategory: '카테고리',
     settlementCode: '결제통화'
   };
 

@@ -8,11 +8,11 @@ import { TickerData, TickerDataBuilder, ExchangeType, WarningType } from '../typ
  * const tickerData = new TickerDataBuilderImpl()
  *   .setBasicInfo({
  *     rawSymbol: 'BTCUSDT',
- *     displaySymbol: 'BTC/USDT',
+ *     integratedSymbol: 'BTC/USDT',
  *     baseCode: 'BTC',
  *     quoteCode: 'USDT',
  *     exchange: 'bybit',
- *     displayCategory: 'spot',
+ *     integratedCategory: 'spot',
  *     rawCategory: 'spot'
  *   })
  *   .setPriceInfo({
@@ -22,8 +22,8 @@ import { TickerData, TickerDataBuilder, ExchangeType, WarningType } from '../typ
  *     priceChangePercent24h: 2.04
  *   })
  *   .setTradeInfo({
- *     volume: 1000000,
- *     turnover: 50000000000
+ *     volume24h: 1000000,
+ *     turnover24h: 50000000000
  *   })
  *   .build();
  * ```
@@ -33,23 +33,20 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
 
   setBasicInfo(info: {
     rawSymbol: string;
-    displaySymbol: string;
+    integratedSymbol: string;
     baseCode: string;
     quoteCode: string;
     exchange: ExchangeType;
-    displayCategory: string;
+    integratedCategory: string;
     rawCategory: string;
   }): TickerDataBuilder {
-    this.data = {
-      ...this.data,
-      rawSymbol: info.rawSymbol,
-      displaySymbol: info.displaySymbol,
-      baseCode: info.baseCode,
-      quoteCode: info.quoteCode,
-      exchange: info.exchange,
-      displayCategory: info.displayCategory,
-      rawCategory: info.rawCategory,
-    };
+    this.data.rawSymbol = info.rawSymbol;
+    this.data.integratedSymbol = info.integratedSymbol;
+    this.data.baseCode = info.baseCode;
+    this.data.quoteCode = info.quoteCode;
+    this.data.exchange = info.exchange;
+    this.data.integratedCategory = info.integratedCategory;
+    this.data.rawCategory = info.rawCategory;
     return this;
   }
 
@@ -123,8 +120,8 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
 
   build(): TickerData {
     // 필수 필드 검증
-    if (!this.data.rawSymbol || !this.data.displaySymbol || !this.data.baseCode || 
-        !this.data.quoteCode || !this.data.exchange || !this.data.displayCategory || 
+    if (!this.data.rawSymbol || !this.data.integratedSymbol || !this.data.baseCode || 
+        !this.data.quoteCode || !this.data.exchange || !this.data.integratedCategory || 
         !this.data.rawCategory || this.data.price === undefined || 
         this.data.prevPrice24h === undefined || this.data.priceChange24h === undefined || 
         this.data.priceChangePercent24h === undefined || this.data.volume24h === undefined || 

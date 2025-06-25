@@ -189,7 +189,7 @@ export default function BithumbTestPage() {
                       <div className="mt-2 bg-gray-50 dark:bg-gray-600 p-2 rounded text-xs">
                         {result.data.map((item: any, idx: number) => (
                           <div key={idx} className="mb-2 pb-2 border-b border-gray-200 last:border-b-0">
-                            <div><strong>displaySymbol:</strong> {item.displaySymbol}</div>
+                            <div><strong>integratedSymbol:</strong> {item.integratedSymbol}</div>
                             <div><strong>rawSymbol:</strong> {item.rawSymbol}</div>
                             {item.korean_name && <div><strong>한국명:</strong> {item.korean_name}</div>}
                             {item.english_name && <div><strong>영문명:</strong> {item.english_name}</div>}
@@ -199,7 +199,7 @@ export default function BithumbTestPage() {
                             )}
                             {item.remark && <div><strong>비고:</strong> {item.remark}</div>}
                             <div><strong>거래소:</strong> {item.exchange}</div>
-                            <div><strong>카테고리:</strong> {item.rawCategory} / {item.displayCategory}</div>
+                            <div><strong>카테고리:</strong> {item.rawCategory} / {item.integratedCategory}</div>
                             <div><strong>baseCode/quoteCode:</strong> {item.baseCode}/{item.quoteCode}</div>
                             <div><strong>settlementCode:</strong> {item.settlementCode}</div>
                           </div>

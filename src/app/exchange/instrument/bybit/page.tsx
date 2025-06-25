@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 
 interface InstrumentInfo {
   rawSymbol: string;
-  displaySymbol: string;
+  integratedSymbol: string;
   quantity: number;
   baseCode: string;
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  displayCategory: IntegratedCategory;
+  integratedCategory: IntegratedCategory;
   settlementCode: string;
   restOfSymbol?: string;
   remark?: string;
@@ -104,28 +104,28 @@ const BybitInstrumentPage = () => {
         
         if (success) {
           // 스토어에서 필터링된 코인 정보 가져오기
-          const displayCategory = toDisplayCategory('bybit', rawCategory);
-          if (displayCategory) {
+          const integratedCategory = toDisplayCategory('bybit', rawCategory);
+          if (integratedCategory) {
             const filteredCoins = getFilteredCoins({
               exchange: 'bybit',
-              category: displayCategory
+              category: integratedCategory
             });
 
-                         // InstrumentInfo 형식으로 변환
-             const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
-               rawSymbol: coin.rawSymbol,
-               displaySymbol: coin.displaySymbol,
-               quantity: (coin as any).quantity || 1,
-               baseCode: coin.baseCode,
-               quoteCode: coin.quoteCode,
-               pair: coin.displaySymbol,
-               rawCategory: rawCategory,
-               displayCategory: displayCategory as IntegratedCategory,
-               settlementCode: coin.settlementCode || coin.quoteCode,
-               restOfSymbol: (coin as any).restOfSymbol,
-               remark: '',
-               search: ''
-             }));
+            // InstrumentInfo 형식으로 변환
+            const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
+              rawSymbol: coin.rawSymbol,
+              integratedSymbol: coin.integratedSymbol,
+              quantity: (coin as any).quantity || 1,
+              baseCode: coin.baseCode,
+              quoteCode: coin.quoteCode,
+              pair: coin.integratedSymbol,
+              rawCategory: rawCategory,
+              integratedCategory: integratedCategory as IntegratedCategory,
+              settlementCode: coin.settlementCode || coin.quoteCode,
+              restOfSymbol: (coin as any).restOfSymbol,
+              remark: '',
+              search: ''
+            }));
 
             allInstruments.push(...instrumentInfos);
             if (instrumentInfos.length > 0) {
@@ -178,11 +178,11 @@ const BybitInstrumentPage = () => {
     const normalizedTerm = normalizeSearchTerm(term);
     const filtered = instrumentData.filter(instrument => {
       const searchableText = [
-        instrument.displaySymbol,
+        instrument.integratedSymbol,
         instrument.baseCode,
         instrument.quoteCode,
         instrument.rawSymbol,
-        instrument.displayCategory,
+        instrument.integratedCategory,
         instrument.rawCategory
       ].join(' ').toLowerCase();
       
@@ -233,15 +233,15 @@ const BybitInstrumentPage = () => {
     return <div className="p-5 text-muted-foreground">표시할 Bybit instrument 정보가 없습니다.</div>;
   }
 
-  const tableHeaders: (keyof InstrumentInfo)[] = ['displaySymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'displayCategory', 'settlementCode', 'restOfSymbol', 'remark', 'search', 'rawSymbol'];
+  const tableHeaders: (keyof InstrumentInfo)[] = ['integratedSymbol', 'quantity', 'baseCode', 'quoteCode', 'pair', 'rawCategory', 'integratedCategory', 'settlementCode', 'restOfSymbol', 'remark', 'search', 'rawSymbol'];
   const headerKorean: Record<keyof InstrumentInfo, string> = {
     rawSymbol: '원본 심볼',
-    displaySymbol: '표시용 심볼',
+    integratedSymbol: '표시용 심볼',
     baseCode: '베이스코드',
     quoteCode: '쿼트코드',
     pair: '페어',
     rawCategory: '원본 카테고리',
-    displayCategory: '표시용 카테고리',
+    integratedCategory: '표시용 카테고리',
     quantity: '수량',
     settlementCode: '정산 화폐',
     restOfSymbol: '추가정보',

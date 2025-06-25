@@ -15,13 +15,6 @@ export type {
   SupportedExchange,
   IntegratedCategory,
   BybitRawCategory,
-  BybitDisplayCategory,
-  BinanceRawCategory,
-  BinanceDisplayCategory,
-  UpbitRawCategory,
-  UpbitDisplayCategory,
-  BithumbRawCategory,
-  BithumbDisplayCategory,
   AllRawCategories
 } from '@/packages/shared/constants/exchangeConfig';
 
@@ -36,14 +29,9 @@ export {
 
 // 내부에서 사용하기 위한 import
 import type {
-  ExchangeType,
   SupportedExchange,
   IntegratedCategory,
-  AllRawCategories,
-  BybitRawCategory,
-  BinanceRawCategory,
-  UpbitRawCategory,
-  BithumbRawCategory
+  BybitRawCategory
 } from '@/packages/shared/constants/exchangeConfig';
 import {
   EXCHANGE_CATEGORY_MAPPINGS,

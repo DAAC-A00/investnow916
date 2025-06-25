@@ -6,7 +6,7 @@ import { get as apiGet } from '@/packages/shared/utils/apiClient';
 // 심볼 정보 타입 정의
 interface SymbolInfo {
   rawSymbol: string;
-  displaySymbol: string;
+  integratedSymbol: string;
   baseCode?: string;
   quoteCode?: string;
   restOfSymbol?: string;
@@ -74,25 +74,25 @@ const API_URLS = {
 // 거래소별 카테고리 정보를 반환하는 함수
 const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   if (exchange === 'bybit') {
-    const displayCategory = toIntegratedCategory('bybit', rawCategory as BybitRawCategory) || rawCategory;
+    const integratedCategory = toIntegratedCategory('bybit', rawCategory as BybitRawCategory) || rawCategory;
     return {
       rawCategory,
-      displayCategory,
+      integratedCategory,
     };
   }
   
   if (exchange === 'bithumb') {
-    const displayCategory = toBithumbDisplayCategory(rawCategory as BithumbRawCategory) || rawCategory.toLowerCase();
+    const integratedCategory = toBithumbDisplayCategory(rawCategory as BithumbRawCategory) || rawCategory.toLowerCase();
     return {
       rawCategory,
-      displayCategory,
+      integratedCategory,
     };
   }
   
-  // 다른 거래소의 경우 rawCategory와 displayCategory가 동일
+  // 다른 거래소의 경우 rawCategory와 integratedCategory가 동일
   return {
     rawCategory,
-    displayCategory: rawCategory,
+    integratedCategory: rawCategory,
   };
 };
 
@@ -111,18 +111,18 @@ const toBithumbRawCategory = (integratedCategory: IntegratedCategory): BithumbRa
   return 'spot';
 };
 
-// 내부 저장용 카테고리로 변환 (displayCategory 반환)
+// 내부 저장용 카테고리로 변환 (integratedCategory 반환)
 const toStorageCategory = (category: string): string => {
   // Bybit 카테고리 변환 시도
-  const bybitDisplayCategory = toIntegratedCategory('bybit', category as BybitRawCategory);
-  if (bybitDisplayCategory) {
-    return bybitDisplayCategory;
+  const bybitIntegratedCategory = toIntegratedCategory('bybit', category as BybitRawCategory);
+  if (bybitIntegratedCategory) {
+    return bybitIntegratedCategory;
   }
   
   // Bithumb 카테고리 변환 시도
-  const bithumbDisplayCategory = toBithumbDisplayCategory(category as BithumbRawCategory);
-  if (bithumbDisplayCategory) {
-    return bithumbDisplayCategory;
+  const bithumbIntegratedCategory = toBithumbDisplayCategory(category as BithumbRawCategory);
+  if (bithumbIntegratedCategory) {
+    return bithumbIntegratedCategory;
   }
   
   return category;
@@ -216,14 +216,14 @@ const storeSymbols = (exchange: ExchangeType, category: string, symbols: any[], 
     const key = getStorageKey(exchange, category, isRawCategory);
     
     // 문자열 형식으로 변환하여 저장
-    // quoteCode와 settlementCode가 동일하지 않고 remark가 있는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
+    // quoteCode와 settlementCode가 동일하지 않고 remark가 있는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}@${warning1}@${warning2}#{search}
     // quoteCode와 settlementCode가 동일하지 않고 remark가 없는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
     // quoteCode와 settlementCode가 동일하고 remark가 있는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}+${remark}
     // quoteCode와 settlementCode가 동일하고 remark가 없는 경우 포맷: ${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}
     // quantity가 1인 경우 remark가 있는 경우 포맷: ${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}+${remark}
     // quantity가 1인 경우 remark가 없는 경우 포맷: ${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}
     const stringData = symbols
-      .filter(item => item.displaySymbol && item.rawSymbol) // 유효한 심볼만 처리
+      .filter(item => item.integratedSymbol && item.rawSymbol) // 유효한 심볼만 처리
       .map(item => {
         const { 
           baseCode, 
@@ -332,7 +332,7 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
         settleCoin
       } = item;
       
-      // 카테고리 정보 생성 (displayCategory 확인용)
+      // 카테고리 정보 생성 (integratedCategory 확인용)
       const categoryInfo = getCategoryInfo('bybit', rawCategory);
       
       // quantity 추출 로직
@@ -399,22 +399,22 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
         restOfSymbol = restOfSymbol.substring(1);
       }
       
-      // displaySymbol 생성
-      let displaySymbol;
-      if (quantity >= 10) {
-        displaySymbol = restOfSymbol 
-          ? `${quantity}${actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
-          : `${quantity}${actualBaseCode}/${quoteCode || quoteCoin}`;
+      // integratedSymbol 생성
+      let integratedSymbol;
+      if (restOfSymbol) {
+        integratedSymbol = restOfSymbol 
+          ? `${quantity > 1 ? `${quantity}${actualBaseCode}` : actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
+          : `${quantity > 1 ? `${quantity}${actualBaseCode}` : actualBaseCode}/${quoteCode || quoteCoin}`;
       } else {
-        displaySymbol = restOfSymbol 
-          ? `${actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
-          : `${actualBaseCode}/${quoteCode || quoteCoin}`;
+        integratedSymbol = restOfSymbol 
+          ? `${quantity > 1 ? `${quantity}${actualBaseCode}` : actualBaseCode}/${quoteCode || quoteCoin}-${restOfSymbol}`
+          : `${quantity > 1 ? `${quantity}${actualBaseCode}` : actualBaseCode}/${quoteCode || quoteCoin}`;
       }
       
       // SymbolInfo 객체 생성
       const symbolObj: SymbolInfo = {
         rawSymbol,
-        displaySymbol,
+        integratedSymbol,
         baseCode: actualBaseCode,
         quoteCode: quoteCode || quoteCoin,
         quantity,
@@ -445,7 +445,7 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
     
     console.log(`Bybit ${rawCategory} 카테고리에서 ${symbolObjects.length}개의 심볼을 처리했습니다.`);
     
-    // 로컬 스토리지에 저장 (displayCategory로 저장)
+    // 로컬 스토리지에 저장 (integratedCategory로 저장)
     storeSymbols('bybit', rawCategory, symbolObjects, true);
     
     // 업데이트 시간 저장
@@ -525,13 +525,13 @@ const fetchBithumbCoins = async (rawCategory: BithumbRawCategory, set: any, get:
       // settlementCode는 빗썸의 경우 항상 quoteCode와 동일 (spot 거래만 지원)
       const settlementCode = quoteCode;
       
-      // displaySymbol 생성: baseCode/quoteCode 형식
-      const displaySymbol = `${baseCode}/${quoteCode}`;
-      
+      // integratedSymbol 생성: baseCode/quoteCode 형식
+      const integratedSymbol = `${baseCode}/${quoteCode}`;
+
       // SymbolInfo 객체 생성
       const symbolObj: SymbolInfo = {
         rawSymbol: item.market,
-        displaySymbol,
+        integratedSymbol,
         baseCode,
         quoteCode,
         quantity: 1, // 빗썸은 항상 1
@@ -667,13 +667,13 @@ const loadSymbols = (ex: ExchangeType, cat: string): SymbolInfo[] => {
         settlementCode = quoteCodeVal; // 괄호가 없으면 quoteCode와 동일
       }
       
-      // displaySymbol 생성
-      const displaySymbol = quantity > 1 
+      // integratedSymbol 생성
+      const integratedSymbol = quantity > 1 
         ? (restOfSymbolPart ? `${quantity}${baseCodeVal}/${quoteCodeVal}-${restOfSymbolPart}` : `${quantity}${baseCodeVal}/${quoteCodeVal}`)
         : (restOfSymbolPart ? `${baseCodeVal}/${quoteCodeVal}-${restOfSymbolPart}` : `${baseCodeVal}/${quoteCodeVal}`);
       
       return {
-        displaySymbol,
+        integratedSymbol,
         rawSymbol,
         baseCode: baseCodeVal,
         quoteCode: quoteCodeVal,
@@ -844,32 +844,30 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           baseCode?: string;
           quoteCode?: string;
         }): CoinInfo[] => {
-          const { exchange, category, baseCode, quoteCode } = filter;
-          
-                      // 모든 거래소와 카테고리 조합에 대해 필터링
-          const exchanges = exchange ? [exchange] : (['bybit', 'binance', 'upbit', 'bithumb'] as ExchangeType[]);
+          // 모든 거래소와 카테고리 조합에 대해 필터링
+          const exchanges = filter.exchange ? [filter.exchange] : (['bybit', 'binance', 'upbit', 'bithumb'] as ExchangeType[]);
           let categories: string[] = [];
           
           // 카테고리 필터가 없으면 모든 카테고리 사용
-          if (!category) {
-            categories = exchange === 'bybit' ? 
+          if (!filter.category) {
+            categories = filter.exchange === 'bybit' ? 
               [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 검색
-              exchange === 'binance' ? ['spot', 'um', 'cm', 'options'] :
-              exchange === 'upbit' ? ['spot'] :
-              exchange === 'bithumb' ? ['spot'] : [];
+              filter.exchange === 'binance' ? ['spot', 'um', 'cm', 'options'] :
+              filter.exchange === 'upbit' ? ['spot'] :
+              filter.exchange === 'bithumb' ? ['spot'] : [];
           } else {
             // 카테고리 필터가 있으면 해당 카테고리와 변환된 카테고리 모두 검색
-            const storageCategory = toStorageCategory(category);
-            let rawCategory = category;
+            const storageCategory = toStorageCategory(filter.category);
+            let rawCategory = filter.category;
             
             // 거래소별 rawCategory 변환
-            if (exchange === 'bybit') {
-              rawCategory = toRawCategory('bybit', category as IntegratedCategory);
-            } else if (exchange === 'bithumb') {
-              rawCategory = toBithumbRawCategory(category as IntegratedCategory);
+            if (filter.exchange === 'bybit') {
+              rawCategory = toRawCategory('bybit', filter.category as IntegratedCategory);
+            } else if (filter.exchange === 'bithumb') {
+              rawCategory = toBithumbRawCategory(filter.category as IntegratedCategory);
             }
             
-            categories = [category, storageCategory, rawCategory];
+            categories = [filter.category, storageCategory, rawCategory];
             // 중복 제거
             categories = [...new Set(categories)];
           }
@@ -882,16 +880,16 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
               const symbols = loadSymbols(ex, cat);
               
               for (const symbol of symbols) {
-                const [base, quote] = symbol.displaySymbol.split('/');
-                const symbolKey = `${ex}:${symbol.displaySymbol}`;
+                const [base, quote] = symbol.integratedSymbol.split('/');
+                const symbolKey = `${ex}:${symbol.integratedSymbol}`;
                 
                 // 이미 처리된 심볼은 건너뜀 (중복 방지)
                 if (seenSymbols.has(symbolKey)) continue;
                 seenSymbols.add(symbolKey);
                 
                 // 필터링 조건 적용
-                if (baseCode && base !== baseCode) continue;
-                if (quoteCode && quote !== quoteCode) continue;
+                if (filter.baseCode && base !== filter.baseCode) continue;
+                if (filter.quoteCode && quote !== filter.quoteCode) continue;
                 
                 // 원본 카테고리 유지 (API 카테고리로 변환)
                 let originalCategory = cat;
@@ -905,14 +903,14 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
                 const categoryInfo = getCategoryInfo(ex, originalCategory);
                 
                 // symbol 속성 중복을 피하기 위해 나머지 속성을 먼저 펼치고 필요한 속성들을 덮어씁니다.
-                const { displaySymbol: _, ...restSymbol } = symbol;
+                const { integratedSymbol: _, ...restSymbol } = symbol;
                 
                 result.push({
                   ...restSymbol,
                   exchange: ex,
                   rawCategory: categoryInfo.rawCategory,
-                  displayCategory: categoryInfo.displayCategory,
-                  displaySymbol: symbol.displaySymbol,
+                  integratedCategory: categoryInfo.integratedCategory,
+                  integratedSymbol: symbol.integratedSymbol,
                   baseCode: base,
                   quoteCode: quote
                 });

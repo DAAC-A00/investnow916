@@ -47,7 +47,7 @@ export default function BithumbTickerDetailPage() {
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
 
-  const displayCategory = params?.displayCategory as string;
+  const integratedCategory = params?.integratedCategory as string;
   const symbol = params?.symbol as string;
   
   const [tickerData, setTickerData] = useState<TickerData | null>(null);
@@ -60,8 +60,8 @@ export default function BithumbTickerDetailPage() {
   const priceTracker = useRef(new PriceDecimalTracker());
 
   useEffect(() => {
-    setCurrentRoute(`/exchange/ticker/bithumb/${displayCategory}/${symbol}`);
-  }, [setCurrentRoute, displayCategory, symbol]);
+    setCurrentRoute(`/exchange/ticker/bithumb/${integratedCategory}/${symbol}`);
+  }, [setCurrentRoute, integratedCategory, symbol]);
 
   // 호가 정보 가져오기
   const fetchOrderbook = useCallback(async () => {
@@ -99,13 +99,13 @@ export default function BithumbTickerDetailPage() {
         if (tickerInfo) {
           const newTickerData: TickerData = {
             rawSymbol: symbol,
-            displaySymbol: `${baseCode}/${quoteCode}`,
+            integratedSymbol: `${baseCode}/${quoteCode}`,
             quantity: 1,
             baseCode: baseCode,
             quoteCode: quoteCode,
             exchange: 'bithumb',
-            displayCategory: displayCategory,
-            rawCategory: displayCategory,
+            integratedCategory: integratedCategory,
+            rawCategory: integratedCategory,
             price: parseFloat(tickerInfo.closing_price),
             priceChange24h: parseFloat(tickerInfo.fluctate_24H),
             priceChangePercent24h: parseFloat(tickerInfo.fluctate_rate_24H),
@@ -130,7 +130,7 @@ export default function BithumbTickerDetailPage() {
         setError('티커 정보를 가져올 수 없습니다');
       }
     }
-  }, [displayCategory, symbol]);
+  }, [integratedCategory, symbol]);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -162,14 +162,14 @@ export default function BithumbTickerDetailPage() {
       }
     };
 
-    if (symbol && displayCategory) {
+    if (symbol && integratedCategory) {
       loadInitialData();
     }
-  }, [symbol, displayCategory, fetchTickerInfo, fetchOrderbook]);
+  }, [symbol, integratedCategory, fetchTickerInfo, fetchOrderbook]);
 
   // 0.8초마다 데이터 갱신
   useEffect(() => {
-    if (!symbol || !displayCategory) return;
+    if (!symbol || !integratedCategory) return;
 
     const interval = setInterval(async () => {
       try {
@@ -184,7 +184,7 @@ export default function BithumbTickerDetailPage() {
     }, 800);
 
     return () => clearInterval(interval);
-  }, [symbol, displayCategory, fetchTickerInfo, fetchOrderbook]);
+  }, [symbol, integratedCategory, fetchTickerInfo, fetchOrderbook]);
 
   if (isLoading) {
     return (
@@ -284,14 +284,14 @@ export default function BithumbTickerDetailPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">
-                  {tickerData.displaySymbol}
+                  {tickerData.integratedSymbol || `${symbol} (${integratedCategory})`}
                 </h1>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">
                     BITHUMB
                   </span>
                   <span className="bg-muted text-muted-foreground px-2 py-1 rounded">
-                    {tickerData.displayCategory.toUpperCase()}
+                    {tickerData.integratedCategory.toUpperCase()}
                   </span>
                 </div>
               </div>

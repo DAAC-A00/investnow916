@@ -123,7 +123,7 @@ export default function BithumbTickerPage() {
           const baseCode = symbol;
           const quoteCode = 'KRW';
           const rawSymbol = `${baseCode}${quoteCode}`;
-          const displaySymbol = `${baseCode}/${quoteCode}`;
+          const integratedSymbol = `${baseCode}/${quoteCode}`;
           
           // 가격 정보 계산
           const currentPrice = parseFloat(data.closing_price);
@@ -134,13 +134,13 @@ export default function BithumbTickerPage() {
           return {
             // === 기본 식별 정보 ===
             rawSymbol,
-            displaySymbol,
+            integratedSymbol,
             baseCode,
             quoteCode,
             exchange: 'bithumb' as const,
             
             // === 카테고리 정보 ===
-            displayCategory: 'spot',
+            integratedCategory: 'spot',
             rawCategory: 'spot',
             
             // === 현재 가격 정보 ===
@@ -198,7 +198,7 @@ export default function BithumbTickerPage() {
         const baseCode = symbol;
         const quoteCode = 'KRW';
         const rawSymbol = `${baseCode}${quoteCode}`;
-        const displaySymbol = `${baseCode}/${quoteCode}`;
+        const integratedSymbol = `${baseCode}/${quoteCode}`;
         
         // 테스트용 랜덤 데이터 생성
         const price = Math.random() * 100000 + 1000;
@@ -207,11 +207,11 @@ export default function BithumbTickerPage() {
         
         return {
           rawSymbol,
-          displaySymbol,
+          integratedSymbol,
           baseCode,
           quoteCode,
           exchange: 'bithumb' as const,
-          displayCategory: 'spot',
+          integratedCategory: 'spot',
           rawCategory: 'spot',
           price,
           prevPrice24h: price - priceChange,
@@ -308,8 +308,8 @@ export default function BithumbTickerPage() {
           valueB = b.turnover24h;
           break;
         case 'symbol':
-          valueA = a.displaySymbol;
-          valueB = b.displaySymbol;
+          valueA = a.integratedSymbol;
+          valueB = b.integratedSymbol;
           break;
         default:
           valueA = a.priceChangePercent24h;
@@ -338,7 +338,7 @@ export default function BithumbTickerPage() {
     if (!searchTerm) return true;
     
     const searchLower = searchTerm.toLowerCase();
-    const searchableText = `${ticker.rawSymbol}${ticker.displaySymbol}${ticker.baseCode}${ticker.quoteCode}${ticker.displayCategory}${ticker.rawCategory}`.toLowerCase();
+    const searchableText = `${ticker.rawSymbol}${ticker.integratedSymbol}${ticker.baseCode}${ticker.quoteCode}${ticker.integratedCategory}${ticker.rawCategory}`.toLowerCase();
 
     // 검색어를 공백으로 분리하여 AND 검색 수행
     const searchTerms = searchLower.split(/\s+/).filter(term => term.length > 0);

@@ -62,7 +62,7 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
 
   return {
     rawSymbol: ticker.symbol,
-    displaySymbol: symbol,
+    integratedSymbol: symbol,
     quantity: 1,
     // TODO: localStorage에 저장된 instrumentData에서 가져오기
     baseCode: ticker.symbol.slice(0, 3),
@@ -78,7 +78,7 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
     bidPrice: parseFloat(ticker.bid1Price) || 0,
     askPrice: parseFloat(ticker.ask1Price) || 0,
     exchange: 'bybit' as ExchangeType,
-    displayCategory: rawCategory,
+    integratedCategory: rawCategory,
     rawCategory,
   };
 };

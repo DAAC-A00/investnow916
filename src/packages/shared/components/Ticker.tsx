@@ -155,7 +155,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   }, [data, onPriceChange, animationManager, borderAnimationEnabled, previousPrice]);
 
   // 동적 폰트 크기 계산
-  const symbolFontSize = calculateFontSize(data.displaySymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
+  const symbolFontSize = calculateFontSize(data.integratedSymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
   const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
   
   // percent 영역의 동적 너비 설정 - 배경색과 % 기호 표시 여부에 따라 조정
@@ -240,7 +240,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
               justifyContent: 'flex-start' // 가로는 왼쪽 정렬
             }}
           >
-            {data.displaySymbol}
+            {data.integratedSymbol}
           </div>
           {data.warningType && (
             <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
