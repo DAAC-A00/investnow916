@@ -1,20 +1,32 @@
 /**
  * 데이터 갱신 관련 설정을 중앙에서 관리하는 상수 파일
+ * 
+ * 거래소 및 갱신 주기 정의는 exchangeConfig.ts에서 중앙 관리되며,
+ * 이 파일은 갱신 관련 유틸리티 함수만 제공합니다.
  */
 
-// 데이터 갱신 주기 설정 (시간 단위)
-export const UPDATE_CONFIG = {
-  // 기본 갱신 주기 (2시간)
-  DEFAULT_UPDATE_INTERVAL_HOURS: 2,
-  
-  // 거래소별 갱신 주기 설정
-  EXCHANGE_UPDATE_INTERVALS: {
-    bybit: 2,    // Bybit: 2시간
-    bithumb: 2,  // Bithumb: 2시간
-    binance: 2,  // Binance: 2시간 (추후 구현)
-    upbit: 2,    // Upbit: 2시간 (추후 구현)
-  }
-} as const;
+// ============================================================================
+// 중앙 설정에서 모든 정의 import
+// ============================================================================
+
+// 타입과 상수들을 중앙 설정에서 import
+export type { ExchangeType } from '@/packages/shared/constants/exchangeConfig';
+export { 
+  EXCHANGE_UPDATE_INTERVALS,
+  DEFAULT_UPDATE_INTERVAL_HOURS,
+  UPDATE_CONFIG
+} from '@/packages/shared/constants/exchangeConfig';
+
+// 내부에서 사용하기 위한 import
+import type { ExchangeType } from '@/packages/shared/constants/exchangeConfig';
+import { 
+  EXCHANGE_UPDATE_INTERVALS,
+  DEFAULT_UPDATE_INTERVAL_HOURS 
+} from '@/packages/shared/constants/exchangeConfig';
+
+// ============================================================================
+// 갱신 관련 유틸리티 함수들 (기존 로직 유지)
+// ============================================================================
 
 /**
  * 특정 거래소의 갱신 주기를 가져오는 함수
@@ -22,8 +34,8 @@ export const UPDATE_CONFIG = {
  * @returns 갱신 주기 (시간)
  */
 export const getUpdateIntervalForExchange = (exchange: string): number => {
-  return UPDATE_CONFIG.EXCHANGE_UPDATE_INTERVALS[exchange as keyof typeof UPDATE_CONFIG.EXCHANGE_UPDATE_INTERVALS] 
-    || UPDATE_CONFIG.DEFAULT_UPDATE_INTERVAL_HOURS;
+  return EXCHANGE_UPDATE_INTERVALS[exchange as keyof typeof EXCHANGE_UPDATE_INTERVALS] 
+    || DEFAULT_UPDATE_INTERVAL_HOURS;
 };
 
 /**
@@ -38,7 +50,7 @@ export const getUpdateInterval = (exchange?: string): number => {
   }
   
   // 기본값 반환
-  return UPDATE_CONFIG.DEFAULT_UPDATE_INTERVAL_HOURS;
+  return DEFAULT_UPDATE_INTERVAL_HOURS;
 };
 
 /**

@@ -1,105 +1,59 @@
 /**
- * 다중 거래소 카테고리 관리 상수 및 유틸리티 함수
- * 각 거래소별 Raw 카테고리와 통합 Display 카테고리 간의 변환을 중앙에서 관리
- * DisplayCategory는 여러 거래소의 서로 다른 RawCategory들을 하나로 통합하는 IntegratedCategory 역할
+ * 거래소별 카테고리 관리 및 변환 유틸리티
+ * 
+ * 모든 거래소와 카테고리 정의는 exchangeConfig.ts에서 중앙 관리되며,
+ * 이 파일은 카테고리 변환 및 유틸리티 함수만 제공합니다.
  */
 
-// 지원하는 거래소 목록
-export type SupportedExchange = 'bybit' | 'bithumb' | 'upbit' | 'binance';
-
 // ============================================================================
-// 거래소별 Raw 카테고리 정의 (API 요청용)
-// ============================================================================
-export type BybitRawCategory = 'linear' | 'inverse' | 'spot' | 'option';
-export type BithumbRawCategory = 'spot';
-export type UpbitRawCategory = 'spot';
-export type BinanceRawCategory = 'spot' | 'usdm' | 'coinm' | 'options';
-
-// ============================================================================
-// 통합 Display 카테고리 정의 (여러 거래소 통합용)
-// ============================================================================
-/**
- * 통합 카테고리 - 여러 거래소의 서로 다른 rawCategory를 하나로 통합
- * - spot: 현물 거래 (모든 거래소)
- * - futures-usdt: USDT 마진 선물 (Bybit linear, Binance usdm)
- * - futures-coin: 코인 마진 선물 (Bybit inverse, Binance coinm)  
- * - options: 옵션 거래 (Bybit option, Binance options)
- */
-export type IntegratedCategory = 'spot' | 'futures-usdt' | 'futures-coin' | 'options';
-
-// 레거시 호환을 위한 별칭
-export type ExchangeDisplayCategory = IntegratedCategory;
-
-// 통합 카테고리 타입 정의
-export type ExchangeRawCategory = 
-  | BybitRawCategory 
-  | BithumbRawCategory 
-  | UpbitRawCategory 
-  | BinanceRawCategory;
-
-// ============================================================================
-// 거래소별 카테고리 매핑 설정 (RawCategory -> IntegratedCategory)
+// 중앙 설정에서 모든 정의 import
 // ============================================================================
 
-// Bybit 카테고리 매핑
-export const BYBIT_CATEGORY_MAPPING = {
-  linear: 'futures-usdt',    // USDT 무기한 선물
-  inverse: 'futures-coin',   // 코인 마진 선물
-  spot: 'spot',              // 현물 거래
-  option: 'options'          // 옵션 거래
-} as const;
+// 타입 정의들을 중앙 설정에서 import
+export type {
+  ExchangeType,
+  SupportedExchange,
+  IntegratedCategory,
+  BybitRawCategory,
+  BybitDisplayCategory,
+  BinanceRawCategory,
+  BinanceDisplayCategory,
+  UpbitRawCategory,
+  UpbitDisplayCategory,
+  BithumbRawCategory,
+  BithumbDisplayCategory,
+  AllRawCategories
+} from '@/packages/shared/constants/exchangeConfig';
 
-// Bithumb 카테고리 매핑 (현물만)
-export const BITHUMB_CATEGORY_MAPPING = {
-  spot: 'spot'
-} as const;
+// 상수들을 중앙 설정에서 import
+export {
+  SUPPORTED_EXCHANGES,
+  EXCHANGE_RAW_CATEGORIES,
+  INTEGRATED_CATEGORIES,
+  EXCHANGE_CATEGORY_MAPPINGS,
+  EXCHANGE_SUPPORTED_CATEGORIES
+} from '@/packages/shared/constants/exchangeConfig';
 
-// Upbit 카테고리 매핑 (현물만)
-export const UPBIT_CATEGORY_MAPPING = {
-  spot: 'spot'
-} as const;
-
-// Binance 카테고리 매핑
-export const BINANCE_CATEGORY_MAPPING = {
-  spot: 'spot',              // 현물 거래
-  usdm: 'futures-usdt',      // USDⓈ-M 선물 (USDT 마진)
-  coinm: 'futures-coin',     // COIN-M 선물 (코인 마진)
-  options: 'options'         // 옵션 거래
-} as const;
-
-// 통합 카테고리 매핑
-export const EXCHANGE_CATEGORY_MAPPINGS = {
-  bybit: BYBIT_CATEGORY_MAPPING,
-  bithumb: BITHUMB_CATEGORY_MAPPING,
-  upbit: UPBIT_CATEGORY_MAPPING,
-  binance: BINANCE_CATEGORY_MAPPING
-} as const;
-
-// ============================================================================
-// 거래소별 카테고리 목록
-// ============================================================================
-
-// 거래소별 Raw 카테고리 목록
-export const EXCHANGE_RAW_CATEGORIES = {
-  bybit: ['linear', 'inverse', 'spot', 'option'] as BybitRawCategory[],
-  bithumb: ['spot'] as BithumbRawCategory[],
-  upbit: ['spot'] as UpbitRawCategory[],
-  binance: ['spot', 'usdm', 'coinm', 'options'] as BinanceRawCategory[]
-} as const;
-
-// 모든 통합 카테고리 목록
-export const ALL_INTEGRATED_CATEGORIES: IntegratedCategory[] = ['spot', 'futures-usdt', 'futures-coin', 'options'];
-
-// 거래소별로 지원하는 통합 카테고리 목록
-export const EXCHANGE_SUPPORTED_CATEGORIES = {
-  bybit: ['spot', 'futures-usdt', 'futures-coin', 'options'] as IntegratedCategory[],
-  bithumb: ['spot'] as IntegratedCategory[],
-  upbit: ['spot'] as IntegratedCategory[],
-  binance: ['spot', 'futures-usdt', 'futures-coin', 'options'] as IntegratedCategory[]
-} as const;
+// 내부에서 사용하기 위한 import
+import type {
+  ExchangeType,
+  SupportedExchange,
+  IntegratedCategory,
+  AllRawCategories,
+  BybitRawCategory,
+  BinanceRawCategory,
+  UpbitRawCategory,
+  BithumbRawCategory
+} from '@/packages/shared/constants/exchangeConfig';
+import {
+  EXCHANGE_CATEGORY_MAPPINGS,
+  EXCHANGE_RAW_CATEGORIES,
+  EXCHANGE_SUPPORTED_CATEGORIES,
+  INTEGRATED_CATEGORIES
+} from '@/packages/shared/constants/exchangeConfig';
 
 // ============================================================================
-// 카테고리 변환 함수들
+// 유틸리티 함수들 (기존 로직 유지)
 // ============================================================================
 
 /**
@@ -155,12 +109,12 @@ export const supportsIntegratedCategory = (
   exchange: SupportedExchange, 
   integratedCategory: IntegratedCategory
 ): boolean => {
-  return EXCHANGE_SUPPORTED_CATEGORIES[exchange].includes(integratedCategory);
+  return (EXCHANGE_SUPPORTED_CATEGORIES[exchange] as readonly IntegratedCategory[]).includes(integratedCategory);
 };
 
-// ============================================================================
-// 유효성 검사 함수들
-// ============================================================================
+/**
+ * 유효성 검사 함수들
+ * ============================================================================
 
 /**
  * 거래소의 Raw 카테고리 유효성 검사
@@ -173,14 +127,17 @@ export const isValidRawCategory = (exchange: SupportedExchange, category: string
  * 통합 카테고리 유효성 검사
  */
 export const isValidIntegratedCategory = (category: string): category is IntegratedCategory => {
-  return ALL_INTEGRATED_CATEGORIES.includes(category as IntegratedCategory);
+  return INTEGRATED_CATEGORIES.includes(category as IntegratedCategory);
 };
 
 /**
  * 거래소가 통합 카테고리를 지원하는지 확인
  */
-export const isValidIntegratedCategoryForExchange = (exchange: SupportedExchange, category: string): boolean => {
-  return EXCHANGE_SUPPORTED_CATEGORIES[exchange].includes(category as IntegratedCategory);
+export const isValidIntegratedCategoryForExchange = <T extends SupportedExchange>(
+  exchange: T,
+  integratedCategory: IntegratedCategory
+): boolean => {
+  return (EXCHANGE_SUPPORTED_CATEGORIES[exchange] as readonly IntegratedCategory[]).includes(integratedCategory);
 };
 
 /**
@@ -202,8 +159,8 @@ export const isSupportedExchange = (exchange: string): exchange is SupportedExch
 // 통합 카테고리 라벨 (한국어)
 export const INTEGRATED_CATEGORY_LABELS = {
   'spot': '현물 거래',
-  'futures-usdt': 'USDT 마진 선물',
-  'futures-coin': '코인 마진 선물', 
+  'um': 'USDT 마진 선물',
+  'cm': '코인 마진 선물', 
   'options': '옵션 거래'
 } as const;
 
@@ -318,7 +275,7 @@ export const bybitToRawCategory = (integratedCategory: IntegratedCategory): Bybi
 /**
  * @deprecated Use EXCHANGE_RAW_CATEGORIES.bybit instead
  */
-export const ALL_RAW_CATEGORIES: BybitRawCategory[] = EXCHANGE_RAW_CATEGORIES.bybit;
+export const ALL_RAW_CATEGORIES: BybitRawCategory[] = [...EXCHANGE_RAW_CATEGORIES.bybit];
 
 /**
  * @deprecated Use EXCHANGE_SUPPORTED_CATEGORIES.bybit instead
@@ -336,7 +293,7 @@ export const isValidBybitRawCategory = (category: string): category is BybitRawC
  * @deprecated Use isValidIntegratedCategoryForExchange('bybit', category) instead
  */
 export const isValidBybitDisplayCategory = (category: string): category is IntegratedCategory => {
-  return isValidIntegratedCategoryForExchange('bybit', category);
+  return isValidIntegratedCategoryForExchange('bybit', category as IntegratedCategory);
 };
 
 /**
@@ -353,8 +310,4 @@ export const getBybitDisplayCategoryLabel = (integratedCategory: IntegratedCateg
   return getCategoryLabel('bybit', integratedCategory);
 };
 
-// 레거시 호환용 타입 별칭
-export type BybitDisplayCategory = IntegratedCategory;
-export type BithumbDisplayCategory = IntegratedCategory;
-export type UpbitDisplayCategory = IntegratedCategory; 
-export type BinanceDisplayCategory = IntegratedCategory;
+// 레거시 호환용 타입 별칭들은 중앙 설정(exchangeConfig.ts)에서 관리됩니다.

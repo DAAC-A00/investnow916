@@ -367,8 +367,8 @@ const fetchBybitCoins = async (rawCategory: BybitRawCategory, set: any, get: any
       // settlementCode 결정 로직
       let settlement = settleCoin || quoteCode || quoteCoin;
       
-      // cm 카테고리이면서 USD 견적인 경우 settlementCode는 baseCode
-      if (rawCategory === 'option' && (quoteCode === 'USD' || quoteCoin === 'USD')) {
+      // cm 카테고리(inverse)이면서 USD 견적인 경우 settlementCode는 baseCode
+      if (rawCategory === 'inverse' && (quoteCode === 'USD' || quoteCoin === 'USD')) {
         settlement = actualBaseCode;
       }
       
@@ -775,7 +775,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
             // 특정 거래소의 모든 카테고리 심볼 데이터 초기화
             const categories = exchange === 'bybit' ? 
               [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 삭제
-              exchange === 'binance' ? ['spot', 'futures-usdt', 'futures-coin', 'options'] :
+              exchange === 'binance' ? ['spot', 'um', 'cm', 'options'] :
               exchange === 'upbit' ? ['spot'] :
               exchange === 'bithumb' ? ['spot'] : [];
             
@@ -854,7 +854,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
           if (!category) {
             categories = exchange === 'bybit' ? 
               [...ALL_DISPLAY_CATEGORIES] : // display 카테고리들 검색
-              exchange === 'binance' ? ['spot', 'futures-usdt', 'futures-coin', 'options'] :
+              exchange === 'binance' ? ['spot', 'um', 'cm', 'options'] :
               exchange === 'upbit' ? ['spot'] :
               exchange === 'bithumb' ? ['spot'] : [];
           } else {

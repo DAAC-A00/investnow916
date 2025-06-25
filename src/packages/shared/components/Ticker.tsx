@@ -49,6 +49,15 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
     bottomDisplayMode
   } = useTickerSettingStore();
 
+  // hydration 오류 방지를 위한 클라이언트 전용 상태
+  const [isClient, setIsClient] = useState(false);
+  const [clientBottomDisplayMode, setClientBottomDisplayMode] = useState<BottomDisplayMode>('priceChange');
+
+  useEffect(() => {
+    setIsClient(true);
+    setClientBottomDisplayMode(bottomDisplayMode);
+  }, [bottomDisplayMode]);
+
   // 이전 가격 저장 (애니메이션 트리거용) - data.prevPrice가 있으면 사용, 없으면 현재 가격으로 초기화
   const [previousPrice, setPreviousPrice] = useState<number>(data.prevPrice ?? data.price);
   
@@ -175,6 +184,42 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const animationPrevPrice = data.prevPrice ?? previousPrice;
   const borderStyle = getTickerBorderStyle(borderAnimation, tickerColorMode, animationPrevPrice, data.price, borderAnimationEnabled);
 
+  // 하단 표시 모드에 따른 텍스트와 스타일 계산 (클라이언트에서만)
+  const getBottomDisplayContent = () => {
+    if (!isClient) {
+      // 서버 사이드에서는 기본값 사용
+      return {
+        text: formattedPriceChange,
+        style: priceStyle
+      };
+    }
+
+    switch (clientBottomDisplayMode) {
+      case 'priceChange':
+        return {
+          text: formattedPriceChange,
+          style: priceStyle
+        };
+      case 'turnover':
+        return {
+          text: `${formattedTurnover} ${data.quoteCode}`,
+          style: { color: 'hsl(var(--muted-foreground))' }
+        };
+      case 'volume':
+        return {
+          text: `${formattedVolume} Vol`,
+          style: { color: 'hsl(var(--muted-foreground))' }
+        };
+      default:
+        return {
+          text: formattedPriceChange,
+          style: priceStyle
+        };
+    }
+  };
+
+  const bottomContent = getBottomDisplayContent();
+
   return (
     <div 
       className={`bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-1 border border-border cursor-pointer ${className}`}
@@ -234,13 +279,9 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
           </div>
           <div 
             className="text-sm mt-1"
-            style={bottomDisplayMode === 'priceChange' ? priceStyle : { color: 'hsl(var(--muted-foreground))' }}
+            style={bottomContent.style}
           >
-            {bottomDisplayMode === 'priceChange' 
-              ? formattedPriceChange 
-              : bottomDisplayMode === 'turnover' 
-                ? `${formattedTurnover} ${data.quoteCode}`
-                : `${formattedVolume} Vol`}
+            {bottomContent.text}
           </div>
         </div>
       </div>

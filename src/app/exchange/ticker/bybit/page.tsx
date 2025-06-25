@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { 
   BybitRawCategory, 
-  toDisplayCategory,
-  ALL_RAW_CATEGORIES 
-} from '@/packages/shared/constants/exchangeCategories';
+  toDisplayCategory} from '@/packages/shared/constants/exchangeCategories';
 
 type SortField = 'symbol' | 'price' | 'priceChange' | 'priceChangePercent' | 'highPrice24h' | 'lowPrice24h' | 'volume' | 'turnover';
 type SortDirection = 'asc' | 'desc';

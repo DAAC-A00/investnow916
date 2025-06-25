@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { ALL_RAW_CATEGORIES, bybitToDisplayCategory as toDisplayCategory } from '../constants/exchangeCategories';
+import { 
+  toIntegratedCategory, 
+  EXCHANGE_RAW_CATEGORIES 
+} from '../constants/exchangeCategories';
 import { 
   getUpdateInterval,
   needsDataUpdate
@@ -34,9 +37,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
   } = useExchangeCoinsStore();
 
   // 로컬 스토리지 접근 함수들 (store에서 가져온 로직)
-  const toStorageCategory = (category: string): string => {
+  const toStorageCategory = (exchange: ExchangeType, category: string): string => {
     // Bybit 카테고리 변환 시도
-    const bybitDisplayCategory = toDisplayCategory(category as BybitRawCategory);
+    const bybitDisplayCategory = toIntegratedCategory(exchange, category as BybitRawCategory);
     if (bybitDisplayCategory) {
       return bybitDisplayCategory;
     }
@@ -46,7 +49,7 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
 
   const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
     // isRawCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
-    const storageCategory = isRawCategory ? toStorageCategory(category) : category;
+    const storageCategory = isRawCategory ? toStorageCategory(exchange, category) : category;
     return `${exchange}-${storageCategory}`;
   };
 
@@ -131,7 +134,7 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
             }
           } else {
             // Bybit의 모든 카테고리 데이터 가져오기
-            for (const cat of ALL_RAW_CATEGORIES) {
+            for (const cat of EXCHANGE_RAW_CATEGORIES.bybit) {
               // 해당 카테고리의 심볼 데이터가 있는지 확인
               const symbols = getSymbolsForCategory(exchange, cat);
               const hasData = symbols.length > 0;

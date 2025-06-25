@@ -2,14 +2,40 @@
  * 환율 및 거래소 정보 관련 타입 정의
  */
 
-// Bybit 카테고리 타입들은 constants/exchangeCategories.ts에서 import
+// ============================================================================
+// 거래소 및 카테고리 타입 (중앙 설정에서 import)
+// ============================================================================
+
+// 거래소 및 카테고리 관련 타입들을 중앙 설정에서 import
 export type { 
+  ExchangeType,
+  SupportedExchange,
+  IntegratedCategory,
   BybitRawCategory, 
-  BybitDisplayCategory 
-} from '@/packages/shared/constants/exchangeCategories';
+  BybitDisplayCategory,
+  BinanceRawCategory,
+  BinanceDisplayCategory,
+  UpbitRawCategory,
+  UpbitDisplayCategory,
+  BithumbRawCategory,
+  BithumbDisplayCategory,
+  AllRawCategories,
+  BithumbWarningType
+} from '@/packages/shared/constants/exchangeConfig';
+
+// Warning 관련 상수들도 중앙 설정에서 import
+export { 
+  BITHUMB_WARNING_LABELS 
+} from '@/packages/shared/constants/exchangeConfig';
 
 // 내부에서 사용하기 위한 import
-import type { BybitRawCategory } from '@/packages/shared/constants/exchangeCategories';
+import type { 
+  ExchangeType,
+  BybitRawCategory,
+  BithumbRawCategory,
+  BithumbWarningType 
+} from '@/packages/shared/constants/exchangeConfig';
+import { BITHUMB_WARNING_LABELS } from '@/packages/shared/constants/exchangeConfig';
 
 // 환율 API 응답 타입
 export interface ExchangeRateResponse {
@@ -45,7 +71,7 @@ export type ExchangeRateAction =
  */
 
 // 지원하는 거래소 타입
-export type ExchangeType = 'bybit' | 'binance' | 'upbit' | 'bithumb';
+// export type ExchangeType = 'bybit' | 'binance' | 'upbit' | 'bithumb';
 
 // 코인 정보 공통 인터페이스
 export interface CoinInfo {
@@ -218,25 +244,6 @@ export interface BithumbWarningsResponse {
   data?: BithumbWarning[];
 }
 
-// Bithumb Warning 타입 정의
-export type BithumbWarningType = 
-  | 'PRICE_SUDDEN_FLUCTUATION'             // 가격 급등락
-  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
-  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
-  | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
-  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'    // 소수계좌 거래 집중
-  | 'EXCHANGE_TRADING_CONCENTRATION';      // 거래소 거래 집중
-
-// Bithumb Warning 타입별 한글 설명
-export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
-  'PRICE_SUDDEN_FLUCTUATION': '가격 급등락',
-  'TRADING_VOLUME_SUDDEN_FLUCTUATION': '거래량 급등',
-  'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION': '입금량 급등',
-  'PRICE_DIFFERENCE_HIGH': '가격 차이',
-  'SPECIFIC_ACCOUNT_HIGH_TRANSACTION': '소수계좌 거래 집중',
-  'EXCHANGE_TRADING_CONCENTRATION': '거래소 거래 집중'
-};
-
 // 일반적인 경고 타입 (BithumbWarningType과 동일)
 export type WarningType = BithumbWarningType;
 
@@ -244,8 +251,8 @@ export type WarningType = BithumbWarningType;
 export const WARNING_TYPE_LABELS: Record<WarningType, string> = BITHUMB_WARNING_LABELS;
 
 // Bithumb 카테고리 타입 (spot만 지원)
-export type BithumbRawCategory = 'spot';
-export type BithumbDisplayCategory = 'spot';
+// export type BithumbRawCategory = 'spot';
+// export type BithumbDisplayCategory = 'spot';
 
 /**
  * 통합된 티커 데이터 구조
