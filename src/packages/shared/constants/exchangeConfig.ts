@@ -161,6 +161,22 @@ export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
   PRICE_DIFFERENCE_HIGH: '가격 차이',
   SPECIFIC_ACCOUNT_HIGH_TRANSACTION: '소수계좌 거래 집중',
   EXCHANGE_TRADING_CONCENTRATION: '거래소 거래 집중'
+};
+
+/**
+ * API 엔드포인트 정의
+ */
+export const API_ENDPOINTS = {
+  bithumb: {
+    tickerAll: 'https://api.bithumb.com/public/ticker/ALL_KRW',
+    ticker: (baseCode: string, quoteCode: string) =>
+      `https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`,
+    orderbook: (baseCode: string, quoteCode: string) =>
+      `https://api.bithumb.com/public/orderbook/${baseCode}_${quoteCode}`,
+  },
+  bybit: {
+    tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,
+  },
 } as const;
 
 // ============================================================================

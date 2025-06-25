@@ -8,6 +8,7 @@ import {
   ExchangeType
 } from '../types/exchange';
 import { BybitRawCategory } from '../constants/exchangeCategories';
+import { API_ENDPOINTS } from '../constants/exchangeConfig';
 import { defaultApiClient } from '../utils/apiClient';
 
 // 티커 스토어 상태 타입
@@ -38,10 +39,7 @@ const initialState = {
   lastUpdated: {},
 };
 
-// Bybit 티커 API URL
-const getTickerApiUrl = (rawCategory: BybitRawCategory): string => {
-  return `https://api.bybit.com/v5/market/tickers?category=${rawCategory}`;
-};
+
 
 // Bybit 티커 데이터를 TickerData 형식으로 변환
 const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory): TickerData => {
@@ -97,7 +95,7 @@ export const useBybitTickerStore = create<BybitTickerState>()(
         });
 
         try {
-          const url = getTickerApiUrl(rawCategory);
+          const url = API_ENDPOINTS.bybit.tickers(rawCategory);
           console.log(`🔄 Bybit ${rawCategory} 티커 정보 요청:`, url);
 
           // 공통 API 클라이언트를 사용하여 Bybit API 호출

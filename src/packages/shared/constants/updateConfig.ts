@@ -18,7 +18,6 @@ export {
 } from '@/packages/shared/constants/exchangeConfig';
 
 // 내부에서 사용하기 위한 import
-import type { ExchangeType } from '@/packages/shared/constants/exchangeConfig';
 import { 
   EXCHANGE_UPDATE_INTERVALS,
   DEFAULT_UPDATE_INTERVAL_HOURS 

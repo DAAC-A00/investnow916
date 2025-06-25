@@ -10,6 +10,7 @@ import {
 } from '@/packages/shared/types/exchange';
 import { PriceDecimalTracker } from '@/packages/shared/utils';
 import { defaultApiClient } from '@/packages/shared/utils/apiClient';
+import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
 
 // 빗썸 API 타입 정의
 interface BithumbTickerResponse {
@@ -91,7 +92,7 @@ export default function BithumbTickerPage() {
       
       // 공통 API 클라이언트를 사용하여 빗썸 API 호출
       const response = await defaultApiClient.get<BithumbTickerResponse>(
-        'https://api.bithumb.com/public/ticker/ALL_KRW',
+        API_ENDPOINTS.bithumb.tickerAll,
         {
           headers: {
             'Accept': 'application/json',

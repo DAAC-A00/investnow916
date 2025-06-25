@@ -6,6 +6,7 @@ import { useNavigationActions } from '@/packages/shared/stores/createNavigationS
 import { TickerData } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
 import { get, ApiError } from '@/packages/shared/utils/apiClient';
+import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
 
 interface OrderbookUnit {
   ask_price: number;
@@ -42,6 +43,56 @@ interface BithumbTickerResponse {
   data: BithumbTickerApiData;
 }
 
+// Bithumb Public API 응답 타입
+interface BithumbOrderbookEntry {
+  price: string;
+  quantity: string;
+}
+
+interface BithumbApiOrderbookData {
+  timestamp: string;
+  payment_currency: string;
+  order_currency: string;
+  bids: BithumbOrderbookEntry[];
+  asks: BithumbOrderbookEntry[];
+}
+
+interface BithumbOrderbookResponse {
+  status: string;
+  data: BithumbApiOrderbookData;
+}
+
+// API 응답을 UI에서 사용하는 데이터 형식으로 변환
+const transformBithumbOrderbook = (apiData: BithumbApiOrderbookData, marketSymbol: string): OrderbookData => {
+  const bids = apiData.bids.slice(0, 30); // UI 성능을 위해 30개로 제한
+  const asks = apiData.asks.slice(0, 30).reverse(); // 일반적인 호가창 표시를 위해 asks 배열을 뒤집음
+
+  const orderbook_units: OrderbookUnit[] = [];
+  const total_ask_size = asks.reduce((acc, curr) => acc + parseFloat(curr.quantity), 0);
+  const total_bid_size = bids.reduce((acc, curr) => acc + parseFloat(curr.quantity), 0);
+
+  const maxLength = Math.max(bids.length, asks.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    const bid = bids[i];
+    const ask = asks[i];
+    orderbook_units.push({
+      bid_price: bid ? parseFloat(bid.price) : 0,
+      bid_size: bid ? parseFloat(bid.quantity) : 0,
+      ask_price: ask ? parseFloat(ask.price) : 0,
+      ask_size: ask ? parseFloat(ask.quantity) : 0,
+    });
+  }
+
+  return {
+    market: marketSymbol,
+    timestamp: parseInt(apiData.timestamp, 10),
+    total_ask_size,
+    total_bid_size,
+    orderbook_units,
+  };
+};
+
 export default function BithumbTickerDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -66,14 +117,14 @@ export default function BithumbTickerDetailPage() {
   // 호가 정보 가져오기
   const fetchOrderbook = useCallback(async () => {
     try {
-      // symbol이 BTCKRW 형태이므로 KRW-BTC 형태로 변환
       const baseCode = symbol.replace(/KRW$|BTC$/, '');
       const quoteCode = symbol.includes('KRW') ? 'KRW' : 'BTC';
-      const market = `${quoteCode}-${baseCode}`;
-      const response = await get<OrderbookData[]>(`https://api.bithumb.com/v1/orderbook?markets=${market}`);
-      
-      if (response.data && response.data.length > 0) {
-        setOrderbookData(response.data[0]);
+      const response = await get<BithumbOrderbookResponse>(API_ENDPOINTS.bithumb.orderbook(baseCode, quoteCode));
+
+      if (response.data.status === '0000' && response.data.data) {
+        const marketSymbol = `${baseCode}/${quoteCode}`;
+        const transformedData = transformBithumbOrderbook(response.data.data, marketSymbol);
+        setOrderbookData(transformedData);
         setLastUpdate(new Date());
       }
     } catch (error) {
@@ -92,7 +143,7 @@ export default function BithumbTickerDetailPage() {
       // symbol이 BTCKRW 형태이므로 파싱하여 API 호출
       const baseCode = symbol.replace(/KRW$|BTC$/, '');
       const quoteCode = symbol.includes('KRW') ? 'KRW' : 'BTC';
-      const response = await get<BithumbTickerResponse>(`https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`);
+      const response = await get<BithumbTickerResponse>(API_ENDPOINTS.bithumb.ticker(baseCode, quoteCode));
       
       if (response.data.status === '0000' && response.data.data) {
         const tickerInfo = response.data.data;
