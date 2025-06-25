@@ -22,24 +22,24 @@ interface OrderbookData {
   orderbook_units: OrderbookUnit[];
 }
 
+interface BithumbTickerApiData {
+  opening_price: string;
+  closing_price: string;
+  min_price: string;
+  max_price: string;
+  units_traded: string;
+  acc_trade_value: string;
+  prev_closing_price: string;
+  units_traded_24H: string;
+  acc_trade_value_24H: string;
+  fluctate_24H: string;
+  fluctate_rate_24H: string;
+  date: string;
+}
+
 interface BithumbTickerResponse {
   status: string;
-  data: {
-    [symbol: string]: {
-      opening_price: string;
-      closing_price: string;
-      min_price: string;
-      max_price: string;
-      units_traded: string;
-      acc_trade_value: string;
-      prev_closing_price: string;
-      units_traded_24H: string;
-      acc_trade_value_24H: string;
-      fluctate_24H: string;
-      fluctate_rate_24H: string;
-      date: string;
-    };
-  };
+  data: BithumbTickerApiData;
 }
 
 export default function BithumbTickerDetailPage() {
@@ -95,7 +95,7 @@ export default function BithumbTickerDetailPage() {
       const response = await get<BithumbTickerResponse>(`https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`);
       
       if (response.data.status === '0000' && response.data.data) {
-        const tickerInfo = response.data.data[baseCode];
+        const tickerInfo = response.data.data;
         if (tickerInfo) {
           const newTickerData: TickerData = {
             rawSymbol: symbol,
@@ -139,12 +139,6 @@ export default function BithumbTickerDetailPage() {
       setError(null);
       
       try {
-        // 저장된 ticker 데이터가 있으면 먼저 로드
-        const storedData = localStorage.getItem(`ticker_${symbol}`);
-        if (storedData) {
-          setTickerData(JSON.parse(storedData));
-        }
-
         // API에서 최신 데이터 가져오기 (병렬 처리)
         await Promise.all([
           fetchTickerInfo(),
