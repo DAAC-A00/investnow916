@@ -23,9 +23,8 @@ import { normalizeSearchTerm } from '@/packages/shared/utils';
 import {
   BybitRawCategory,
   IntegratedCategory,
-  toDisplayCategory,
-  toRawCategory,
-  ALL_DISPLAY_CATEGORIES 
+  toIntegratedCategory,
+  EXCHANGE_SUPPORTED_CATEGORIES 
 } from '@/packages/shared/constants/exchangeCategories';
 
 // 스토어 import 추가
@@ -78,7 +77,7 @@ const BybitInstrumentPage = () => {
   // 업데이트 시간 정보 수집 함수
   const collectUpdateTimes = () => {
     const categoryUpdateTimes: {[category: string]: Date | null} = {};
-    ALL_DISPLAY_CATEGORIES.forEach(category => {
+    EXCHANGE_SUPPORTED_CATEGORIES.bybit.forEach(category => {
       categoryUpdateTimes[category] = getUpdateTime(category);
     });
     setUpdateTimes(categoryUpdateTimes);
@@ -104,7 +103,7 @@ const BybitInstrumentPage = () => {
         
         if (success) {
           // 스토어에서 필터링된 코인 정보 가져오기
-          const integratedCategory = toDisplayCategory('bybit', rawCategory);
+          const integratedCategory = toIntegratedCategory('bybit', rawCategory);
           if (integratedCategory) {
             const filteredCoins = getFilteredCoins({
               exchange: 'bybit',
@@ -323,7 +322,7 @@ const BybitInstrumentPage = () => {
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {ALL_DISPLAY_CATEGORIES.map(category => {
+          {EXCHANGE_SUPPORTED_CATEGORIES.bybit.map(category => {
             const updateTime = updateTimes[category];
             const needsUpdateFlag = needsUpdate(category);
             const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;

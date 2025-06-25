@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerStore';
 import { 
   BybitRawCategory, 
-  toDisplayCategory} from '@/packages/shared/constants/exchangeCategories';
+  toIntegratedCategory} from '@/packages/shared/constants/exchangeCategories';
 
 type SortField = 'symbol' | 'price' | 'priceChange' | 'priceChangePercent' | 'highPrice24h' | 'lowPrice24h' | 'volume' | 'turnover';
 type SortDirection = 'asc' | 'desc';
@@ -153,15 +153,87 @@ export default function BybitTickersPage() {
   }
 
   // selectedCategory를 storage용 카테고리로 변환
-  const storageCategory = toDisplayCategory('bybit', selectedCategory);
+  const storageCategory = toIntegratedCategory('bybit', selectedCategory);
   // storage 카테고리로 instrument map 생성
   const instrumentMap = loadInstrumentMap(storageCategory);
 
-  // 심볼을 표시용 심볼로 변환
-  function getDisplaySymbol(rawSymbol: string) {
+  // rawSymbol을 integratedSymbol로 변환하는 함수
+  function exchangeSymbol(rawSymbol: string, exchange: string = 'bybit', integratedCategory: string = storageCategory): string {
     const info = instrumentMap[rawSymbol];
-    if (!info) return rawSymbol;
-    return info.symbol || rawSymbol;
+    if (!info || !info.symbol) {
+      // localStorage에 정보가 없는 경우 기본 변환 로직 적용
+      return convertRawToIntegratedSymbol(rawSymbol, exchange, integratedCategory);
+    }
+    return info.symbol; // localStorage에서 가져온 integratedSymbol 반환
+  }
+
+  // rawSymbol을 integratedSymbol로 변환하는 기본 로직
+  function convertRawToIntegratedSymbol(rawSymbol: string, exchange: string, integratedCategory: string): string {
+    if (exchange !== 'bybit') return rawSymbol;
+
+    try {
+      // Bybit 심볼 파싱 로직
+      let baseCode = '';
+      let quoteCode = '';
+      let quantity = 1;
+      let restOfSymbol = '';
+
+      // 일반적인 패턴 매칭 (예: BTCUSDT, 1000SHIBUSDT, BTCUSDT25DEC24)
+      const patterns = [
+        // 숫자 + 코인 + USDT + 날짜 패턴 (예: 100BTCUSDT25DEC24)
+        /^(\d+)([A-Z]+)(USDT)(\d{2}[A-Z]{3}\d{2})$/,
+        // 숫자 + 코인 + USDT 패턴 (예: 1000SHIBUSDT)
+        /^(\d+)([A-Z]+)(USDT)$/,
+        // 일반 코인 + USDT + 날짜 패턴 (예: BTCUSDT25DEC24)
+        /^([A-Z]+)(USDT)(\d{2}[A-Z]{3}\d{2})$/,
+        // 일반 코인 + USDT 패턴 (예: BTCUSDT)
+        /^([A-Z]+)(USDT)$/,
+        // 기타 패턴들 (BTC, ETH 등과 다른 quote currency)
+        /^(\d+)?([A-Z]+)([A-Z]{3,4})(\d{2}[A-Z]{3}\d{2})?$/
+      ];
+
+      for (const pattern of patterns) {
+        const match = rawSymbol.match(pattern);
+        if (match) {
+          if (match[1] && /^\d+$/.test(match[1])) {
+            // 첫 번째 그룹이 숫자인 경우
+            quantity = parseInt(match[1]);
+            baseCode = match[2];
+            quoteCode = match[3];
+            restOfSymbol = match[4] || '';
+          } else {
+            // 첫 번째 그룹이 코인 코드인 경우
+            baseCode = match[1];
+            quoteCode = match[2];
+            restOfSymbol = match[3] || '';
+          }
+          break;
+        }
+      }
+
+      // 파싱 실패 시 원본 반환
+      if (!baseCode || !quoteCode) {
+        return rawSymbol;
+      }
+
+      // integratedSymbol 생성
+      let integratedSymbol = '';
+      
+      if (quantity >= 10) {
+        integratedSymbol = `${quantity}${baseCode}/${quoteCode}`;
+      } else {
+        integratedSymbol = `${baseCode}/${quoteCode}`;
+      }
+
+      if (restOfSymbol) {
+        integratedSymbol += `-${restOfSymbol}`;
+      }
+
+      return integratedSymbol;
+    } catch (error) {
+      console.warn('Symbol conversion failed:', rawSymbol, error);
+      return rawSymbol;
+    }
   }
 
   // 숫자 포맷팅 함수
@@ -310,7 +382,7 @@ export default function BybitTickersPage() {
                 {/* 심볼 */}
                 <div className="flex justify-between items-start mb-2">
                   <div className="font-semibold text-sm">
-                    {getDisplaySymbol(ticker.rawSymbol)}
+                    {exchangeSymbol(ticker.rawSymbol)}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {ticker.rawSymbol}

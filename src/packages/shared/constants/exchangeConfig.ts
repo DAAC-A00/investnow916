@@ -139,18 +139,6 @@ export const UPDATE_CONFIG = {
 } as const;
 
 // ============================================================================
-// 7. 거래소별 Display 카테고리 타입 (호환성 유지)
-// ============================================================================
-
-/**
- * 거래소별 Display 카테고리 타입 (IntegratedCategory와 동일, 호환성 유지)
- */
-export type BybitDisplayCategory = IntegratedCategory;
-export type BinanceDisplayCategory = IntegratedCategory;
-export type UpbitDisplayCategory = IntegratedCategory;
-export type BithumbDisplayCategory = IntegratedCategory;
-
-// ============================================================================
 // 8. Bithumb Warning 관련 정의
 // ============================================================================
 

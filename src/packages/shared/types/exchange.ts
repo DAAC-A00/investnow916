@@ -12,13 +12,9 @@ export type {
   SupportedExchange,
   IntegratedCategory,
   BybitRawCategory, 
-  BybitDisplayCategory,
   BinanceRawCategory,
-  BinanceDisplayCategory,
   UpbitRawCategory,
-  UpbitDisplayCategory,
   BithumbRawCategory,
-  BithumbDisplayCategory,
   AllRawCategories,
   BithumbWarningType
 } from '@/packages/shared/constants/exchangeConfig';
@@ -249,10 +245,6 @@ export type WarningType = BithumbWarningType;
 
 // 경고 타입별 한글 설명 (통합)
 export const WARNING_TYPE_LABELS: Record<WarningType, string> = BITHUMB_WARNING_LABELS;
-
-// Bithumb 카테고리 타입 (spot만 지원)
-// export type BithumbRawCategory = 'spot';
-// export type BithumbDisplayCategory = 'spot';
 
 /**
  * 통합된 티커 데이터 구조

@@ -145,16 +145,16 @@ src/
 ### 기본 속성
 
 | 키                                 | 설명                                                             |
-| --------------------------------- | -------------------------------------------------------------- |
-| `rawSymbol`                       | 외부 API 원본 심볼 (ex: BTCUSDT, 1000SHIBUSDT)                        |
-| `displaySymbol`                   | 내부 표시용 심볼 (조건부 포맷)                                            |
-| `baseCode` / `quoteCode`          | 기준/견적 화폐 코드 (quantity 제거된 실제 코드)                              |
-| `quantity`                        | 수량 정보 (10의 배수일 때만 유효, 기본값: 1)                                 |
-| `settlementCode`                  | 정산 화폐 코드 (조건부 결정)                                             |
-| `restOfSymbol`                    | 기타 심볼 정보 (만료일, 옵션 정보 등)                                       |
-| `rawCategory` / `displayCategory` | API 원본 카테고리 / UI 표시용                                           |
+|----------------------------------|-------------------------------------------------------------------|
+| `rawSymbol`                      | API에서 받은 원본 심볼 (예: BTCUSDT, 100BTCUSDT25DEC24)                  |
+| `integratedSymbol`               | 내부 표시용 심볼 (조건부 포맷)                                            |
+| `baseCode` / `quoteCode`         | 기준/견적 화폐 코드 (quantity 제거된 실제 코드)                              |
+| `quantity`                       | 수량 정보 (10의 배수일 때만 유효, 기본값: 1)                                 |
+| `settlementCode`                 | 정산 화폐 코드 (조건부 결정)                                             |
+| `restOfSymbol`                   | 기타 심볼 정보 (만료일, 옵션 정보 등)                                       |
+| `rawCategory` / `integratedCategory` | API 원본 카테고리 / UI 표시용                                           |
 
-### displaySymbol 조건부 포맷
+### integratedSymbol 조건부 포맷
 
 #### quantity가 10의 배수인 경우:
 - **restOfSymbol 있음**: `${quantity}${baseCode}/${quoteCode}-${restOfSymbol}`
@@ -196,14 +196,14 @@ src/
 
 ```ts
 interface SymbolInfo {
-  rawSymbol: string;              // API 원본 심볼
-  displaySymbol: string;          // 조건부 포맷 표시 심볼
+  rawSymbol: string;              // API에서 받은 원본 심볼
+  integratedSymbol: string;          // 조건부 포맷 표시 심볼
   baseCode: string;               // 기준 화폐 (quantity 제거됨)
   quoteCode: string;              // 견적 화폐
   restOfSymbol?: string;          // 추가 심볼 정보
   quantity?: number;              // 수량 (기본값: 1)
   settlementCode?: string;        // 정산 화폐
-  displayCategory?: string;       // UI 표시 카테고리
+  integratedCategory?: string;       // UI 표시 카테고리
   rawCategory?: string;           // API 원본 카테고리
   
   [key: string]: any;             // 추가 필드 허용
@@ -225,7 +225,7 @@ interface SymbolInfo {
 // 파싱 결과
 {
   rawSymbol: "100BTCUSDT25DEC24",
-  displaySymbol: "100BTC/USDT-25DEC24",
+  integratedSymbol: "100BTC/USDT-25DEC24",
   baseCode: "BTC",
   quoteCode: "USDT",
   quantity: 100,
@@ -261,7 +261,7 @@ interface SymbolInfo {
 // 파싱 결과
 {
   rawSymbol: "KRW-BTC",
-  displaySymbol: "BTC/KRW",
+  integratedSymbol: "BTC/KRW",
   baseCode: "BTC",
   quoteCode: "KRW",
   quantity: 1,

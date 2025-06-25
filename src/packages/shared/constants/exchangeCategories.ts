@@ -69,11 +69,6 @@ export const toRawCategory = <T extends SupportedExchange>(
 };
 
 /**
- * @deprecated Use toIntegratedCategory instead
- */
-export const toDisplayCategory = toIntegratedCategory;
-
-/**
  * 특정 통합 카테고리를 지원하는 거래소들의 Raw 카테고리 매핑 가져오기
  */
 export const getRawCategoriesForIntegratedCategory = (
@@ -100,9 +95,9 @@ export const supportsIntegratedCategory = (
   return (EXCHANGE_SUPPORTED_CATEGORIES[exchange] as readonly IntegratedCategory[]).includes(integratedCategory);
 };
 
-/**
- * 유효성 검사 함수들
- * ============================================================================
+// ============================================================================
+// 유효성 검사 함수들
+// ============================================================================
 
 /**
  * 거래소의 Raw 카테고리 유효성 검사
@@ -127,11 +122,6 @@ export const isValidIntegratedCategoryForExchange = <T extends SupportedExchange
 ): boolean => {
   return (EXCHANGE_SUPPORTED_CATEGORIES[exchange] as readonly IntegratedCategory[]).includes(integratedCategory);
 };
-
-/**
- * @deprecated Use isValidIntegratedCategoryForExchange instead
- */
-export const isValidDisplayCategory = isValidIntegratedCategoryForExchange;
 
 /**
  * 지원하는 거래소인지 확인
@@ -197,11 +187,6 @@ export const getCategoryLabel = (exchange: SupportedExchange, integratedCategory
 };
 
 /**
- * @deprecated Use getCategoryLabel instead
- */
-export const getDisplayCategoryLabel = getCategoryLabel;
-
-/**
  * 거래소의 모든 카테고리와 라벨 목록 가져오기
  */
 export const getExchangeCategoriesWithLabels = (exchange: SupportedExchange) => {
@@ -241,61 +226,3 @@ export const getExchangesForIntegratedCategory = (integratedCategory: Integrated
   
   return result;
 };
-
-// ============================================================================
-// 레거시 호환성을 위한 함수들 (Deprecated)
-// ============================================================================
-
-/**
- * @deprecated Use toIntegratedCategory('bybit', rawCategory) instead
- */
-export const bybitToDisplayCategory = (rawCategory: BybitRawCategory): IntegratedCategory => {
-  return toIntegratedCategory('bybit', rawCategory);
-};
-
-/**
- * @deprecated Use toRawCategory('bybit', integratedCategory) instead  
- */
-export const bybitToRawCategory = (integratedCategory: IntegratedCategory): BybitRawCategory => {
-  return toRawCategory('bybit', integratedCategory) as BybitRawCategory;
-};
-
-/**
- * @deprecated Use EXCHANGE_RAW_CATEGORIES.bybit instead
- */
-export const ALL_RAW_CATEGORIES: BybitRawCategory[] = [...EXCHANGE_RAW_CATEGORIES.bybit];
-
-/**
- * @deprecated Use EXCHANGE_SUPPORTED_CATEGORIES.bybit instead
- */
-export const ALL_DISPLAY_CATEGORIES: IntegratedCategory[] = EXCHANGE_SUPPORTED_CATEGORIES.bybit;
-
-/**
- * @deprecated Use isValidRawCategory('bybit', category) instead
- */
-export const isValidBybitRawCategory = (category: string): category is BybitRawCategory => {
-  return isValidRawCategory('bybit', category);
-};
-
-/**
- * @deprecated Use isValidIntegratedCategoryForExchange('bybit', category) instead
- */
-export const isValidBybitDisplayCategory = (category: string): category is IntegratedCategory => {
-  return isValidIntegratedCategoryForExchange('bybit', category as IntegratedCategory);
-};
-
-/**
- * @deprecated Use getRawCategoryLabel('bybit', rawCategory) instead
- */
-export const getBybitRawCategoryLabel = (rawCategory: BybitRawCategory): string => {
-  return getRawCategoryLabel('bybit', rawCategory);
-};
-
-/**
- * @deprecated Use getCategoryLabel('bybit', integratedCategory) instead
- */
-export const getBybitDisplayCategoryLabel = (integratedCategory: IntegratedCategory): string => {
-  return getCategoryLabel('bybit', integratedCategory);
-};
-
-// 레거시 호환용 타입 별칭들은 중앙 설정(exchangeConfig.ts)에서 관리됩니다.

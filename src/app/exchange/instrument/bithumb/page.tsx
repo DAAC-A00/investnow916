@@ -9,7 +9,7 @@ interface InstrumentInfo {
   quoteCode: string;
   pair: string;
   rawCategory: string;
-  integratedCategory: BithumbDisplayCategory;
+  integratedCategory: IntegratedCategory;
   settlementCode?: string;
   remark?: string;
   search?: string;
@@ -20,7 +20,7 @@ import { normalizeSearchTerm } from '@/packages/shared/utils';
 
 import { 
   BithumbRawCategory,
-  BithumbDisplayCategory
+  IntegratedCategory
 } from '@/packages/shared/types/exchange';
 
 // 스토어 import 추가
@@ -34,7 +34,7 @@ import {
 } from '@/packages/shared/constants/updateConfig';
 
 // Bithumb은 spot만 지원하므로 고정된 카테고리
-const BITHUMB_CATEGORIES: BithumbDisplayCategory[] = ['spot'];
+const BITHUMB_CATEGORIES: IntegratedCategory[] = ['spot'];
 
 // 업데이트 시간 관련 함수들 (스토어와 일치하도록 수정)
 const getUpdateTimeKey = (category: string): string => {
@@ -115,7 +115,7 @@ const BithumbInstrumentPage = () => {
           quoteCode: coin.quoteCode,
           pair: coin.integratedSymbol,
           rawCategory: coin.rawCategory,
-          integratedCategory: coin.integratedCategory as BithumbDisplayCategory,
+          integratedCategory: coin.integratedCategory as IntegratedCategory,
           settlementCode: coin.settlementCode,
           remark: '',
           search: ''

@@ -39,9 +39,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
   // 로컬 스토리지 접근 함수들 (store에서 가져온 로직)
   const toStorageCategory = (exchange: ExchangeType, category: string): string => {
     // Bybit 카테고리 변환 시도
-    const bybitDisplayCategory = toIntegratedCategory(exchange, category as BybitRawCategory);
-    if (bybitDisplayCategory) {
-      return bybitDisplayCategory;
+    const integratedCategory = toIntegratedCategory(exchange, category as BybitRawCategory);
+    if (integratedCategory) {
+      return integratedCategory;
     }
     
     return category;
