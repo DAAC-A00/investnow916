@@ -8,10 +8,16 @@ export function ThemeToggleButton() {
   const isHydrated = useIsHydrated();
   const { toggleTheme } = useThemeActions();
 
-  // 하이드레이션 완료 전까지는 렌더링하지 않음
+  // 하이드레이션 완료 전까지는 로딩 상태 표시
   if (!isHydrated) {
     return (
-      <div className="w-full h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-6 bg-muted rounded-full animate-pulse" />
+        <div className="flex flex-col gap-1">
+          <div className="w-16 h-4 bg-muted rounded animate-pulse" />
+          <div className="w-20 h-3 bg-muted rounded animate-pulse" />
+        </div>
+      </div>
     );
   }
 

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTheme } from '../../../shared/stores/createThemeStore';
+import { colorTokens } from '../../tokens/design-tokens';
 
 export interface ToggleProps {
   /** 토글의 초기 활성 상태 */
@@ -13,10 +15,12 @@ export interface ToggleProps {
   onChange?: (active: boolean) => void;
   /** 토글 레이블 */
   label?: string;
-  /** 테마 색상 토큰 */
-  themeColors: any;
-  /** 현재 테마 ('light' | 'dark') */
-  currentTheme?: string;
+  /** 토글 설명 */
+  description?: string;
+  /** 토글 크기 */
+  size?: 'sm' | 'md' | 'lg';
+  /** 커스텀 클래스명 */
+  className?: string;
 }
 
 export function Toggle({ 
@@ -25,10 +29,11 @@ export function Toggle({
   disabled = false, 
   onChange, 
   label,
-  themeColors,
-  currentTheme = 'light'
+  description,
+  size = 'md',
+  className = ''
 }: ToggleProps) {
-  // React 상태 기반으로 완전히 리팩토링
+  const theme = useTheme();
   const [internalActive, setInternalActive] = useState(defaultActive);
   
   // controlled vs uncontrolled 모드 처리
@@ -50,45 +55,78 @@ export function Toggle({
     }
   };
 
+  // 크기별 스타일 설정
+  const sizeStyles = {
+    sm: { width: 'w-10', height: 'h-5', thumb: 'w-4 h-4', translate: 'translate-x-5' },
+    md: { width: 'w-12', height: 'h-6', thumb: 'w-5 h-5', translate: 'translate-x-6' },
+    lg: { width: 'w-14', height: 'h-7', thumb: 'w-6 h-6', translate: 'translate-x-7' }
+  };
+
+  const currentSize = sizeStyles[size];
+  const colors = colorTokens[theme];
+
   return (
-    <div>
-      {label && (
-        <div className="text-sm mb-2" style={{ color: `hsl(${themeColors.neutral[700]})` }}>
-          {label}
-        </div>
-      )}
-      <div 
-        className={`w-16 h-8 rounded-full p-1 transition-all duration-300 flex items-center relative ${
-          disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
-        }`}
-        style={{ 
-          backgroundColor: disabled 
-            ? `hsl(${themeColors.neutral[300]})` 
-            : (isActive
-              ? `hsl(${themeColors.primary[900]})` // Primary Action 배경색 (on)
-              : `hsl(${themeColors.primary[50]})`), // Secondary Action 배경색 (off)
-          border: disabled 
-            ? 'none'
-            : `2px solid hsl(${isActive ? themeColors.primary[900] : themeColors.primary[700]})`,
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-        }}
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* 토글 스위치 */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isActive}
+        aria-disabled={disabled}
+        disabled={disabled}
         onClick={handleToggle}
-        data-active={isActive.toString()}
-        data-disabled={disabled.toString()}
+        className={`
+          ${currentSize.width} ${currentSize.height} 
+          relative inline-flex items-center rounded-full 
+          transition-all duration-200 ease-in-out
+          focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+          ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+          ${isActive 
+            ? 'bg-primary shadow-inner' 
+            : 'bg-muted border border-border'
+          }
+        `}
+        style={{
+          backgroundColor: disabled 
+            ? `hsl(${colors.neutral[300]})` 
+            : (isActive
+              ? `hsl(${colors.primary[900]})` 
+              : `hsl(${colors.neutral[200]})`),
+        }}
       >
-        <div 
-          className="w-6 h-6 rounded-full transition-all duration-300 absolute border"
-          style={{ 
-            transform: isActive ? 'translateX(32px)' : 'translateX(0px)',
+        <span
+          className={`
+            ${currentSize.thumb}
+            inline-block rounded-full bg-background shadow-lg
+            transform transition-transform duration-200 ease-in-out
+            ${isActive ? currentSize.translate : 'translate-x-0.5'}
+          `}
+          style={{
             backgroundColor: disabled 
-              ? `hsl(${themeColors.neutral[100]})` 
-              : (isActive 
-                ? `hsl(${themeColors.primary.foreground})` 
-                : `hsl(${themeColors.primary[700]})`),
-            borderColor: 'transparent'
+              ? `hsl(${colors.neutral[100]})` 
+              : `hsl(${colors.primary.foreground})`,
           }}
         />
-      </div>
+      </button>
+
+      {/* 레이블 및 설명 */}
+      {(label || description) && (
+        <div className="flex flex-col">
+          {label && (
+            <label 
+              className="text-sm font-medium text-foreground cursor-pointer"
+              onClick={!disabled ? handleToggle : undefined}
+            >
+              {label}
+            </label>
+          )}
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {description}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
