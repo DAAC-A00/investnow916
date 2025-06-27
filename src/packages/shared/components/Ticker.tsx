@@ -104,10 +104,13 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const formattedTurnover = formatNumber(data.turnover24h);
   const formattedVolume = formatNumber(data.volume24h);
   
-  // 가격 포맷팅 (공통 유틸리티 사용)
-  const maxDecimals = priceTracker ? priceTracker.getMaxDecimals(data.rawSymbol) : 0;
-  const formattedLastPrice = formatPrice(data.price, maxDecimals, true);
-  const formattedPriceChange = formatPriceChange(data.priceChange24h, maxDecimals, true);
+  // 가격 포맷팅 (PriceDecimalTracker 사용)
+  const formattedLastPrice = priceTracker 
+    ? priceTracker.formatPrice(data.integratedSymbol, data.price, true)
+    : formatPrice(data.price, 2, true);
+  const formattedPriceChange = priceTracker 
+    ? priceTracker.formatPriceChange(data.integratedSymbol, data.priceChange24h, true)
+    : formatPriceChange(data.priceChange24h, 2, true);
 
   let percentAbs = Math.abs(data.priceChangePercent24h);
   let percentStr = '';

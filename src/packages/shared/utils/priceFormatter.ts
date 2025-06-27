@@ -15,34 +15,26 @@ export class PriceDecimalTracker {
   private getDecimals(num: number): number {
     if (!isFinite(num)) return 0;
     const s = num.toString();
-    if (s.includes('.')) return s.split('.')[1].length;
+    if (s.includes('.')) {
+      const decimalPart = s.split('.')[1];
+      // 끝의 0들을 제거하지 않고 실제 소수점 자릿수를 반환
+      return decimalPart.length;
+    }
     return 0;
   }
 
   /**
-   * 가격 범위에 따른 기본 소수점 자리수 계산
-   */
-  private getDefaultDecimals(price: number): number {
-    if (price >= 1000) return 2;
-    if (price >= 100) return 2;
-    if (price >= 1) return 4;
-    if (price >= 0.01) return 6;
-    return 12;
-  }
-
-  /**
    * symbol의 가격을 추적하고 최대 소수점 자리수를 업데이트
+   * 지금까지 확보된 가장 많은 소수점 자릿수를 기준으로 maxDecimal을 유지
    */
   trackPrice(symbol: string, price: number): void {
     const currentDecimals = this.getDecimals(price);
-    const defaultDecimals = this.getDefaultDecimals(price);
-    
-    // 현재 가격의 소수점 자리수와 기본 자리수 중 큰 값을 사용
-    const requiredDecimals = Math.max(currentDecimals, defaultDecimals);
-    
     const existingMax = this.maxDecimals[symbol] ?? 0;
-    if (requiredDecimals > existingMax) {
-      this.maxDecimals[symbol] = requiredDecimals;
+    
+    // 현재 가격의 소수점 자릿수가 기존 최대값보다 크면 업데이트
+    if (currentDecimals > existingMax) {
+      this.maxDecimals[symbol] = currentDecimals;
+      console.log(`[PriceDecimalTracker] ${symbol}: maxDecimal 업데이트 ${existingMax} → ${currentDecimals} (price: ${price})`);
     }
   }
 
@@ -51,6 +43,53 @@ export class PriceDecimalTracker {
    */
   getMaxDecimals(symbol: string): number {
     return this.maxDecimals[symbol] ?? 0;
+  }
+
+  /**
+   * symbol의 가격을 maxDecimal 기준으로 포맷팅
+   */
+  formatPrice(symbol: string, price: number, addCommas: boolean = true): string {
+    const maxDecimals = this.getMaxDecimals(symbol);
+    
+    // maxDecimals가 0이면 기본 포맷팅 사용
+    if (maxDecimals === 0) {
+      return formatPrice(price, 0, addCommas);
+    }
+    
+    // maxDecimals 기준으로 고정 소수점 포맷팅
+    const formatted = price.toFixed(maxDecimals);
+    
+    if (addCommas) {
+      const parts = formatted.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return parts.join('.');
+    }
+    
+    return formatted;
+  }
+
+  /**
+   * symbol의 가격 변동을 maxDecimal 기준으로 포맷팅 (+ 기호 포함)
+   */
+  formatPriceChange(symbol: string, priceChange: number, addCommas: boolean = true): string {
+    const maxDecimals = this.getMaxDecimals(symbol);
+    
+    // maxDecimals가 0이면 기본 포맷팅 사용
+    if (maxDecimals === 0) {
+      return formatPriceChange(priceChange, 0, addCommas);
+    }
+    
+    // maxDecimals 기준으로 고정 소수점 포맷팅
+    const formatted = Math.abs(priceChange).toFixed(maxDecimals);
+    const sign = priceChange >= 0 ? '+' : '-';
+    
+    if (addCommas) {
+      const parts = formatted.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return sign + parts.join('.');
+    }
+    
+    return sign + formatted;
   }
 
   /**

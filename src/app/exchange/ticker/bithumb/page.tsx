@@ -132,6 +132,19 @@ export default function BithumbTickerPage() {
           const priceChange = parseFloat(data.fluctate_24H);
           const priceChangePercent = parseFloat(data.fluctate_rate_24H);
 
+          // PriceDecimalTracker로 가격 추적
+          priceTracker.current.trackPrice(integratedSymbol, currentPrice);
+          if (prevPrice && prevPrice !== currentPrice) {
+            priceTracker.current.trackPrice(integratedSymbol, prevPrice);
+          }
+          if (priceChange && Math.abs(priceChange) > 0) {
+            priceTracker.current.trackPrice(integratedSymbol, Math.abs(priceChange));
+          }
+
+          // 추적 상태 로깅 (BTC/KRW만 예시로)
+          if (integratedSymbol === "BTC/KRW") {
+            console.log(`[PriceTracker] ${integratedSymbol}: maxDecimals=${priceTracker.current.getMaxDecimals(integratedSymbol)}, currentPrice=${currentPrice}`);
+          }
           return {
             // === 기본 식별 정보 ===
             rawSymbol,

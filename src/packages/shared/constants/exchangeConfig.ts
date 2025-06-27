@@ -137,8 +137,8 @@ export const DATA_UPDATE_INTERVALS = {
    */
   ticker: {
     bybit: 500,       // Bybit 전체 티커
-    bithumb: 3000,      // Bithumb 전체 티커
-    bithumbDetail: 800, // Bithumb 상세 티커
+    bithumb: 1000,      // Bithumb 전체 티커
+    bithumbDetail: 1000, // Bithumb 상세 티커
   },
 } as const;
 

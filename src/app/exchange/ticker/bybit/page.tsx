@@ -103,10 +103,22 @@ export default function BybitTickersPage() {
   useEffect(() => {
     filteredTickers.forEach((ticker) => {
       const symbol = ticker.rawSymbol;
+      const integratedSymbol = ticker.integratedSymbol;
       const prev = prevPrices.current[symbol];
       
-      // 가격 추적
-      priceTracker.current.trackPrice(symbol, ticker.price);
+      // PriceDecimalTracker로 가격 추적 (빗썸과 동일한 방식)
+      priceTracker.current.trackPrice(integratedSymbol, ticker.price);
+      if (ticker.prevPrice24h && ticker.prevPrice24h !== ticker.price) {
+        priceTracker.current.trackPrice(integratedSymbol, ticker.prevPrice24h);
+      }
+      if (ticker.priceChange24h && Math.abs(ticker.priceChange24h) > 0) {
+        priceTracker.current.trackPrice(integratedSymbol, Math.abs(ticker.priceChange24h));
+      }
+      
+      // 추적 상태 로깅 (BTC/USDT만 예시로)
+      if (integratedSymbol === 'BTC/USDT') {
+        console.log(`[PriceTracker] ${integratedSymbol}: maxDecimals=${priceTracker.current.getMaxDecimals(integratedSymbol)}, currentPrice=${ticker.price}`);
+      }
       
       let flash: 'up' | 'down' | 'none' = 'none';
       if (prev !== undefined) {
@@ -347,7 +359,6 @@ export default function BybitTickersPage() {
           }
 
           return filteredTickers.map((ticker: TickerData) => {
-            const maxDecimals = priceTracker.current.getMaxDecimals(ticker.rawSymbol);
             // 색상 값들
             const priceColor = getTickerColor(tickerColorMode, ticker.priceChange24h > 0 ? 'up' : ticker.priceChange24h < 0 ? 'down' : 'unchanged');
             const borderColorClass = getTickerColor(tickerColorMode, ticker.priceChange24h > 0 ? 'up' : ticker.priceChange24h < 0 ? 'down' : 'unchanged');
@@ -366,9 +377,9 @@ export default function BybitTickersPage() {
             
             const formattedTurnover = formatNumber(ticker.turnover24h);
             
-            // 공통 유틸리티 사용
-            const formattedLastPrice = formatPrice(ticker.price, maxDecimals, true);
-            const formattedPriceChange = formatPriceChange(ticker.priceChange24h, maxDecimals, true);
+            // PriceDecimalTracker를 사용한 가격 포맷팅 (integratedSymbol 기준)
+            const formattedLastPrice = priceTracker.current.formatPrice(ticker.integratedSymbol, ticker.price, true);
+            const formattedPriceChange = priceTracker.current.formatPriceChange(ticker.integratedSymbol, ticker.priceChange24h, true);
             const formattedPriceChangePercent = `${ticker.priceChangePercent24h >= 0 ? '+' : ''}${ticker.priceChangePercent24h.toFixed(2)}%`;
             
             return (
