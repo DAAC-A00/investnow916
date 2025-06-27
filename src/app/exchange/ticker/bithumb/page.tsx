@@ -159,6 +159,7 @@ export default function BithumbTickerPage() {
             
             // === 현재 가격 정보 ===
             price: currentPrice,
+            beforePrice: prevPrice, // 테두리 애니메이션용 이전 가격
             prevPrice24h: prevPrice,
             priceChange24h: priceChange,
             priceChangePercent24h: priceChangePercent,
@@ -228,6 +229,7 @@ export default function BithumbTickerPage() {
           integratedCategory: 'spot',
           rawCategory: 'spot',
           price,
+          beforePrice: price - priceChange, // 테두리 애니메이션용 이전 가격
           prevPrice24h: price - priceChange,
           priceChange24h: priceChange,
           priceChangePercent24h: changePercent,

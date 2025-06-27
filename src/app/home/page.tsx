@@ -34,7 +34,7 @@ export default function HomePage() {
       turnover24h: 1250000000,
       volume24h: 28901.4,
       prevPrice24h: 42000.00,
-      prevPrice: 42000.00
+      beforePrice: 42000.00
     },
     {
       rawSymbol: 'TEST2COIN',
@@ -51,7 +51,7 @@ export default function HomePage() {
       turnover24h: 850000000,
       volume24h: 329362,
       prevPrice24h: 2626.00,
-      prevPrice: 2626.00
+      beforePrice: 2626.00
     },
   ]);
 

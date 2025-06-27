@@ -281,7 +281,7 @@ export interface TickerData {
   /** 현재 가격 */
   price: number;
   /** 이전 가격 (애니메이션용) */
-  prevPrice?: number;
+  beforePrice?: number;
   /** 24시간 전 가격 */
   prevPrice24h: number;
   /** 24시간 가격 변동 */

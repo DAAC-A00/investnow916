@@ -163,7 +163,6 @@ export default function BithumbTickerDetailPage() {
             turnover24h: parseFloat(tickerInfo.acc_trade_value_24H),
             volume24h: parseFloat(tickerInfo.units_traded_24H),
             prevPrice24h: parseFloat(tickerInfo.prev_closing_price),
-            prevPrice: parseFloat(tickerInfo.prev_closing_price),
             highPrice24h: parseFloat(tickerInfo.max_price),
             lowPrice24h: parseFloat(tickerInfo.min_price),
           };

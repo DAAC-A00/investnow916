@@ -59,7 +59,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   }, [bottomDisplayMode]);
 
   // 이전 가격 저장 (애니메이션 트리거용) - data.prevPrice가 있으면 사용, 없으면 현재 가격으로 초기화
-  const [previousPrice, setPreviousPrice] = useState<number>(data.prevPrice ?? data.price);
+  const [previousPrice, setPreviousPrice] = useState<number>(data.beforePrice ?? data.price);
   
   // 테두리 애니메이션 상태 관리
   const [borderAnimation, setBorderAnimation] = useState<boolean>(false);
@@ -184,7 +184,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, data.priceChange24h, showPercentBackground);
   
   // 애니메이션용 이전 가격 계산
-  const animationPrevPrice = data.prevPrice ?? previousPrice;
+  const animationPrevPrice = data.beforePrice ?? previousPrice;
   const borderStyle = getTickerBorderStyle(borderAnimation, tickerColorMode, animationPrevPrice, data.price, borderAnimationEnabled);
 
   // 하단 표시 모드에 따른 텍스트와 스타일 계산 (클라이언트에서만)

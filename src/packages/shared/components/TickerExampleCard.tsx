@@ -40,7 +40,7 @@ export function TickerExampleCard({
       volume24h: 1200000,
       warningType: 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION',
       prevPrice24h: 5000.00,
-      prevPrice: 5000.00
+      beforePrice: 5000.00
     },
     {
       rawSymbol: 'LongNameCoin999USDT',
@@ -58,7 +58,7 @@ export function TickerExampleCard({
       volume24h: 89000000,
       warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
       prevPrice24h: 90000.00,
-      prevPrice: 90000.00
+      beforePrice: 90000.00
     },
     {
       rawSymbol: 'COIN2USDT',
@@ -76,7 +76,7 @@ export function TickerExampleCard({
       volume24h: 3500000,
       warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 5000.00,
-      prevPrice: 5000.00
+      beforePrice: 5000.00
     },
     {
       rawSymbol: 'LongNameCoin000USDT',
@@ -94,7 +94,7 @@ export function TickerExampleCard({
       volume24h: 95000000,
       warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 0.00246913578,
-      prevPrice: 0.00246913578
+      beforePrice: 0.00246913578
     },
     {
       rawSymbol: 'COIN3USDT',
@@ -112,7 +112,7 @@ export function TickerExampleCard({
       volume24h: 12000,
       warningType: 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION',
       prevPrice24h: 73.19,
-      prevPrice: 73.19
+      beforePrice: 73.19
     },
     {
       rawSymbol: 'PrettyMuchLongNameCoin777USDT',
@@ -130,7 +130,7 @@ export function TickerExampleCard({
       volume24h: 1500000000,
       warningType: 'PRICE_DIFFERENCE_HIGH',
       prevPrice24h: 15098039.00,
-      prevPrice: 15098039.00
+      beforePrice: 15098039.00
     },
     {
       rawSymbol: 'BigChangeCOINUSDT',
@@ -148,7 +148,7 @@ export function TickerExampleCard({
       volume24h: 4500,
       warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
       prevPrice24h: 87.00,
-      prevPrice: 87.00
+      beforePrice: 87.00
     },
     {
       rawSymbol: 'BiggerChangeCOINUSDT',
@@ -166,7 +166,7 @@ export function TickerExampleCard({
       volume24h: 40000,
       warningType: 'EXCHANGE_TRADING_CONCENTRATION',
       prevPrice24h: 10.00,
-      prevPrice: 10.00
+      beforePrice: 10.00
     },
   ]);
 
@@ -207,7 +207,7 @@ export function TickerExampleCard({
         
         return {
           ...ticker,
-          prevPrice: ticker.price,
+          beforePrice: ticker.price,
           price: newPrice,
           priceChange24h: newPrice - ticker.prevPrice24h,
           priceChangePercent24h: ((newPrice - ticker.prevPrice24h) / ticker.prevPrice24h) * 100
@@ -233,7 +233,7 @@ export function TickerExampleCard({
         
         return {
           ...ticker,
-          prevPrice: ticker.price,
+          beforePrice: ticker.price,
           price: newPrice,
           priceChange24h: newPrice - ticker.prevPrice24h,
           priceChangePercent24h: ((newPrice - ticker.prevPrice24h) / ticker.prevPrice24h) * 100
@@ -259,7 +259,7 @@ export function TickerExampleCard({
         
         return {
           ...ticker,
-          prevPrice: ticker.price,
+          beforePrice: ticker.price,
           price: newPrice,
           priceChange24h: newPrice - ticker.prevPrice24h,
           priceChangePercent24h: ((newPrice - ticker.prevPrice24h) / ticker.prevPrice24h) * 100
@@ -285,7 +285,7 @@ export function TickerExampleCard({
         
         return {
           ...ticker,
-          prevPrice: ticker.price,
+          beforePrice: ticker.price,
           price: newPrice,
           priceChange24h: newPrice - ticker.prevPrice24h,
           priceChangePercent24h: ((newPrice - ticker.prevPrice24h) / ticker.prevPrice24h) * 100
@@ -311,7 +311,7 @@ export function TickerExampleCard({
         
         return {
           ...ticker,
-          prevPrice: ticker.price,
+          beforePrice: ticker.price,
           price: newPrice,
           priceChange24h: newPrice - ticker.prevPrice24h,
           priceChangePercent24h: ((newPrice - ticker.prevPrice24h) / ticker.prevPrice24h) * 100
