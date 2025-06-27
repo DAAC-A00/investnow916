@@ -6,6 +6,7 @@ import { useBybitTickerStore } from '@/packages/shared/stores/createBybitTickerS
 import { 
   BybitRawCategory, 
   toIntegratedCategory} from '@/packages/shared/constants/exchangeCategories';
+import { DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 
 type SortField = 'symbol' | 'price' | 'priceChange' | 'priceChangePercent' | 'highPrice24h' | 'lowPrice24h' | 'volume' | 'turnover';
 type SortDirection = 'asc' | 'desc';
@@ -46,7 +47,7 @@ export default function BybitTickersPage() {
       await fetchTickers(selectedCategory);
       timer = setInterval(() => {
         fetchTickers(selectedCategory);
-      }, 500);
+      }, DATA_UPDATE_INTERVALS.ticker.bybit);
     };
     fetchAndSchedule();
     return () => {

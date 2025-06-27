@@ -111,30 +111,34 @@ export const EXCHANGE_SUPPORTED_CATEGORIES = {
 } as const;
 
 // ============================================================================
-// 6. 갱신 주기 설정 (updateConfig.ts와의 호환성)
+// 6. 데이터 갱신 주기 설정 (instrument, ticker)
 // ============================================================================
 
-// 기본 갱신 주기 (시간 단위)
-export const DEFAULT_UPDATE_INTERVAL_HOURS = 2;
-
-// 거래소별 갱신 주기 설정 (시간 단위)
-export const EXCHANGE_UPDATE_INTERVALS = {
-  bybit: 2,    // Bybit: 2시간
-  bithumb: 2,  // Bithumb: 2시간
-  binance: 2,  // Binance: 2시간
-  upbit: 2,    // Upbit: 2시간
-} as const;
-
-// 거래소별 갱신 주기 설정 (밀리초 단위) - 기존 호환성 유지
-export const UPDATE_CONFIG = {
-  intervals: {
-    bybit: 2 * 60 * 60 * 1000, // 2시간
-    bithumb: 2 * 60 * 60 * 1000,
-    upbit: 2 * 60 * 60 * 1000,
-    binance: 2 * 60 * 60 * 1000,
+/**
+ * 데이터 유형별 갱신 주기 통합 관리
+ * - instrument: 종목 정보 (단위: 시간)
+ * - ticker: 실시간 시세 정보 (단위: 밀리초)
+ */
+export const DATA_UPDATE_INTERVALS = {
+  /**
+   * 종목 정보(instrument) 갱신 주기 (단위: 시간)
+   * - 이 시간이 지나면 데이터를 다시 불러옵니다.
+   */
+  instrument: {
+    default: 2, // 기본 갱신 주기
+    bybit: 2,
+    bithumb: 2,
+    binance: 2,
+    upbit: 2,
   },
-  getUpdateInterval(exchange: ExchangeType) {
-    return this.intervals[exchange] || 2 * 60 * 60 * 1000;
+  /**
+   * 실시간 시세(ticker) API 요청 주기 (단위: 밀리초)
+   * - 이 주기마다 API를 호출하여 화면을 업데이트합니다.
+   */
+  ticker: {
+    bybit: 500,       // Bybit 전체 티커
+    bithumb: 3000,      // Bithumb 전체 티커
+    bithumbDetail: 800, // Bithumb 상세 티커
   },
 } as const;
 

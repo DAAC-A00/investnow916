@@ -10,7 +10,7 @@ import {
 } from '@/packages/shared/types/exchange';
 import { PriceDecimalTracker } from '@/packages/shared/utils';
 import { defaultApiClient } from '@/packages/shared/utils/apiClient';
-import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
+import { API_ENDPOINTS, DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 
 // 빗썸 API 타입 정의
 interface BithumbTickerResponse {
@@ -250,7 +250,7 @@ export default function BithumbTickerPage() {
     fetchTickerData();
 
     // 3초마다 갱신
-    const interval = setInterval(fetchTickerData, 3000);
+    const interval = setInterval(fetchTickerData, DATA_UPDATE_INTERVALS.ticker.bithumb);
 
     return () => clearInterval(interval);
   }, [fetchTickerData]);

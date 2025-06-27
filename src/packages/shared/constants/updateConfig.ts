@@ -1,82 +1,68 @@
 /**
- * 데이터 갱신 관련 설정을 중앙에서 관리하는 상수 파일
- * 
- * 거래소 및 갱신 주기 정의는 exchangeConfig.ts에서 중앙 관리되며,
- * 이 파일은 갱신 관련 유틸리티 함수만 제공합니다.
+ * 데이터 갱신 관련 유틸리티 함수를 제공하는 파일
  */
 
-// ============================================================================
-// 중앙 설정에서 모든 정의 import
-// ============================================================================
-
-// 타입과 상수들을 중앙 설정에서 import
-export type { ExchangeType } from '@/packages/shared/constants/exchangeConfig';
-export { 
-  EXCHANGE_UPDATE_INTERVALS,
-  DEFAULT_UPDATE_INTERVAL_HOURS,
-  UPDATE_CONFIG
-} from '@/packages/shared/constants/exchangeConfig';
-
-// 내부에서 사용하기 위한 import
-import { 
-  EXCHANGE_UPDATE_INTERVALS,
-  DEFAULT_UPDATE_INTERVAL_HOURS 
-} from '@/packages/shared/constants/exchangeConfig';
-
-// ============================================================================
-// 갱신 관련 유틸리티 함수들 (기존 로직 유지)
-// ============================================================================
+import { ExchangeType, DATA_UPDATE_INTERVALS } from './exchangeConfig';
 
 /**
- * 특정 거래소의 갱신 주기를 가져오는 함수
- * @param exchange 거래소 이름
- * @returns 갱신 주기 (시간)
+ * 로컬 스토리지에 업데이트 시간을 저장하기 위한 키를 생성합니다.
+ * @param exchange - 거래소
+ * @param category - 카테고리
+ * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
+ * @returns 로컬 스토리지 키 (e.g., 'bybit-spot-updated')
  */
-export const getUpdateIntervalForExchange = (exchange: string): number => {
-  return EXCHANGE_UPDATE_INTERVALS[exchange as keyof typeof EXCHANGE_UPDATE_INTERVALS] 
-    || DEFAULT_UPDATE_INTERVAL_HOURS;
+export const getUpdateTimeKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
+  return `${exchange}-${category}${isRawCategory ? '-raw' : ''}-updated`;
 };
 
 /**
- * 거래소의 갱신 주기를 가져오는 함수
- * @param exchange 거래소 이름
- * @returns 갱신 주기 (시간)
+ * 특정 거래소, 특정 카테고리의 데이터가 마지막으로 업데이트된 시간을 로컬 스토리지에 저장합니다.
+ * @param exchange - 거래소
+ * @param category - 카테고리
+ * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
  */
-export const getUpdateInterval = (exchange?: string): number => {
-  // 거래소별 설정 확인
-  if (exchange) {
-    return getUpdateIntervalForExchange(exchange);
+export const storeUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): void => {
+  const key = getUpdateTimeKey(exchange, category, isRawCategory);
+  try {
+    localStorage.setItem(key, new Date().toISOString());
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
   }
-  
-  // 기본값 반환
-  return DEFAULT_UPDATE_INTERVAL_HOURS;
 };
 
 /**
- * 데이터 갱신이 필요한지 확인하는 공통 함수
- * @param lastUpdateTime 마지막 업데이트 시간
- * @param exchange 거래소 이름
- * @returns 갱신 필요 여부
+ * 특정 거래소, 특정 카테고리의 데이터가 마지막으로 업데이트된 시간을 로컬 스토리지에서 가져옵니다.
+ * @param exchange - 거래소
+ * @param category - 카테고리
+ * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
+ * @returns 마지막 업데이트 시간 (Date 객체) 또는 null
  */
-export const needsDataUpdate = (
-  lastUpdateTime: Date | null, 
-  exchange?: string
-): boolean => {
-  if (!lastUpdateTime) return true;
-  
-  const updateInterval = getUpdateInterval(exchange);
+export const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): Date | null => {
+  const key = getUpdateTimeKey(exchange, category, isRawCategory);
+  try {
+    const storedTime = localStorage.getItem(key);
+    return storedTime ? new Date(storedTime) : null;
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return null;
+  }
+};
+
+/**
+ * 데이터 갱신이 필요한지 여부를 확인합니다.
+ * 마지막 업데이트 시간으로부터 설정된 시간이 경과했는지 확인합니다.
+ * @param exchange - 거래소
+ * @param category - 카테고리
+ * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
+ * @returns 갱신 필요 여부 (boolean)
+ */
+export const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
+  const updateTime = getUpdateTime(exchange, category, isRawCategory);
+  if (!updateTime) return true; // 저장된 시간이 없으면 무조건 갱신
+
   const now = new Date();
-  const diffHours = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
-  
-  return diffHours >= updateInterval;
-};
+  const intervalHours = DATA_UPDATE_INTERVALS.instrument[exchange] || DATA_UPDATE_INTERVALS.instrument.default;
+  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
 
-/**
- * 갱신 주기 정보를 문자열로 반환하는 함수
- * @param exchange 거래소 이름
- * @returns 갱신 주기 설명 문자열
- */
-export const getUpdateIntervalDescription = (exchange?: string): string => {
-  const interval = getUpdateInterval(exchange);
-  return `${interval}시간마다 자동으로 갱신됩니다`;
+  return diffHours >= intervalHours;
 };

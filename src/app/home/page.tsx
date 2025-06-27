@@ -15,7 +15,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setCurrentRoute('/home');
-  }, [setCurrentRoute]);
+  }, []);
 
   // 홈 페이지용 샘플 티커 데이터
   const [sampleTickers] = useState<TickerData[]>([
@@ -60,7 +60,7 @@ export default function HomePage() {
     sampleTickers.forEach(ticker => {
       priceTracker.current.trackPrice(ticker.rawSymbol, ticker.price);
     });
-  }, [sampleTickers]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-muted">

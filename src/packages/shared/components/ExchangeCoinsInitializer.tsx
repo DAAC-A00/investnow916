@@ -3,14 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { 
-  toIntegratedCategory, 
-  EXCHANGE_RAW_CATEGORIES 
-} from '../constants/exchangeCategories';
-import { 
-  getUpdateInterval,
-  needsDataUpdate
-} from '../constants/updateConfig';
+import { EXCHANGE_RAW_CATEGORIES } from '../constants/exchangeCategories';
+import { needsUpdate } from '../constants/updateConfig';
 
 interface ExchangeCoinsInitializerProps {
   exchanges?: ExchangeType[];
@@ -29,85 +23,12 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
 }) => {
   const [mounted, setMounted] = useState(false);
   const { 
-    isLoading, 
-    error,
     fetchBybitCoins, 
     fetchExchangeCoins,
     getSymbolsForCategory
   } = useExchangeCoinsStore();
 
-  // 로컬 스토리지 접근 함수들 (store에서 가져온 로직)
-  const toStorageCategory = (exchange: ExchangeType, category: string): string => {
-    // Bybit 카테고리 변환 시도
-    const integratedCategory = toIntegratedCategory(exchange, category as BybitRawCategory);
-    if (integratedCategory) {
-      return integratedCategory;
-    }
-    
-    return category;
-  };
 
-  const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
-    // isRawCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
-    const storageCategory = isRawCategory ? toStorageCategory(exchange, category) : category;
-    return `${exchange}-${storageCategory}`;
-  };
-
-  const getUpdateTimeKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
-    const storageKey = getStorageKey(exchange, category, isRawCategory);
-    return `${storageKey}-updateTime`;
-  };
-
-  const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): Date | null => {
-    if (typeof window === 'undefined') return null;
-    
-    try {
-      const key = getUpdateTimeKey(exchange, category, isRawCategory);
-      const timeStr = localStorage.getItem(key);
-      return timeStr ? new Date(timeStr) : null;
-    } catch (error) {
-      console.error(`업데이트 시간 조회 실패 (${exchange}-${category}):`, error);
-      return null;
-    }
-  };
-
-  const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
-    if (typeof window === 'undefined') return '';
-    
-    const key = getStorageKey(exchange, category, isRawCategory);
-    const storedValue = localStorage.getItem(key);
-    return storedValue || '';
-  };
-
-  const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
-    // 1. 로컬 스토리지에 데이터가 있는지 확인
-    const storedData = getStoredSymbols(exchange, category, isRawCategory);
-    if (!storedData || storedData.trim() === '' || storedData === '[]') {
-      console.log(`${exchange} ${category} 데이터가 로컬 스토리지에 없습니다. 갱신이 필요합니다.`);
-      return true; // 데이터가 없으면 갱신 필요
-    }
-    
-    // 2. 업데이트 시간 확인
-    const updateTime = getUpdateTime(exchange, category, isRawCategory);
-    if (!updateTime) {
-      console.log(`${exchange} ${category} 업데이트 시간 정보가 없습니다. 갱신이 필요합니다.`);
-      return true; // 업데이트 시간이 없으면 갱신 필요
-    }
-    
-    // 3. 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-    const needsRefresh = needsDataUpdate(updateTime, exchange);
-    const updateInterval = getUpdateInterval(exchange);
-    const now = new Date();
-    const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-    
-    if (needsRefresh) {
-      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기로 갱신이 필요합니다.`);
-    } else {
-      console.log(`${exchange} ${category} 데이터가 ${diffHours.toFixed(1)}시간 전에 업데이트되었습니다. ${updateInterval}시간 주기 내에서 최신 상태입니다.`);
-    }
-    
-    return needsRefresh;
-  };
 
   // 마운트 상태 체크 (하이드레이션 이슈 방지)
   useEffect(() => {

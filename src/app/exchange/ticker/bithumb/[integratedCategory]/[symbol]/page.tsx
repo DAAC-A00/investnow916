@@ -6,7 +6,7 @@ import { useNavigationActions } from '@/packages/shared/stores/createNavigationS
 import { TickerData } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
 import { get, ApiError } from '@/packages/shared/utils/apiClient';
-import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
+import { API_ENDPOINTS, DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 
 interface OrderbookUnit {
   ask_price: number;
@@ -226,7 +226,7 @@ export default function BithumbTickerDetailPage() {
         console.error('데이터 갱신 실패:', error);
         // 실시간 갱신 에러는 조용히 처리
       }
-    }, 800);
+    }, DATA_UPDATE_INTERVALS.ticker.bithumbDetail);
 
     return () => clearInterval(interval);
   }, [symbol, integratedCategory, fetchTickerInfo, fetchOrderbook]);
