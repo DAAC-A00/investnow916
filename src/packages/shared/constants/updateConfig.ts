@@ -49,20 +49,44 @@ export const getUpdateTime = (exchange: ExchangeType, category: string, isRawCat
 };
 
 /**
- * 데이터 갱신이 필요한지 여부를 확인합니다.
- * 마지막 업데이트 시간으로부터 설정된 시간이 경과했는지 확인합니다.
+ * 특정 거래소의 데이터 갱신 주기를 가져옵니다.
+ * @param exchange - 거래소
+ * @returns 갱신 주기 (시간 단위)
+ */
+export const getUpdateInterval = (exchange: ExchangeType): number => {
+  return DATA_UPDATE_INTERVALS.instrument[exchange] || DATA_UPDATE_INTERVALS.instrument.default;
+};
+
+/**
+ * 특정 거래소, 특정 카테고리의 데이터가 갱신이 필요한지 확인합니다.
  * @param exchange - 거래소
  * @param category - 카테고리
  * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
- * @returns 갱신 필요 여부 (boolean)
+ * @returns 갱신이 필요하면 true, 아니면 false
  */
 export const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
   const updateTime = getUpdateTime(exchange, category, isRawCategory);
-  if (!updateTime) return true; // 저장된 시간이 없으면 무조건 갱신
-
+  if (!updateTime) return true;
+  
   const now = new Date();
-  const intervalHours = DATA_UPDATE_INTERVALS.instrument[exchange] || DATA_UPDATE_INTERVALS.instrument.default;
   const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-
+  const intervalHours = getUpdateInterval(exchange);
+  
   return diffHours >= intervalHours;
+};
+
+/**
+ * needsUpdate의 별칭 함수 (하위 호환성을 위해)
+ * @deprecated needsUpdate를 사용하세요
+ */
+export const needsDataUpdate = needsUpdate;
+
+/**
+ * 특정 거래소의 갱신 주기에 대한 설명을 가져옵니다.
+ * @param exchange - 거래소
+ * @returns 갱신 주기 설명 (예: "2시간마다 자동 갱신")
+ */
+export const getUpdateIntervalDescription = (exchange: ExchangeType): string => {
+  const interval = getUpdateInterval(exchange);
+  return `${interval}시간마다 자동 갱신`;
 };

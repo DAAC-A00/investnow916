@@ -57,7 +57,7 @@ const needsUpdate = (category: string): boolean => {
   if (!updateTime) return true;
   
   // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-  return needsDataUpdate(updateTime, 'bybit');
+  return needsDataUpdate('bybit', category);
 };
 
 // 더 이상 localStorage에서 직접 파싱하지 않으므로 관련 함수들 제거됨

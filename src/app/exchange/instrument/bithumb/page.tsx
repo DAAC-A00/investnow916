@@ -60,7 +60,7 @@ const needsUpdate = (category: string): boolean => {
   if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
   
   // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-  return needsDataUpdate(updateTime, 'bithumb');
+  return needsDataUpdate('bithumb', category);
 };
 
 const BithumbInstrumentPage = () => {

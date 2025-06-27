@@ -166,8 +166,6 @@ export default function TickerSettingPage() {
               <Toggle
                 active={borderAnimationEnabled}
                 onChange={(active) => setBorderAnimationEnabled(active)}
-                themeColors={themeColors}
-                currentTheme={currentTheme}
               />
             </label>
             <p className="text-sm text-muted-foreground mt-1">
@@ -231,8 +229,6 @@ export default function TickerSettingPage() {
               <Toggle
                 active={showPercentSymbol}
                 onChange={(active) => setShowPercentSymbol(active)}
-                themeColors={themeColors}
-                currentTheme={currentTheme}
               />
             </label>
             <p className="text-sm text-muted-foreground mt-1">
@@ -254,8 +250,6 @@ export default function TickerSettingPage() {
               <Toggle
                 active={showPercentBackground}
                 onChange={(active) => setShowPercentBackground(active)}
-                themeColors={themeColors}
-                currentTheme={currentTheme}
               />
             </label>
             <p className="text-sm text-muted-foreground mt-1">
