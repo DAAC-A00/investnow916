@@ -49,6 +49,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/',
     description: '홈 화면으로 이동',
     isAdminOnly: false,
+    isRightNav: true,
+    rightNavOrder: 1,
   },
   {
     id: 'exchange',
@@ -57,6 +59,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/fiat',
     description: '실시간 환율 정보 조회',
     isAdminOnly: false,
+    isRightNav: true,
+    rightNavOrder: 2,
   },
   {
     id: 'exchange-bybit',
@@ -65,6 +69,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/exchange/ticker/bybit',
     description: '바이빗 거래소 코인 정보 조회',
     isAdminOnly: false,
+    isRightNav: false,
   },
   {
     id: 'exchange-bithumb',
@@ -73,6 +78,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/exchange/ticker/bithumb',
     description: '빗썸 거래소 코인 정보 조회',
     isAdminOnly: false,
+    isRightNav: true,
+    rightNavOrder: 3,
   },
   {
     id: 'exchange-bybit-instrument',
@@ -81,6 +88,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/exchange/instrument/bybit',
     description: 'Bybit Instrument 정보 조회',
     isAdminOnly: false,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
     id: 'exchange-bithumb-instrument',
@@ -89,6 +97,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/exchange/instrument/bithumb',
     description: '빗썸 Instrument 정보 조회',
     isAdminOnly: false,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
     id: 'storage',
@@ -97,6 +106,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/admin/storage',
     description: 'Local Storage 데이터 관리 (관리자 전용)',
     isAdminOnly: true,
+    isRightNav: true,
+    rightNavOrder: 4,
   },
   {
     id: 'setting',
@@ -105,6 +116,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/setting',
     description: '앱 설정 관리',
     isAdminOnly: false,
+    isRightNav: true,
+    rightNavOrder: 5,
   },
   {
     id: 'setting-ticker',
@@ -113,6 +126,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/setting/ticker',
     description: 'Ticker 설정 관리',
     isAdminOnly: false,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
     id: 'api-key',
@@ -121,6 +135,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/setting/apikey',
     description: 'ExchangeRate-API 키 관리',
     isAdminOnly: false,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
     id: 'admin-design',
@@ -129,6 +144,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/admin/design',
     description: '기본 디자인 확인',
     isAdminOnly: true,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
     id: 'menu',
@@ -137,6 +153,7 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/menu',
     description: '모든 메뉴 목록 보기',
     isAdminOnly: false,
+    isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
 ];
 

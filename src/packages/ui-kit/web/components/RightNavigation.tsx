@@ -15,17 +15,23 @@ export function RightNavigation() {
   const { setCurrentRoute } = useNavigationActions();
   const isAdminMode = useIsAdminModeEnabled();
 
-  // 우측 네비게이션에 표시할 메뉴 순서 정의
-  const rightNavOrder = ['home', 'exchange', 'exchange-bybit', 'storage', 'setting'];
-  
-  // 순서에 맞게 메뉴 아이템 정렬 및 필터링
+  // 우측 네비게이션에 표시할 메뉴 필터링 및 정렬
+  // - isRightNav가 true인 메뉴만 표시
   // - 관리자 전용 메뉴는 관리자 모드에서만 표시
   // - 검색 전용 메뉴는 네비게이션에서 제외
-  const rightNavItems = rightNavOrder
-    .map(id => menuItems.find(item => item.id === id))
-    .filter(item => item && 
-      !item.isOnlySearchable && 
-      (!item.isAdminOnly || (item.isAdminOnly && isAdminMode)));
+  // - rightNavOrder 순서대로 정렬
+  const rightNavItems = menuItems
+    .filter(item => 
+      item.isRightNav === true && // 우측 네비게이션에 표시할 메뉴만
+      !item.isOnlySearchable && // 검색 전용 메뉴 제외
+      (!item.isAdminOnly || (item.isAdminOnly && isAdminMode)) // 관리자 전용 메뉴 처리
+    )
+    .sort((a, b) => {
+      // rightNavOrder로 정렬 (숫자가 작을수록 먼저 표시)
+      const orderA = a.rightNavOrder ?? 999; // 순서가 없으면 마지막에 배치
+      const orderB = b.rightNavOrder ?? 999;
+      return orderA - orderB;
+    });
 
   const handleMenuClick = useCallback((route: string) => {
     setCurrentRoute(route);

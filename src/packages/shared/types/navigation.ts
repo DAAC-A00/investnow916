@@ -12,6 +12,8 @@ export interface MenuItemType {
   isActive?: boolean;
   isOnlySearchable?: boolean; // 검색에만 표시되고 메뉴에는 표시되지 않는지 여부
   isAdminOnly: boolean;  // 관리자 모드에서만 표시할지 여부
+  isRightNav?: boolean;  // 우측 네비게이션에 표시할지 여부 (기본값: false)
+  rightNavOrder?: number; // 우측 네비게이션에서의 표시 순서 (isRightNav가 true일 때만 사용)
   children?: MenuItemType[]; // 서브메뉴 아이템들
 }
 
