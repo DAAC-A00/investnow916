@@ -126,7 +126,8 @@ const defaultMenuItems: MenuItemType[] = [
     route: '/setting/ticker',
     description: 'Ticker 설정 관리',
     isAdminOnly: false,
-    isRightNav: false, // 우측 네비게이션에 표시하지 않음
+    isRightNav: true,
+    rightNavOrder: 6,
   },
   {
     id: 'api-key',

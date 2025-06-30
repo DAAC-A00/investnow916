@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTickerSettingStore, TICKER_COLOR_MODE_LABELS, TickerColorMode, TICKER_COLOR_MODE_DESCRIPTIONS, BORDER_ANIMATION_DURATION_LABELS, BorderAnimationDuration, BottomDisplayMode, BOTTOM_DISPLAY_MODE_LABELS } from '@/packages/shared/stores/createTickerSettingStore';
 import { Toggle } from '@/packages/ui-kit/web/components';
 import { getTickerColor, colorTokens } from '@/packages/ui-kit/tokens/design-tokens';
-import { TickerExampleCard } from '@/packages/shared/components';
+import { Ticker } from '@/packages/shared/components';
+import { TickerData } from '@/packages/shared/types/exchange';
+import { PriceDecimalTracker } from '@/packages/shared/utils';
 
 export default function TickerSettingPage() {
   const { 
@@ -23,6 +25,67 @@ export default function TickerSettingPage() {
   } = useTickerSettingStore();
   const [mounted, setMounted] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+  
+  // 가격 추적기 생성
+  const priceTracker = useRef(new PriceDecimalTracker());
+  
+  // 예시 티커 데이터 상태
+  const [tickerData, setTickerData] = useState<TickerData[]>([
+    {
+      rawSymbol: 'COIN1USDT',
+      integratedSymbol: 'COIN1/USDT',
+      quantity: 1,
+      baseCode: 'COIN1',
+      quoteCode: 'USDT',
+      exchange: 'bithumb',
+      integratedCategory: 'spot',
+      rawCategory: 'spot',
+      price: 5300.00,
+      priceChange24h: 300.00,
+      priceChangePercent24h: 6.00,
+      turnover24h: 2340000000,
+      volume24h: 1200000,
+      warningType: 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION',
+      prevPrice24h: 5000.00,
+      beforePrice: 5000.00
+    },
+    {
+      rawSymbol: 'LongNameCoin999USDT',
+      integratedSymbol: 'LongNameCoin999/USDT',
+      quantity: 1,
+      baseCode: 'LongNameCoin999',
+      quoteCode: 'USDT',
+      exchange: 'bithumb',
+      integratedCategory: 'spot',
+      rawCategory: 'spot',
+      price: 630000.00,
+      priceChange24h: 540000.00,
+      priceChangePercent24h: 600.00,
+      turnover24h: 50000000000,
+      volume24h: 89000000,
+      warningType: 'TRADING_VOLUME_SUDDEN_FLUCTUATION',
+      prevPrice24h: 90000.00,
+      beforePrice: 90000.00
+    },
+    {
+      rawSymbol: 'COIN2USDT',
+      integratedSymbol: 'COIN2/USDT',
+      quantity: 1,
+      baseCode: 'COIN2',
+      quoteCode: 'USDT',
+      exchange: 'bithumb',
+      integratedCategory: 'spot',
+      rawCategory: 'spot',
+      price: 4700.00,
+      priceChange24h: -300.00,
+      priceChangePercent24h: -6.00,
+      turnover24h: 15600000,
+      volume24h: 3500000,
+      warningType: 'PRICE_DIFFERENCE_HIGH',
+      prevPrice24h: 5000.00,
+      beforePrice: 5000.00
+    }
+  ]);
   
   // localStorage에서 설정값 초기화 (하이드레이션 문제 해결)
   useEffect(() => {
@@ -84,6 +147,86 @@ export default function TickerSettingPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // 가격 변동 시뮬레이션
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const intervals: NodeJS.Timeout[] = [];
+    
+    // COIN1: 0.7초마다 변동
+    intervals.push(setInterval(() => {
+      setTickerData(prev => {
+        const newData = [...prev];
+        const ticker = newData[0];
+        const variations = [1.0, 0.5, 0, -0.5, -1.0];
+        const variation = variations[Math.floor(Math.random() * variations.length)];
+        const newPrice = Math.max(0.01, ticker.price + variation);
+        const beforePrice = ticker.price; // 애니메이션용 이전 가격을 현재 가격으로 설정
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = ((priceChange24h / ticker.prevPrice24h) * 100);
+        
+        newData[0] = {
+          ...ticker,
+          beforePrice: beforePrice,
+          price: newPrice,
+          priceChange24h: priceChange24h,
+          priceChangePercent24h: priceChangePercent24h
+        };
+        return newData;
+      });
+    }, 700));
+    
+    // COIN2 (긴 이름): 1.1초마다 변동
+    intervals.push(setInterval(() => {
+      setTickerData(prev => {
+        const newData = [...prev];
+        const ticker = newData[1];
+        const variations = [1000, 500, 0, -500, -1000];
+        const variation = variations[Math.floor(Math.random() * variations.length)];
+        const newPrice = Math.max(0.01, ticker.price + variation);
+        const beforePrice = ticker.price; // 애니메이션용 이전 가격을 현재 가격으로 설정
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = ((priceChange24h / ticker.prevPrice24h) * 100);
+        
+        newData[1] = {
+          ...ticker,
+          beforePrice: beforePrice,
+          price: newPrice,
+          priceChange24h: priceChange24h,
+          priceChangePercent24h: priceChangePercent24h
+        };
+        return newData;
+      });
+    }, 1100));
+    
+    // COIN3: 1.5초마다 작은 변동
+    intervals.push(setInterval(() => {
+      setTickerData(prev => {
+        const newData = [...prev];
+        const ticker = newData[2];
+        const variations = [0.5, 0.2, 0, -0.2, -0.5];
+        const variation = variations[Math.floor(Math.random() * variations.length)];
+        const newPrice = Math.max(0.01, ticker.price + variation);
+        const beforePrice = ticker.price; // 애니메이션용 이전 가격을 현재 가격으로 설정
+        const priceChange24h = newPrice - ticker.prevPrice24h;
+        const priceChangePercent24h = ((priceChange24h / ticker.prevPrice24h) * 100);
+        
+        newData[2] = {
+          ...ticker,
+          beforePrice: beforePrice,
+          price: newPrice,
+          priceChange24h: priceChange24h,
+          priceChangePercent24h: priceChangePercent24h
+        };
+        return newData;
+      });
+    }, 1500));
+    
+    return () => {
+      intervals.forEach(interval => clearInterval(interval));
+    };
+  }, [mounted]);
 
   // 현재 테마의 색상 토큰
   const themeColors = colorTokens[currentTheme];
@@ -300,11 +443,25 @@ export default function TickerSettingPage() {
 
       {/* 예시 섹션 - 전체 너비 사용 */}
       <div className="w-full px-4 mb-8">
-        <TickerExampleCard 
-          borderAnimationDuration={borderAnimationDuration}
-          description={`현재 선택된 모드: ${TICKER_COLOR_MODE_LABELS[tickerColorMode]}`}
-          className="w-full"
-        />
+        <div className="bg-card rounded-lg border p-4 space-y-4">
+          <div className="text-center text-sm text-muted-foreground mb-4">
+            현재 선택된 모드: {TICKER_COLOR_MODE_LABELS[tickerColorMode]}
+          </div>
+          
+          <div className="space-y-3">
+            {tickerData.map((ticker, index) => (
+              <Ticker
+                key={ticker.rawSymbol}
+                data={ticker}
+                priceTracker={priceTracker.current}
+                onPriceChange={(symbol, oldPrice, newPrice) => {
+                  console.log(`[${symbol}] 가격 변동: ${oldPrice} → ${newPrice}`);
+                }}
+                className="w-full"
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="container max-w-xl mx-auto px-4 pb-10">

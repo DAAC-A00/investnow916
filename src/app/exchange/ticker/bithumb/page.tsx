@@ -43,10 +43,14 @@ export default function BithumbTickerPage() {
   const { setCurrentRoute } = useNavigationActions();
   const { getFilteredCoins } = useExchangeInstrumentStore();
   
-  // 가격 추적기 생성
+  // 가격 추적을 위한 ref
   const priceTracker = useRef(new PriceDecimalTracker());
+  
+  // 이전 가격 정보를 저장하는 Map (rawSymbol -> beforePrice)
+  const beforePriceMap = useRef<Map<string, number>>(new Map());
 
   const [tickers, setTickers] = useState<TickerData[]>([]);
+  const [beforeTickers, setBeforeTickers] = useState<TickerData[]>([]); // 애니메이션용 이전 티커 데이터 저장
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -87,8 +91,6 @@ export default function BithumbTickerPage() {
   const fetchTickerData = useCallback(async () => {
     try {
       setError(null);
-      
-      console.log('빗썸 티커 데이터 가져오기 시작...');
       
       // 공통 API 클라이언트를 사용하여 빗썸 API 호출
       const response = await defaultApiClient.get<BithumbTickerResponse>(
@@ -132,6 +134,9 @@ export default function BithumbTickerPage() {
           const priceChange = parseFloat(data.fluctate_24H);
           const priceChangePercent = parseFloat(data.fluctate_rate_24H);
 
+          // 이전 가격 정보를 Map에서 가져오기
+          const beforePrice = beforePriceMap.current.get(rawSymbol) ?? currentPrice;
+
           // PriceDecimalTracker로 가격 추적
           priceTracker.current.trackPrice(integratedSymbol, currentPrice);
           if (prevPrice && prevPrice !== currentPrice) {
@@ -143,8 +148,9 @@ export default function BithumbTickerPage() {
 
           // 추적 상태 로깅 (BTC/KRW만 예시로)
           if (integratedSymbol === "BTC/KRW") {
-            console.log(`[PriceTracker] ${integratedSymbol}: maxDecimals=${priceTracker.current.getMaxDecimals(integratedSymbol)}, currentPrice=${currentPrice}`);
+            console.log(`[PriceTracker] ${integratedSymbol}: maxDecimals=${priceTracker.current.getMaxDecimals(integratedSymbol)}, currentPrice=${currentPrice}, beforePrice=${beforePrice}`);
           }
+
           return {
             // === 기본 식별 정보 ===
             rawSymbol,
@@ -159,7 +165,7 @@ export default function BithumbTickerPage() {
             
             // === 현재 가격 정보 ===
             price: currentPrice,
-            beforePrice: prevPrice, // 테두리 애니메이션용 이전 가격
+            beforePrice: beforePrice, // 테두리 애니메이션용 직전 가격
             prevPrice24h: prevPrice,
             priceChange24h: priceChange,
             priceChangePercent24h: priceChangePercent,
@@ -200,6 +206,13 @@ export default function BithumbTickerPage() {
 
       console.log('TickerData 변환 완료:', tickerDataList.length);
 
+      // 현재 가격을 이전 가격 Map에 저장 (다음 업데이트 시 beforePrice로 사용)
+      tickerDataList.forEach(ticker => {
+        beforePriceMap.current.set(ticker.rawSymbol, ticker.price);
+      });
+      
+      // 현재 티커 데이터를 이전 데이터로 저장 (애니메이션용)
+      setBeforeTickers(tickers);
       setTickers(tickerDataList);
       setLastUpdate(new Date());
       setIsLoading(false);
@@ -252,19 +265,24 @@ export default function BithumbTickerPage() {
         };
       });
       
+      // 테스트 데이터의 현재 가격을 이전 가격 Map에 저장
+      testTickerData.forEach(ticker => {
+        beforePriceMap.current.set(ticker.rawSymbol, ticker.price);
+      });
+      
+      // 현재 티커 데이터를 이전 데이터로 저장 (애니메이션용)
+      setBeforeTickers(tickers);
       setTickers(testTickerData);
       setLastUpdate(new Date());
       setIsLoading(false);
       setError(`빗썸 API 연결 실패 (테스트 데이터 사용 중): ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     }
-  }, []);
+  }, []); // 의존성 배열을 비워서 무한 루프 방지
 
-  // 3초마다 티커 데이터 갱신 (빗썸 API 제한 고려)
   useEffect(() => {
     // 초기 데이터 로드
     fetchTickerData();
 
-    // 3초마다 갱신
     const interval = setInterval(fetchTickerData, DATA_UPDATE_INTERVALS.ticker.bithumb);
 
     return () => clearInterval(interval);

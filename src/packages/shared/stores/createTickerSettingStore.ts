@@ -109,14 +109,14 @@ export const createPriceChangeAnimationManager = (duration: BorderAnimationDurat
  * 티커 테두리 스타일 반환
  * @param isAnimating 애니메이션 중인지 여부
  * @param mode 색상 모드
- * @param previousPrice 이전 가격
+ * @param beforePrice 이전 가격
  * @param currentPrice 현재 가격
  * @param animationEnabled 애니메이션 활성화 여부
  */
 export const getTickerBorderStyle = (
   isAnimating: boolean,
   mode: TickerColorMode,
-  previousPrice: number,
+  beforePrice: number,
   currentPrice: number,
   animationEnabled: boolean = true
 ): React.CSSProperties => {
@@ -137,7 +137,7 @@ export const getTickerBorderStyle = (
   }
   
   // 가격 변화 계산
-  const priceChange = currentPrice - previousPrice;
+  const priceChange = currentPrice - beforePrice;
   
   // 가격이 동일하면 투명 테두리
   if (priceChange === 0) {

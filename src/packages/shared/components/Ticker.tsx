@@ -105,7 +105,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const formattedVolume = formatNumber(data.volume24h);
   
   // 가격 포맷팅 (PriceDecimalTracker 사용)
-  const formattedLastPrice = priceTracker 
+  const formattedPrice = priceTracker 
     ? priceTracker.formatPrice(data.integratedSymbol, data.price, true)
     : formatPrice(data.price, 2, true);
   const formattedPriceChange = priceTracker 
@@ -129,7 +129,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
     
     // 가격이 실제로 변경되었는지 확인
     if (data.price !== prevData.price) {
-      const oldPrice = data.prevPrice24h ?? prevData.price ?? previousPrice;
+      const oldPrice = data.beforePrice ?? prevData.price ?? previousPrice;
       const newPrice = data.price;
       
       // 가격 변동 콜백 호출
@@ -159,7 +159,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
 
   // 동적 폰트 크기 계산
   const symbolFontSize = calculateFontSize(data.integratedSymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
-  const priceFontSize = calculateFontSize(formattedLastPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
+  const priceFontSize = calculateFontSize(formattedPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
   
   // percent 영역의 동적 너비 설정 - 배경색과 % 기호 표시 여부에 따라 조정
   let percentFixedWidth = 5; // 기본값: 5rem (80px, +100.00% 정도가 적당히 들어갈 크기)
@@ -184,8 +184,8 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const percentBackgroundStyle = getTickerPercentBackgroundStyle(tickerColorMode, data.priceChange24h, showPercentBackground);
   
   // 애니메이션용 이전 가격 계산
-  const animationPrevPrice = data.beforePrice ?? previousPrice;
-  const borderStyle = getTickerBorderStyle(borderAnimation, tickerColorMode, animationPrevPrice, data.price, borderAnimationEnabled);
+  const animationBeforePrice = data.beforePrice ?? data.price;
+  const borderStyle = getTickerBorderStyle(borderAnimation, tickerColorMode, animationBeforePrice, data.price, borderAnimationEnabled);
 
   // 하단 표시 모드에 따른 텍스트와 스타일 계산 (클라이언트에서만)
   const getBottomDisplayContent = () => {
@@ -264,7 +264,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
                 height: '1.75em'
               }}
             >
-              {formattedLastPrice}
+              {formattedPrice}
             </span>
             <span 
               className="px-1.5 py-0.0 rounded font-semibold whitespace-nowrap overflow-hidden text-center"
