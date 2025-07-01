@@ -318,6 +318,11 @@ export default function BithumbTickerDetailPage() {
 
   const isKRW = tickerData.quoteCode === 'KRW';
 
+  // 총잔량 비율 계산
+  const totalSum = orderbookData ? orderbookData.total_ask_size + orderbookData.total_bid_size : 0;
+  const askPercent = totalSum === 0 ? 50 : (orderbookData?.total_ask_size ?? 0) / totalSum * 100;
+  const bidPercent = totalSum === 0 ? 50 : (orderbookData?.total_bid_size ?? 0) / totalSum * 100;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6">
@@ -434,71 +439,127 @@ export default function BithumbTickerDetailPage() {
                         // 최대 잔량 계산 (0이면 1로 방어)
                         const maxAsk = Math.max(1, ...filteredOrders.map(o => o.ask));
                         const maxBid = Math.max(1, ...filteredOrders.map(o => o.bid));
-                        return filteredOrders.map((order, i) => (
-                          <div key={order.price} className={allSmallVolume
-                            ? "grid grid-cols-[0.7fr_auto_0.7fr] gap-2 text-sm py-1 hover:bg-muted/50"
-                            : "grid grid-cols-3 gap-2 text-sm py-1 hover:bg-muted/50"
-                          }>
-                            {/* 매도 잔량 */}
-                            <div className="relative text-right" style={{ minHeight: 24 }}>
-                              {order.ask > 0 && (
-                                <div
-                                  className="absolute top-0 right-0 h-full rounded"
-                                  style={{
-                                    width: `${(order.ask / maxAsk) * 100}%`,
-                                    ...askBackgroundStyle,
-                                    zIndex: 0,
-                                  }}
-                                />
-                              )}
-                              <span className="relative z-10 text-foreground">
-                                {order.ask > 0
-                                  ? hasLargeVolume
-                                    ? Math.round(order.ask).toLocaleString()
-                                    : (order.ask >= 1000 ? formatPrice(order.ask, 4, true) : order.ask.toFixed(4))
-                                  : '-'}
-                              </span>
-                            </div>
-                            {/* 주문가격 */}
+                        return filteredOrders.map((order, i) => {
+                          // 각 행의 배경색 결정: 매도만 있으면 매도색, 매수만 있으면 매수색, 둘 다 있으면 혼합
+                          let rowBackground = undefined;
+                          if (order.ask > 0 && order.bid > 0) {
+                            // 매도/매수 모두 있으면 그라데이션(좌:매도, 우:매수)
+                            rowBackground = `linear-gradient(90deg, ${getTickerOrderbookBackgroundStyle(tickerColorMode, true, true).backgroundColor} 0%, ${getTickerOrderbookBackgroundStyle(tickerColorMode, true, true).backgroundColor} 50%, ${getTickerOrderbookBackgroundStyle(tickerColorMode, false, true).backgroundColor} 50%, ${getTickerOrderbookBackgroundStyle(tickerColorMode, false, true).backgroundColor} 100%)`;
+                          } else if (order.ask > 0) {
+                            rowBackground = getTickerOrderbookBackgroundStyle(tickerColorMode, true, true).backgroundColor;
+                          } else if (order.bid > 0) {
+                            rowBackground = getTickerOrderbookBackgroundStyle(tickerColorMode, false, true).backgroundColor;
+                          }
+                          return (
                             <div
-                              className="flex justify-center items-center font-medium gap-2"
-                              style={{ color: `hsl(${getTickerColor(tickerColorMode, order.price > tickerData.prevPrice24h ? 'up' : order.price < tickerData.prevPrice24h ? 'down' : 'unchanged')})` }}
+                              key={order.price}
+                              className={allSmallVolume
+                                ? "grid grid-cols-[0.7fr_auto_0.7fr] gap-2 text-sm py-1 hover:bg-muted/50"
+                                : "grid grid-cols-3 gap-2 text-sm py-1 hover:bg-muted/50"
+                              }
+                              style={rowBackground ? { background: rowBackground } : {}}
                             >
-                              <span>{formatPrice(order.price, maxDecimals, isKRW)}</span>
-                              <span className="text-xs ml-1 opacity-80">
-                                {tickerData.prevPrice24h > 0
-                                  ? `${((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h * 100 >= 0 ? '+' : '') + (((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h) * 100).toFixed(2)}%`
-                                  : '-'}
-                              </span>
+                              {/* 매도 잔량 */}
+                              <div className="relative text-right" style={{ minHeight: 24 }}>
+                                {order.ask > 0 && (
+                                  <div
+                                    className="absolute top-0 right-0 h-full rounded"
+                                    style={{
+                                      width: `${(order.ask / maxAsk) * 100}%`,
+                                      ...askBackgroundStyle,
+                                      zIndex: 0,
+                                    }}
+                                  />
+                                )}
+                                <span className="relative z-10 text-foreground">
+                                  {order.ask > 0
+                                    ? hasLargeVolume
+                                      ? Math.round(order.ask).toLocaleString()
+                                      : (order.ask >= 1000 ? formatPrice(order.ask, 4, true) : order.ask.toFixed(4))
+                                    : ''}
+                                </span>
+                              </div>
+                              {/* 주문가격 */}
+                              <div
+                                className="flex justify-center items-center font-medium gap-2"
+                                style={{ color: `hsl(${getTickerColor(tickerColorMode, order.price > tickerData.prevPrice24h ? 'up' : order.price < tickerData.prevPrice24h ? 'down' : 'unchanged')})` }}
+                              >
+                                <span>{formatPrice(order.price, maxDecimals, isKRW)}</span>
+                                <span className="text-xs ml-1 opacity-80">
+                                  {tickerData.prevPrice24h > 0
+                                    ? `${((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h * 100 >= 0 ? '+' : '') + (((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h) * 100).toFixed(2)}%`
+                                    : '-'}
+                                </span>
+                              </div>
+                              {/* 매수 잔량 */}
+                              <div className="relative text-right" style={{ minHeight: 24 }}>
+                                {order.bid > 0 && (
+                                  <div
+                                    className="absolute top-0 left-0 h-full rounded"
+                                    style={{
+                                      width: `${(order.bid / maxBid) * 100}%`,
+                                      ...bidBackgroundStyle,
+                                      zIndex: 0,
+                                    }}
+                                  />
+                                )}
+                                <span className="relative z-10 text-foreground">
+                                  {order.bid > 0
+                                    ? hasLargeVolume
+                                      ? Math.round(order.bid).toLocaleString()
+                                      : (order.bid >= 1000 ? formatPrice(order.bid, 4, true) : order.bid.toFixed(4))
+                                    : ''}
+                                </span>
+                              </div>
                             </div>
-                            {/* 매수 잔량 */}
-                            <div className="relative text-right" style={{ minHeight: 24 }}>
-                              {order.bid > 0 && (
-                                <div
-                                  className="absolute top-0 left-0 h-full rounded"
-                                  style={{
-                                    width: `${(order.bid / maxBid) * 100}%`,
-                                    ...bidBackgroundStyle,
-                                    zIndex: 0,
-                                  }}
-                                />
-                              )}
-                              <span className="relative z-10 text-foreground">
-                                {order.bid > 0
-                                  ? hasLargeVolume
-                                    ? Math.round(order.bid).toLocaleString()
-                                    : (order.bid >= 1000 ? formatPrice(order.bid, 4, true) : order.bid.toFixed(4))
-                                  : '-'}
-                              </span>
-                            </div>
-                          </div>
-                        ));
+                          );
+                        });
                       })()}
                     </div>
-                    <div className={gridClass.replace('border-b', 'border-t')}>
-                      <div className="text-left">{formatNumber(orderbookData.total_ask_size)}</div>
-                      <div className="text-center">총 잔량</div>
-                      <div className="text-right">{formatNumber(orderbookData.total_bid_size)}</div>
+                    <div
+                      className={gridClass.replace('border-b', 'border-t')}
+                      style={{ position: 'relative', overflow: 'hidden' }}
+                    >
+                      {/* 비율 배경 바 */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          zIndex: 0,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {/* 매도 비율 */}
+                        <div
+                          style={{
+                            width: `${orderbookData.total_ask_size + orderbookData.total_bid_size === 0 ? 50 : (orderbookData.total_ask_size / (orderbookData.total_ask_size + orderbookData.total_bid_size)) * 100}%`,
+                            background: getTickerOrderbookBackgroundStyle(tickerColorMode, true, true).backgroundColor,
+                            height: '100%',
+                            transition: 'width 0.4s',
+                          }}
+                        />
+                        {/* 매수 비율 */}
+                        <div
+                          style={{
+                            width: `${orderbookData.total_ask_size + orderbookData.total_bid_size === 0 ? 50 : (orderbookData.total_bid_size / (orderbookData.total_ask_size + orderbookData.total_bid_size)) * 100}%`,
+                            background: getTickerOrderbookBackgroundStyle(tickerColorMode, false, true).backgroundColor,
+                            height: '100%',
+                            transition: 'width 0.4s',
+                          }}
+                        />
+                      </div>
+                      {/* 텍스트 레이어 */}
+                      <div className="relative z-10 text-left">
+                        <span>{formatNumber(orderbookData?.total_ask_size ?? 0)} <span className="text-xs text-muted-foreground">({askPercent.toFixed(1)}%)</span></span>
+                      </div>
+                      <div className="relative z-10 text-center">총 잔량</div>
+                      <div className="relative z-10 text-right">
+                        <span>{formatNumber(orderbookData?.total_bid_size ?? 0)} <span className="text-xs text-muted-foreground">({bidPercent.toFixed(1)}%)</span></span>
+                      </div>
                     </div>
                   </div>
                 </div>
