@@ -289,16 +289,26 @@ export default function BithumbTickerDetailPage() {
   const formattedPrice = formatPrice(tickerData.price, maxDecimals, tickerData.quoteCode === 'KRW');
   const formattedPriceChange = formatPriceChange(tickerData.priceChange24h, maxDecimals, tickerData.quoteCode === 'KRW');
 
-  const getPriceChangeColor = (change: number) => {
-    if (change > 0) return 'text-green-600 dark:text-green-400';
-    if (change < 0) return 'text-red-600 dark:text-red-400';
-    return 'text-muted-foreground';
-  };
-
-  const getPriceChangeBgColor = (change: number) => {
-    if (change > 0) return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200';
-    if (change < 0) return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200';
-    return 'bg-muted text-muted-foreground';
+  // 24시간 변동/변동률 색상 스타일 생성 함수
+  const getPriceChangeStyle = (change: number) => {
+    let type: 'up' | 'down' | 'unchanged' = 'unchanged';
+    if (change > 0) type = 'up';
+    else if (change < 0) type = 'down';
+    // 배경색: 투명도 있는 hsl, 글자색: getTickerColor
+    const color = `hsl(${getTickerColor(tickerColorMode, type)})`;
+    const bg = type === 'up'
+      ? `hsla(${getTickerColor(tickerColorMode, 'up')}, 0.12)`
+      : type === 'down'
+        ? `hsla(${getTickerColor(tickerColorMode, 'down')}, 0.12)`
+        : 'var(--muted)';
+    return {
+      background: bg,
+      color,
+      borderRadius: '0.5rem',
+      padding: '0.25rem 0.75rem',
+      display: 'inline-block',
+      fontWeight: 600,
+    };
   };
 
   const isKRW = tickerData.quoteCode === 'KRW';
@@ -344,8 +354,10 @@ export default function BithumbTickerDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">24시간 변동</div>
-                <div className={`text-2xl font-semibold ${getPriceChangeBgColor(tickerData.priceChangePercent24h)}`}>
-                  {formattedPriceChange}
+                <div className="text-2xl font-semibold">
+                  <span style={getPriceChangeStyle(tickerData.priceChange24h)}>
+                    {formattedPriceChange}
+                  </span>
                 </div>
               </div>
               <div className="text-center">
@@ -361,8 +373,10 @@ export default function BithumbTickerDetailPage() {
               </div>
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">24시간 변동률</div>
-                <div className={`inline-block px-3 py-1 rounded-lg text-xl font-semibold ${getPriceChangeBgColor(tickerData.priceChangePercent24h)}`}>
-                  {tickerData.priceChangePercent24h >= 0 ? '+' : ''}{tickerData.priceChangePercent24h.toFixed(2)}%
+                <div className="text-xl font-semibold">
+                  <span style={getPriceChangeStyle(tickerData.priceChangePercent24h)}>
+                    {tickerData.priceChangePercent24h >= 0 ? '+' : ''}{tickerData.priceChangePercent24h.toFixed(2)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -412,21 +426,35 @@ export default function BithumbTickerDetailPage() {
                         const filteredOrders = mergedOrders
                           // 잔량 정보가 모두 0인 경우 표기하지 않음
                           .filter(order => order.ask > 0 || order.bid > 0);
+                        // 최대 잔량 계산 (0이면 1로 방어)
+                        const maxAsk = Math.max(1, ...filteredOrders.map(o => o.ask));
+                        const maxBid = Math.max(1, ...filteredOrders.map(o => o.bid));
                         return filteredOrders.map((order, i) => (
                           <div key={order.price} className={allSmallVolume
                             ? "grid grid-cols-[0.7fr_auto_0.7fr] gap-2 text-sm py-1 hover:bg-muted/50"
                             : "grid grid-cols-3 gap-2 text-sm py-1 hover:bg-muted/50"
                           }>
-                            <div
-                              className="text-right"
-                              style={{ color: `hsl(${getTickerColor(tickerColorMode, 'down')})` }}
-                            >
-                              {order.ask > 0
-                                ? hasLargeVolume
-                                  ? Math.round(order.ask).toLocaleString()
-                                  : (order.ask >= 1000 ? formatPrice(order.ask, 4, true) : order.ask.toFixed(4))
-                                : '-'}
+                            {/* 매도 잔량 */}
+                            <div className="relative text-right" style={{ minHeight: 24 }}>
+                              {order.ask > 0 && (
+                                <div
+                                  className="absolute top-0 right-0 h-full rounded"
+                                  style={{
+                                    width: `${(order.ask / maxAsk) * 100}%`,
+                                    background: 'rgba(255, 80, 80, 0.18)', // 붉은색 계열
+                                    zIndex: 0,
+                                  }}
+                                />
+                              )}
+                              <span className="relative z-10 text-foreground">
+                                {order.ask > 0
+                                  ? hasLargeVolume
+                                    ? Math.round(order.ask).toLocaleString()
+                                    : (order.ask >= 1000 ? formatPrice(order.ask, 4, true) : order.ask.toFixed(4))
+                                  : '-'}
+                              </span>
                             </div>
+                            {/* 주문가격 */}
                             <div
                               className="flex justify-center items-center font-medium gap-2"
                               style={{ color: `hsl(${getTickerColor(tickerColorMode, order.price > tickerData.prevPrice24h ? 'up' : order.price < tickerData.prevPrice24h ? 'down' : 'unchanged')})` }}
@@ -438,15 +466,25 @@ export default function BithumbTickerDetailPage() {
                                   : '-'}
                               </span>
                             </div>
-                            <div
-                              className="text-right"
-                              style={{ color: `hsl(${getTickerColor(tickerColorMode, 'up')})` }}
-                            >
-                              {order.bid > 0
-                                ? hasLargeVolume
-                                  ? Math.round(order.bid).toLocaleString()
-                                  : (order.bid >= 1000 ? formatPrice(order.bid, 4, true) : order.bid.toFixed(4))
-                                : '-'}
+                            {/* 매수 잔량 */}
+                            <div className="relative text-right" style={{ minHeight: 24 }}>
+                              {order.bid > 0 && (
+                                <div
+                                  className="absolute top-0 left-0 h-full rounded"
+                                  style={{
+                                    width: `${(order.bid / maxBid) * 100}%`,
+                                    background: 'rgba(80, 120, 255, 0.18)', // 파란색 계열
+                                    zIndex: 0,
+                                  }}
+                                />
+                              )}
+                              <span className="relative z-10 text-foreground">
+                                {order.bid > 0
+                                  ? hasLargeVolume
+                                    ? Math.round(order.bid).toLocaleString()
+                                    : (order.bid >= 1000 ? formatPrice(order.bid, 4, true) : order.bid.toFixed(4))
+                                  : '-'}
+                              </span>
                             </div>
                           </div>
                         ));
