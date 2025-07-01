@@ -53,8 +53,12 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
   setPriceInfo(info: {
     price: number;
     prevPrice24h: number;
+    prevPriceUtc9?: number;
+    openingPriceUtc9?: number;
     priceChange24h: number;
     priceChangePercent24h: number;
+    priceChangeUtc9?: number;
+    priceChangePercentUtc9?: number;
     highPrice24h?: number;
     lowPrice24h?: number;
   }): TickerDataBuilder {
@@ -62,8 +66,12 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
       ...this.data,
       price: info.price,
       prevPrice24h: info.prevPrice24h,
+      prevPriceUtc9: info.prevPriceUtc9,
+      openingPriceUtc9: info.openingPriceUtc9,
       priceChange24h: info.priceChange24h,
       priceChangePercent24h: info.priceChangePercent24h,
+      priceChangeUtc9: info.priceChangeUtc9,
+      priceChangePercentUtc9: info.priceChangePercentUtc9,
       highPrice24h: info.highPrice24h,
       lowPrice24h: info.lowPrice24h,
     };
@@ -73,6 +81,8 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
   setTradeInfo(info: {
     volume24h: number;
     turnover24h: number;
+    volumeUtc9?: number;
+    turnoverUtc9?: number;
     bidPrice?: number;
     askPrice?: number;
   }): TickerDataBuilder {
@@ -80,6 +90,8 @@ export class TickerDataBuilderImpl implements TickerDataBuilder {
       ...this.data,
       volume24h: info.volume24h,
       turnover24h: info.turnover24h,
+      volumeUtc9: info.volumeUtc9,
+      turnoverUtc9: info.turnoverUtc9,
       bidPrice: info.bidPrice,
       askPrice: info.askPrice,
     };
@@ -243,15 +255,21 @@ export function toBithumbTickerData(d: any, symbol: string, integratedCategory: 
     })
     .setPriceInfo({
       price: parseFloat(d.trade_price ?? d.closing_price ?? '0'),
-      prevPrice24h: parseFloat(d.prev_closing_price ?? '0'),
+      prevPrice24h: parseFloat(d.trade_price ?? d.closing_price ?? '0') - parseFloat(d.signed_change_price ?? d.fluctate_24H ?? '0'),
+      prevPriceUtc9: parseFloat(d.prev_closing_price ?? '0'),
+      openingPriceUtc9: parseFloat(d.opening_price ?? '0'),
       priceChange24h: parseFloat(d.signed_change_price ?? d.fluctate_24H ?? '0'),
       priceChangePercent24h: parseFloat(d.signed_change_rate ?? d.fluctate_rate_24H ?? '0'),
+      priceChangeUtc9: parseFloat(d.signed_change_price ?? d.fluctate_24H ?? '0'),
+      priceChangePercentUtc9: parseFloat(d.signed_change_rate ?? d.fluctate_rate_24H ?? '0'),
       highPrice24h: parseFloat(d.high_price ?? d.max_price ?? '0'),
       lowPrice24h: parseFloat(d.low_price ?? d.min_price ?? '0'),
     })
     .setTradeInfo({
       volume24h: parseFloat(d.acc_trade_volume_24h ?? d.units_traded_24H ?? '0'),
       turnover24h: parseFloat(d.acc_trade_price_24h ?? d.acc_trade_value_24H ?? '0'),
+      volumeUtc9: parseFloat(d.acc_trade_volume ?? d.units_traded ?? '0'),
+      turnoverUtc9: parseFloat(d.acc_trade_price ?? d.acc_trade_value ?? '0'),
     })
     .setExchangeSpecific({
       bithumb: {

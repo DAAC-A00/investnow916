@@ -284,16 +284,28 @@ export interface TickerData {
   beforePrice?: number;
   /** 24시간 전 가격 */
   prevPrice24h: number;
+  /** 전일 종가(KST 0시 기준) - Bithumb 전용 */
+  prevPriceUtc9?: number;
+  /** 시가(KST 0시 기준) - Bithumb 전용 */
+  openingPriceUtc9?: number;
   /** 24시간 가격 변동 */
   priceChange24h: number;
   /** 24시간 가격 변동률 (%) */
   priceChangePercent24h: number;
+  /** 전일 대비 가격 변동(KST 0시 기준) - Bithumb 전용 */
+  priceChangeUtc9?: number;
+  /** 전일 대비 가격 변동률(KST 0시 기준) - Bithumb 전용 */
+  priceChangePercentUtc9?: number;
   
   // === 거래 정보 ===
   /** 24시간 거래량 */
   volume24h: number;
   /** 24시간 거래대금 */
   turnover24h: number;
+  /** 누적 거래량(KST 0시 기준) - Bithumb 전용 */
+  volumeUtc9?: number;
+  /** 누적 거래대금(KST 0시 기준) - Bithumb 전용 */
+  turnoverUtc9?: number;
   /** 24시간 최고가 */
   highPrice24h?: number;
   /** 24시간 최저가 */
@@ -517,8 +529,12 @@ export interface TickerDataBuilder {
   setPriceInfo(info: {
     price: number;
     prevPrice24h: number;
+    prevPriceUtc9?: number;
+    openingPriceUtc9?: number;
     priceChange24h: number;
     priceChangePercent24h: number;
+    priceChangeUtc9?: number;
+    priceChangePercentUtc9?: number;
     highPrice24h?: number;
     lowPrice24h?: number;
   }): TickerDataBuilder;
@@ -527,6 +543,8 @@ export interface TickerDataBuilder {
   setTradeInfo(info: {
     volume24h: number;
     turnover24h: number;
+    volumeUtc9?: number;
+    turnoverUtc9?: number;
     bidPrice?: number;
     askPrice?: number;
   }): TickerDataBuilder;
