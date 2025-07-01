@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { TickerData } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
 import { useTickerSettingStore } from '@/packages/shared/stores/createTickerSettingStore';
-import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
+import { getTickerColor, getTickerBackgroundColor } from '@/packages/ui-kit/tokens/design-tokens';
+import { getTickerOrderbookBackgroundStyle } from '@/packages/shared/stores/createTickerSettingStore';
 import { get, ApiError } from '@/packages/shared/utils/apiClient';
 import { API_ENDPOINTS, DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 import { toBithumbTickerData } from '@/packages/shared/utils/tickerDataBuilder';
@@ -131,6 +132,10 @@ export default function BithumbTickerDetailPage() {
 
   // 상세 정보 토글 상태 (localStorage)
   const [showRawKey, setShowRawKey] = usePersistentToggle('bithumb-detail-show-raw-key', false);
+
+  // 매도/매수 잔량 배경색을 페이지 진입 시 useMemo로 미리 계산 (스타일 객체)
+  const askBackgroundStyle = useMemo(() => getTickerOrderbookBackgroundStyle(tickerColorMode, true, true), [tickerColorMode]);
+  const bidBackgroundStyle = useMemo(() => getTickerOrderbookBackgroundStyle(tickerColorMode, false, true), [tickerColorMode]);
 
   useEffect(() => {
     setCurrentRoute(`/exchange/ticker/bithumb/${integratedCategory}/${symbol}`);
@@ -441,7 +446,7 @@ export default function BithumbTickerDetailPage() {
                                   className="absolute top-0 right-0 h-full rounded"
                                   style={{
                                     width: `${(order.ask / maxAsk) * 100}%`,
-                                    background: 'rgba(255, 80, 80, 0.18)', // 붉은색 계열
+                                    ...askBackgroundStyle,
                                     zIndex: 0,
                                   }}
                                 />
@@ -473,7 +478,7 @@ export default function BithumbTickerDetailPage() {
                                   className="absolute top-0 left-0 h-full rounded"
                                   style={{
                                     width: `${(order.bid / maxBid) * 100}%`,
-                                    background: 'rgba(80, 120, 255, 0.18)', // 파란색 계열
+                                    ...bidBackgroundStyle,
                                     zIndex: 0,
                                   }}
                                 />

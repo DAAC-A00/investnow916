@@ -56,13 +56,13 @@ export const createPriceChangeAnimationManager = (duration: BorderAnimationDurat
     /**
      * 가격 변화 애니메이션 트리거
      * @param symbol 심볼 (예: 'BTC/USDT')
-     * @param previousPrice 이전 가격
+     * @param beforePrice 이전 가격
      * @param currentPrice 현재 가격
      * @param onAnimationChange 애니메이션 상태 변경 콜백
      */
     triggerPriceChangeAnimation: (
       symbol: string,
-      previousPrice: number,
+      beforePrice: number,
       currentPrice: number,
       onAnimationChange: (symbol: string, isAnimating: boolean) => void
     ) => {
@@ -222,6 +222,29 @@ export const getTickerPercentBackgroundStyle = (
   const lightness = hslValues[2];
   
   return { 
+    backgroundColor: `hsla(${hue}, ${saturation}, ${lightness}, 0.2)`
+  };
+};
+
+/**
+ * 호가(잔량) 배경 스타일 반환
+ * @param mode 색상 모드
+ * @param isAsk 매도(true)/매수(false)
+ * @param showBackground 배경색 표시 여부
+ */
+export const getTickerOrderbookBackgroundStyle = (
+  mode: TickerColorMode,
+  isAsk: boolean,
+  showBackground: boolean = true
+): React.CSSProperties => {
+  if (!showBackground) {
+    return {
+      backgroundColor: 'transparent'
+    };
+  }
+  const color = getTickerColor(mode, isAsk ? 'down' : 'up');
+  const [hue, saturation, lightness] = color.split(' ');
+  return {
     backgroundColor: `hsla(${hue}, ${saturation}, ${lightness}, 0.2)`
   };
 };
