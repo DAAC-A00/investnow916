@@ -105,11 +105,7 @@ export default function BithumbTickerPage() {
         }
       );
       
-      console.log('빗썸 API 응답 상태:', response.status);
-      
       const tickerResponse = response.data;
-      
-      console.log('빗썸 티커 데이터 파싱 성공:', tickerResponse.status);
 
       if (tickerResponse.status !== '0000') {
         throw new Error(`빗썸 API 오류: ${tickerResponse.status}`);

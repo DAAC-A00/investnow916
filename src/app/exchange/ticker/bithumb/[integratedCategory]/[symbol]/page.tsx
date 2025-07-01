@@ -10,6 +10,7 @@ import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
 import { get, ApiError } from '@/packages/shared/utils/apiClient';
 import { API_ENDPOINTS, DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 import { toBithumbTickerData } from '@/packages/shared/utils/tickerDataBuilder';
+import { Toggle } from '@/packages/ui-kit/web/components/Toggle';
 
 interface OrderbookUnit {
   ask_price: number;
@@ -96,6 +97,19 @@ const transformBithumbOrderbook = (apiData: BithumbApiOrderbookData, marketSymbo
   };
 };
 
+// 상세 정보 토글 상태 (localStorage 연동)
+function usePersistentToggle(key: string, defaultValue = false) {
+  const [value, setValue] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue;
+    const stored = window.localStorage.getItem(key);
+    return stored === null ? defaultValue : stored === 'true';
+  });
+  useEffect(() => {
+    window.localStorage.setItem(key, value ? 'true' : 'false');
+  }, [key, value]);
+  return [value, setValue] as const;
+}
+
 export default function BithumbTickerDetailPage() {
   // 티커 색상 설정값 가져오기
   const tickerColorMode = useTickerSettingStore(state => state.tickerColorMode);
@@ -114,6 +128,9 @@ export default function BithumbTickerDetailPage() {
 
   // 가격 추적기 생성
   const priceTracker = useRef(new PriceDecimalTracker());
+
+  // 상세 정보 토글 상태 (localStorage)
+  const [showRawKey, setShowRawKey] = usePersistentToggle('bithumb-detail-show-raw-key', false);
 
   useEffect(() => {
     setCurrentRoute(`/exchange/ticker/bithumb/${integratedCategory}/${symbol}`);
@@ -448,95 +465,65 @@ export default function BithumbTickerDetailPage() {
 
           {/* 상세 정보 - 더 다양한 정보 표기 */}
           <div className="bg-card rounded-lg p-6 shadow-sm border border-border">
-            <h2 className="text-xl font-semibold text-foreground mb-4">상세 정보</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">상세 정보</h2>
+              <Toggle
+                defaultActive={showRawKey}
+                active={showRawKey}
+                onChange={setShowRawKey}
+                label="변수명 보기"
+                size="sm"
+              />
+            </div>
             <div className="space-y-4">
+              {/* 공통 필드 매핑 */}
+              {(() => {
+                const commonFields = [
+                  { key: 'highPrice24h', label: '24시간 최고가', value: tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'lowPrice24h', label: '24시간 최저가', value: tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'prevPrice24h', label: '24시간 전 가격', value: formatPrice(tickerData.prevPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'volume24h', label: '24시간 거래량', value: formatNumber(tickerData.volume24h) + ' ' + tickerData.baseCode },
+                  { key: 'turnover24h', label: '24시간 거래대금', value: formatNumber(tickerData.turnover24h) + ' ' + tickerData.quoteCode },
+                ];
+                return commonFields.map(f => (
+                  <div key={f.key} className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">{showRawKey ? f.key : f.label}</span>
+                    <span className="font-medium">{f.value}</span>
+                  </div>
+                ));
+              })()}
+              {/* 빗썸 전용 필드 매핑 */}
+              {tickerData.exchangeSpecific?.bithumb && (() => {
+                const bithumbFields = [
+                  { key: 'openingPrice', label: '시가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.openingPrice ?? 0), maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'prevClosingPrice', label: '전일 종가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.prevClosingPrice ?? 0), maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'tradeDate', label: '체결 일자', value: tickerData.exchangeSpecific.bithumb.tradeDate ?? '-' },
+                  { key: 'tradeTime', label: '체결 시각', value: tickerData.exchangeSpecific.bithumb.tradeTime ?? '-' },
+                  { key: 'highest52WeekPrice', label: '52주 최고가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.highest52WeekPrice ?? 0), maxDecimals, isKRW) + ' (' + (tickerData.exchangeSpecific.bithumb.highest52WeekDate ?? '-') + ')' },
+                  { key: 'lowest52WeekPrice', label: '52주 최저가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.lowest52WeekPrice ?? 0), maxDecimals, isKRW) + ' (' + (tickerData.exchangeSpecific.bithumb.lowest52WeekDate ?? '-') + ')' },
+                  { key: 'accTradePrice', label: '누적 거래대금', value: formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradePrice ?? 0)) + ' ' + tickerData.quoteCode },
+                  { key: 'accTradeVolume', label: '누적 거래량', value: formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradeVolume ?? 0)) + ' ' + tickerData.baseCode },
+                  { key: 'changePrice', label: '변동(절대)', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.changePrice ?? 0), maxDecimals, isKRW) },
+                  { key: 'changeRate', label: '변동(%)', value: tickerData.exchangeSpecific.bithumb.changeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.changeRate) >= 0 ? '+' : '') + (Number(tickerData.exchangeSpecific.bithumb.changeRate) * 100).toFixed(2) + '%' : '-' },
+                  { key: 'change', label: '변동(부호)', value: tickerData.exchangeSpecific.bithumb.change ?? '-' },
+                  { key: 'signedChangePrice', label: 'signedChangePrice', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.signedChangePrice ?? 0), maxDecimals, isKRW) },
+                  { key: 'signedChangeRate', label: 'signedChangeRate', value: tickerData.exchangeSpecific.bithumb.signedChangeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) >= 0 ? '+' : '') + (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) * 100).toFixed(2) + '%' : '-' },
+                  { key: 'tradeTimestamp', label: '데이터 타임스탬프', value: tickerData.exchangeSpecific.bithumb.tradeTimestamp ?? '-' },
+                  { key: 'date', label: 'API 응답 시각', value: tickerData.exchangeSpecific.bithumb.date ?? '-' },
+                ];
+                return bithumbFields.map(f => (
+                  <div key={f.key} className="flex justify-between items-center py-2 border-b border-border">
+                    <span className="text-muted-foreground">{showRawKey ? f.key : f.label}</span>
+                    <span className="font-medium">{f.value}</span>
+                  </div>
+                ));
+              })()}
               <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">24시간 최고가</span>
-                <span className="font-medium">{tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, maxDecimals, isKRW) : '-'} {tickerData.quoteCode}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">24시간 최저가</span>
-                <span className="font-medium">{tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, maxDecimals, isKRW) : '-'} {tickerData.quoteCode}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">24시간 전 가격</span>
-                <span className="font-medium">{formatPrice(tickerData.prevPrice24h, maxDecimals, isKRW)} {tickerData.quoteCode}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">24시간 거래량</span>
-                <span className="font-medium">{formatNumber(tickerData.volume24h)} {tickerData.baseCode}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">24시간 거래대금</span>
-                <span className="font-medium">{formatNumber(tickerData.turnover24h)} {tickerData.quoteCode}</span>
-              </div>
-              {/* 추가 필드 표기 */}
-              {tickerData.exchangeSpecific?.bithumb && (
-                <>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">시가</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.openingPrice ?? 0), maxDecimals, isKRW)} {tickerData.quoteCode}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">전일 종가</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.prevClosingPrice ?? 0), maxDecimals, isKRW)} {tickerData.quoteCode}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">체결 시각</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.tradeDate ?? '-'} {tickerData.exchangeSpecific.bithumb.tradeTime ?? '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">52주 최고가</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.highest52WeekPrice ?? 0), maxDecimals, isKRW)} ({tickerData.exchangeSpecific.bithumb.highest52WeekDate ?? '-'})</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">52주 최저가</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.lowest52WeekPrice ?? 0), maxDecimals, isKRW)} ({tickerData.exchangeSpecific.bithumb.lowest52WeekDate ?? '-'})</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">누적 거래대금</span>
-                    <span className="font-medium">{formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradePrice ?? 0))} {tickerData.quoteCode}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">누적 거래량</span>
-                    <span className="font-medium">{formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradeVolume ?? 0))} {tickerData.baseCode}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">변동(절대)</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.changePrice ?? 0), maxDecimals, isKRW)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">변동(%)</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.changeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.changeRate) >= 0 ? '+' : '') + (Number(tickerData.exchangeSpecific.bithumb.changeRate) * 100).toFixed(2) + '%' : '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">변동(부호)</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.change ?? '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">signedChangePrice</span>
-                    <span className="font-medium">{formatPrice(Number(tickerData.exchangeSpecific.bithumb.signedChangePrice ?? 0), maxDecimals, isKRW)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">signedChangeRate</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.signedChangeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) >= 0 ? '+' : '') + (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) * 100).toFixed(2) + '%' : '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">데이터 타임스탬프</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.tradeTimestamp ?? '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border">
-                    <span className="text-muted-foreground">API 응답 시각</span>
-                    <span className="font-medium">{tickerData.exchangeSpecific.bithumb.date ?? '-'}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-muted-foreground">체결강도</span>
+                <span className="text-muted-foreground">{showRawKey ? 'tradeStrength' : '체결강도'}</span>
                 <span className="font-medium">{'-'}</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">업데이트 시각</span>
+                <span className="text-muted-foreground">{showRawKey ? 'lastUpdate' : '업데이트 시각'}</span>
                 <span className="font-medium">{lastUpdate?.toLocaleString('ko-KR') || '-'}</span>
               </div>
             </div>
