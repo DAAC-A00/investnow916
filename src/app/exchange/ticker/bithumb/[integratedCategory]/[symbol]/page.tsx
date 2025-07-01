@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { TickerData } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
+import { useTickerSettingStore } from '@/packages/shared/stores/createTickerSettingStore';
+import { getTickerColor } from '@/packages/ui-kit/tokens/design-tokens';
 import { get, ApiError } from '@/packages/shared/utils/apiClient';
 import { API_ENDPOINTS, DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
 
@@ -94,6 +96,8 @@ const transformBithumbOrderbook = (apiData: BithumbApiOrderbookData, marketSymbo
 };
 
 export default function BithumbTickerDetailPage() {
+  // 티커 색상 설정값 가져오기
+  const tickerColorMode = useTickerSettingStore(state => state.tickerColorMode);
   const params = useParams();
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
@@ -341,22 +345,25 @@ export default function BithumbTickerDetailPage() {
               </div>
             </div>
 
-            {/* 현재 가격 정보 */}
+            {/* 현재 가격/변동 정보 - 위치 교체 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">현재가</div>
-                <div className="text-3xl font-bold text-foreground">
-                  {formattedPrice} {tickerData.quoteCode}
-                </div>
-              </div>
-              
-              <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">24시간 변동</div>
-                <div className={`text-2xl font-semibold ${getPriceChangeColor(tickerData.priceChange24h)}`}>
+                <div className={`text-2xl font-semibold ${getPriceChangeBgColor(tickerData.priceChangePercent24h)}`}>
                   {formattedPriceChange}
                 </div>
               </div>
-              
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground mb-1">현재가</div>
+                <div
+                  className="text-3xl font-bold"
+                  style={{
+                    color: `hsl(${getTickerColor(tickerColorMode, tickerData.priceChange24h > 0 ? 'up' : tickerData.priceChange24h < 0 ? 'down' : 'unchanged')})`,
+                  }}
+                >
+                  {formattedPrice} {tickerData.quoteCode}
+                </div>
+              </div>
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-1">24시간 변동률</div>
                 <div className={`inline-block px-3 py-1 rounded-lg text-xl font-semibold ${getPriceChangeBgColor(tickerData.priceChangePercent24h)}`}>
@@ -368,46 +375,83 @@ export default function BithumbTickerDetailPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 호가 정보 */}
+          {/* 호가 정보 - 주문가격 기준 한 줄 정렬, 전체 depth 표시 */}
           {orderbookData && (
             <div className="bg-card rounded-lg p-6 shadow-sm border border-border">
               <h2 className="text-xl font-semibold text-foreground mb-4">호가 정보</h2>
               <div className="space-y-1">
-                <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground py-2 border-b">
-                  <div className="text-right">매도호가</div>
-                  <div className="text-right">매도잔량</div>
+                <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground py-2 border-b">
+                  <div className="text-left">매도잔량</div>
+                  <div className="text-center">주문가격</div>
                   <div className="text-right">매수잔량</div>
-                  <div className="text-right">매수호가</div>
                 </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {orderbookData.orderbook_units.slice(0, 20).map((unit, index) => (
-                    <div key={index} className="grid grid-cols-4 gap-2 text-sm py-1 hover:bg-muted/50">
-                      <div className="text-right text-blue-600 font-medium">
-                        {formatPrice(unit.ask_price, maxDecimals, isKRW)}
+                <div>
+                  {/* ask/bid price를 모두 합쳐 가격순 내림차순 정렬 */}
+                  {(() => {
+                    // 모든 ask/bid를 price 기준으로 합침
+                    const mergedOrders: { price: number, ask: number, bid: number }[] = [];
+                    orderbookData.orderbook_units.forEach(unit => {
+                      if (unit.ask_price > 0) {
+                        const idx = mergedOrders.findIndex(o => o.price === unit.ask_price);
+                        if (idx >= 0) mergedOrders[idx].ask += unit.ask_size;
+                        else mergedOrders.push({ price: unit.ask_price, ask: unit.ask_size, bid: 0 });
+                      }
+                      if (unit.bid_price > 0) {
+                        const idx = mergedOrders.findIndex(o => o.price === unit.bid_price);
+                        if (idx >= 0) mergedOrders[idx].bid += unit.bid_size;
+                        else mergedOrders.push({ price: unit.bid_price, ask: 0, bid: unit.bid_size });
+                      }
+                    });
+                    mergedOrders.sort((a, b) => b.price - a.price);
+                    // 1억 이상 잔량이 있는지 체크
+                    const hasLargeVolume = mergedOrders.some(o => o.ask >= 100_000_000 || o.bid >= 100_000_000);
+                    return mergedOrders.map((order, i) => (
+                      <div key={order.price} className="grid grid-cols-3 gap-2 text-sm py-1 hover:bg-muted/50">
+                        <div
+                          className="text-right"
+                          style={{ color: `hsl(${getTickerColor(tickerColorMode, 'down')})` }}
+                        >
+                          {order.ask > 0
+                            ? hasLargeVolume
+                              ? Math.round(order.ask).toLocaleString()
+                              : (order.ask >= 1000 ? formatPrice(order.ask, 4, true) : order.ask.toFixed(4))
+                            : '-'}
+                        </div>
+                        <div
+                          className="flex justify-center items-center font-medium gap-2"
+                          style={{ color: `hsl(${getTickerColor(tickerColorMode, order.price > tickerData.prevPrice24h ? 'up' : order.price < tickerData.prevPrice24h ? 'down' : 'unchanged')})` }}
+                        >
+                          <span>{formatPrice(order.price, maxDecimals, isKRW)}</span>
+                          <span className="text-xs ml-1 opacity-80">
+                            {tickerData.prevPrice24h > 0
+                              ? `${((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h * 100 >= 0 ? '+' : '') + (((order.price - tickerData.prevPrice24h) / tickerData.prevPrice24h) * 100).toFixed(2)}%`
+                              : '-'}
+                          </span>
+                        </div>
+                        <div
+                          className="text-right"
+                          style={{ color: `hsl(${getTickerColor(tickerColorMode, 'up')})` }}
+                        >
+                          {order.bid > 0
+                            ? hasLargeVolume
+                              ? Math.round(order.bid).toLocaleString()
+                              : (order.bid >= 1000 ? formatPrice(order.bid, 4, true) : order.bid.toFixed(4))
+                            : '-'}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        {unit.ask_size.toFixed(4)}
-                      </div>
-                      <div className="text-right">
-                        {unit.bid_size.toFixed(4)}
-                      </div>
-                      <div className="text-right text-red-600 font-medium">
-                        {formatPrice(unit.bid_price, maxDecimals, isKRW)}
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground py-2 border-t">
-                  <div className="text-right">총 매도잔량</div>
-                  <div className="text-right">{formatNumber(orderbookData.total_ask_size)}</div>
+                <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground py-2 border-t">
+                  <div className="text-left">{formatNumber(orderbookData.total_ask_size)}</div>
+                  <div className="text-center">총 잔량</div>
                   <div className="text-right">{formatNumber(orderbookData.total_bid_size)}</div>
-                  <div className="text-right">총 매수잔량</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 상세 정보 */}
+          {/* 상세 정보 - 더 다양한 정보 표기 */}
           <div className="bg-card rounded-lg p-6 shadow-sm border border-border">
             <h2 className="text-xl font-semibold text-foreground mb-4">상세 정보</h2>
             <div className="space-y-4">
@@ -435,10 +479,23 @@ export default function BithumbTickerDetailPage() {
                   {formatNumber(tickerData.volume24h)} {tickerData.baseCode}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2">
+              <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-muted-foreground">24시간 거래대금</span>
                 <span className="font-medium">
                   {formatNumber(tickerData.turnover24h)} {tickerData.quoteCode}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-muted-foreground">체결강도</span>
+                <span className="font-medium">
+                  {/* 체결강도는 별도 API 필요, 예시로 100% 고정 또는 '-' */}
+                  {'-'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted-foreground">업데이트 시각</span>
+                <span className="font-medium">
+                  {lastUpdate?.toLocaleString('ko-KR') || '-'}
                 </span>
               </div>
             </div>

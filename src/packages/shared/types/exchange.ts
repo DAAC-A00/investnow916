@@ -423,7 +423,7 @@ export interface TickerData {
     bithumb?: {
       /** 시가 */
       openingPrice?: string;
-      /** 전일 종가 */
+      /** 전일 종가(KST 0시 기준) */
       prevClosingPrice?: string;
       /** 거래대금 */
       accTradeValue?: string;
@@ -449,7 +449,7 @@ export interface TickerData {
       accTradeVolume?: number;
       /** 누적 거래대금 */
       accTradePrice?: number;
-      /** 전일 종가 */
+      /** 전일 종가(KST 0시 기준) */
       prevClosingPrice?: number;
       /** 전일 거래량 */
       prevAccTradeVolume?: number;
