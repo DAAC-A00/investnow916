@@ -218,4 +218,66 @@ export function toLegacyTickerData(tickerData: TickerData): TickerData & { warni
     ...tickerData,
     warningType: tickerData.warningInfo?.warningType,
   };
+}
+
+/**
+ * Bithumb API 응답을 TickerData로 변환
+ * @param d Bithumb API의 단일 티커 데이터
+ * @param symbol 심볼(예: BTC_KRW)
+ * @param integratedCategory 내부 카테고리(예: spot)
+ * @returns TickerData
+ */
+export function toBithumbTickerData(d: any, symbol: string, integratedCategory: string): TickerData {
+  // symbol 파싱
+  const baseCode = symbol.replace(/KRW$|BTC$/, '');
+  const quoteCode = symbol.includes('KRW') ? 'KRW' : 'BTC';
+  return createTickerDataBuilder()
+    .setBasicInfo({
+      rawSymbol: symbol,
+      integratedSymbol: `${baseCode}/${quoteCode}`,
+      baseCode,
+      quoteCode,
+      exchange: 'bithumb',
+      integratedCategory,
+      rawCategory: integratedCategory,
+    })
+    .setPriceInfo({
+      price: parseFloat(d.trade_price ?? d.closing_price ?? '0'),
+      prevPrice24h: parseFloat(d.prev_closing_price ?? '0'),
+      priceChange24h: parseFloat(d.signed_change_price ?? d.fluctate_24H ?? '0'),
+      priceChangePercent24h: parseFloat(d.signed_change_rate ?? d.fluctate_rate_24H ?? '0'),
+      highPrice24h: parseFloat(d.high_price ?? d.max_price ?? '0'),
+      lowPrice24h: parseFloat(d.low_price ?? d.min_price ?? '0'),
+    })
+    .setTradeInfo({
+      volume24h: parseFloat(d.acc_trade_volume_24h ?? d.units_traded_24H ?? '0'),
+      turnover24h: parseFloat(d.acc_trade_price_24h ?? d.acc_trade_value_24H ?? '0'),
+    })
+    .setExchangeSpecific({
+      bithumb: {
+        openingPrice: d.opening_price,
+        prevClosingPrice: d.prev_closing_price,
+        accTradeValue: d.acc_trade_value,
+        unitsTraded: d.units_traded,
+        marketType: quoteCode,
+        tradeDate: d.trade_date,
+        tradeTime: d.trade_time,
+        tradeTimestamp: d.trade_timestamp,
+        highest52WeekPrice: d.highest_52_week_price,
+        highest52WeekDate: d.highest_52_week_date,
+        lowest52WeekPrice: d.lowest_52_week_price,
+        lowest52WeekDate: d.lowest_52_week_date,
+        accTradePrice: d.acc_trade_price,
+        accTradePrice24h: d.acc_trade_price_24h,
+        accTradeVolume: d.acc_trade_volume,
+        accTradeVolume24h: d.acc_trade_volume_24h,
+        change: d.change,
+        changePrice: d.change_price,
+        changeRate: d.change_rate,
+        signedChangePrice: d.signed_change_price,
+        signedChangeRate: d.signed_change_rate,
+        date: d.date,
+      }
+    })
+    .build();
 } 

@@ -431,6 +431,40 @@ export interface TickerData {
       unitsTraded?: string;
       /** 시장 분류 (KRW, BTC) */
       marketType?: 'KRW' | 'BTC';
+      /** 체결 일자(UTC) */
+      tradeDate?: string;
+      /** 체결 시각(UTC) */
+      tradeTime?: string;
+      /** 체결 타임스탬프 */
+      tradeTimestamp?: number;
+      /** 52주 최고가 */
+      highest52WeekPrice?: string;
+      /** 52주 최고가 달성일 */
+      highest52WeekDate?: string;
+      /** 52주 최저가 */
+      lowest52WeekPrice?: string;
+      /** 52주 최저가 달성일 */
+      lowest52WeekDate?: string;
+      /** 누적 거래대금 */
+      accTradePrice?: string;
+      /** 24시간 누적 거래대금 */
+      accTradePrice24h?: string;
+      /** 누적 거래량 */
+      accTradeVolume?: string;
+      /** 24시간 누적 거래량 */
+      accTradeVolume24h?: string;
+      /** 변동(부호) */
+      change?: string;
+      /** 변동(절대) */
+      changePrice?: string;
+      /** 변동(%) */
+      changeRate?: string;
+      /** 변동(절대, signed) */
+      signedChangePrice?: string;
+      /** 변동(%, signed) */
+      signedChangeRate?: string;
+      /** API 응답 시각 */
+      date?: string;
     };
     /** Binance 전용 정보 */
     binance?: {

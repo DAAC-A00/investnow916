@@ -142,7 +142,7 @@ export function formatPrice(
   }
 
   // 소수점 포맷팅
-  let formatted = price.toFixed(decimals);
+  let formatted = typeof price === 'number' ? price.toFixed(decimals) : price;
 
   if (maxDecimals > 0) {
     // maxDecimals가 있으면 해당 자리수까지는 0도 표기
