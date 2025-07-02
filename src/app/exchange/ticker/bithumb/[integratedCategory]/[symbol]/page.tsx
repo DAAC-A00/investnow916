@@ -583,16 +583,16 @@ export default function BithumbTickerDetailPage() {
               {/* 공통 필드 매핑 */}
               {(() => {
                 const commonFields = [
-                  { key: 'price', label: '현재가', value: formatPrice(tickerData.price, maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
-                  { key: 'prevPrice24h', label: '24시간 전 가격', value: formatPrice(tickerData.prevPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
-                  { key: 'prevPriceUtc9', label: '전일 종가(KST 0시)', value: tickerData.prevPriceUtc9 ? formatPrice(tickerData.prevPriceUtc9, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
-                  { key: 'openingPriceUtc9', label: '시가(KST 0시)', value: tickerData.openingPriceUtc9 ? formatPrice(tickerData.openingPriceUtc9, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
-                  { key: 'priceChange24h', label: '24시간 가격 변동', value: (tickerData.priceChange24h >= 0 ? '+' : '') + formatPrice(Math.abs(tickerData.priceChange24h), maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'price', label: '현재가', value: formatPrice(tickerData.price, maxDecimals, true) + ' ' + tickerData.quoteCode },
+                  { key: 'prevPrice24h', label: '24시간 전 가격', value: formatPrice(tickerData.prevPrice24h, maxDecimals, true) + ' ' + tickerData.quoteCode },
+                  { key: 'prevPriceUtc9', label: '전일 종가(KST 0시)', value: tickerData.prevPriceUtc9 ? formatPrice(tickerData.prevPriceUtc9, maxDecimals, true) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'openingPriceUtc9', label: '시가(KST 0시)', value: tickerData.openingPriceUtc9 ? formatPrice(tickerData.openingPriceUtc9, maxDecimals, true) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'priceChange24h', label: '24시간 가격 변동', value: (tickerData.priceChange24h >= 0 ? '+' : '') + formatPrice(Math.abs(tickerData.priceChange24h), maxDecimals, true) + ' ' + tickerData.quoteCode },
                   { key: 'priceChangePercent24h', label: '24시간 가격 변동률', value: (tickerData.priceChangePercent24h >= 0 ? '+' : '') + tickerData.priceChangePercent24h.toFixed(2) + '%' },
-                  { key: 'priceChangeUtc9', label: '전일 대비 변동(KST)', value: tickerData.priceChangeUtc9 !== undefined ? (tickerData.priceChangeUtc9 >= 0 ? '+' : '') + formatPrice(Math.abs(tickerData.priceChangeUtc9), maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'priceChangeUtc9', label: '전일 대비 변동(KST)', value: tickerData.priceChangeUtc9 !== undefined ? (tickerData.priceChangeUtc9 >= 0 ? '+' : '') + formatPrice(Math.abs(tickerData.priceChangeUtc9), maxDecimals, true) + ' ' + tickerData.quoteCode : '-' },
                   { key: 'priceChangePercentUtc9', label: '전일 대비 변동률(KST)', value: tickerData.priceChangePercentUtc9 !== undefined ? (tickerData.priceChangePercentUtc9 >= 0 ? '+' : '') + tickerData.priceChangePercentUtc9.toFixed(2) + '%' : '-' },
-                  { key: 'highPrice24h', label: '24시간 최고가', value: tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
-                  { key: 'lowPrice24h', label: '24시간 최저가', value: tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, maxDecimals, isKRW) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'highPrice24h', label: '24시간 최고가', value: tickerData.highPrice24h ? formatPrice(tickerData.highPrice24h, maxDecimals, true) + ' ' + tickerData.quoteCode : '-' },
+                  { key: 'lowPrice24h', label: '24시간 최저가', value: tickerData.lowPrice24h ? formatPrice(tickerData.lowPrice24h, maxDecimals, true) + ' ' + tickerData.quoteCode : '-' },
                   { key: 'volume24h', label: '24시간 거래량', value: formatNumber(tickerData.volume24h) + ' ' + tickerData.baseCode },
                   { key: 'turnover24h', label: '24시간 거래대금', value: formatNumber(tickerData.turnover24h) + ' ' + tickerData.quoteCode },
                   { key: 'volumeUtc9', label: '누적 거래량(KST 0시)', value: tickerData.volumeUtc9 !== undefined ? formatNumber(tickerData.volumeUtc9) + ' ' + tickerData.baseCode : '-' },
@@ -612,14 +612,18 @@ export default function BithumbTickerDetailPage() {
                   { key: 'tradeDate', label: '체결 일자(UTC)', value: tickerData.exchangeSpecific.bithumb.tradeDate ?? '-' },
                   { key: 'tradeTime', label: '체결 시각(UTC)', value: tickerData.exchangeSpecific.bithumb.tradeTime ?? '-' },
                   { key: 'tradeTimestamp', label: '체결 타임스탬프', value: tickerData.exchangeSpecific.bithumb.tradeTimestamp ? new Date(tickerData.exchangeSpecific.bithumb.tradeTimestamp).toLocaleString() : '-' },
-                  { key: 'highest52WeekPrice', label: '52주 최고가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.highest52WeekPrice ?? 0), maxDecimals, isKRW) + ' (' + (tickerData.exchangeSpecific.bithumb.highest52WeekDate ?? '-') + ')' },
-                  { key: 'lowest52WeekPrice', label: '52주 최저가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.lowest52WeekPrice ?? 0), maxDecimals, isKRW) + ' (' + (tickerData.exchangeSpecific.bithumb.lowest52WeekDate ?? '-') + ')' },
+                  { key: 'highest52WeekPrice', label: '52주 최고가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.highest52WeekPrice ?? 0), maxDecimals, true) + ' (' + (tickerData.exchangeSpecific.bithumb.highest52WeekDate ?? '-') + ')' },
+                  { key: 'lowest52WeekPrice', label: '52주 최저가', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.lowest52WeekPrice ?? 0), maxDecimals, true) + ' (' + (tickerData.exchangeSpecific.bithumb.lowest52WeekDate ?? '-') + ')' },
                   { key: 'accTradePrice24h', label: '24시간 누적 거래대금', value: formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradePrice24h ?? 0)) + ' ' + tickerData.quoteCode },
                   { key: 'accTradeVolume24h', label: '24시간 누적 거래량', value: formatNumber(Number(tickerData.exchangeSpecific.bithumb.accTradeVolume24h ?? 0)) + ' ' + tickerData.baseCode },
                   { key: 'change', label: '변동 방향', value: tickerData.exchangeSpecific.bithumb.change ?? '-' },
-                  { key: 'changePrice', label: '변동액(절대)', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.changePrice ?? 0), maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'changePrice', label: '변동액(절대)', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.changePrice ?? 0), maxDecimals, true) + ' ' + tickerData.quoteCode },
                   { key: 'changeRate', label: '변동률(절대)', value: tickerData.exchangeSpecific.bithumb.changeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.changeRate) * 100).toFixed(2) + '%' : '-' },
-                  { key: 'signedChangePrice', label: '부호 포함 변동액', value: formatPrice(Number(tickerData.exchangeSpecific.bithumb.signedChangePrice ?? 0), maxDecimals, isKRW) + ' ' + tickerData.quoteCode },
+                  { key: 'signedChangePrice', label: '부호 포함 변동액', value: (() => {
+                    const signedValue = Number(tickerData.exchangeSpecific.bithumb.signedChangePrice ?? 0);
+                    const sign = signedValue >= 0 ? '+' : '-';
+                    return sign + formatPrice(Math.abs(signedValue), maxDecimals, true) + ' ' + tickerData.quoteCode;
+                  })() },
                   { key: 'signedChangeRate', label: '부호 포함 변동률', value: tickerData.exchangeSpecific.bithumb.signedChangeRate !== undefined ? (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) >= 0 ? '+' : '') + (Number(tickerData.exchangeSpecific.bithumb.signedChangeRate) * 100).toFixed(2) + '%' : '-' },
                   { key: 'date', label: 'API 응답 시각', value: tickerData.exchangeSpecific.bithumb.date ?? '-' },
                 ];
