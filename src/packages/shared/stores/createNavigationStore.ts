@@ -63,6 +63,16 @@ const defaultMenuItems: MenuItemType[] = [
     rightNavOrder: 2,
   },
   {
+    id: 'exchange-ticker',
+    label: '통합시세',
+    icon: '�',
+    route: '/exchange/ticker',
+    description: '실시간 통합시세 정보 조회',
+    isAdminOnly: false,
+    isRightNav: true,
+    rightNavOrder: 7,
+  },
+  {
     id: 'exchange-bybit',
     label: 'Bybit',
     icon: '🏢',
