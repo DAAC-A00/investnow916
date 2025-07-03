@@ -1,5 +1,4 @@
 export { Ticker } from './Ticker';
-export { TickerExampleCard } from './TickerExampleCard';
 export { ThemeInitializer } from './ThemeInitializer';
 export { AdminModeInitializer } from './AdminModeInitializer';
 export { ExchangeCoinsInitializer } from './ExchangeCoinsInitializer';
