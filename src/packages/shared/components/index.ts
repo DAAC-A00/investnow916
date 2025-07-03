@@ -2,6 +2,9 @@ export { Ticker } from './Ticker';
 export { ThemeInitializer } from './ThemeInitializer';
 export { AdminModeInitializer } from './AdminModeInitializer';
 export { ExchangeCoinsInitializer } from './ExchangeCoinsInitializer';
+export { TickerHeader } from './TickerHeader';
+export { TickerControls } from './TickerControls';
+export { TickerEmptyState } from './TickerEmptyState';
 
 // 타입 재export
 export type { TickerData } from '@/packages/shared/types/exchange';
