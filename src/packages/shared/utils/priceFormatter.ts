@@ -193,4 +193,14 @@ export function formatPriceChange(
  * 전역 PriceDecimalTracker 인스턴스
  * 애플리케이션 전체에서 공유되는 가격 소수점 추적기
  */
-export const globalPriceTracker = new PriceDecimalTracker(); 
+export const globalPriceTracker = new PriceDecimalTracker();
+
+/**
+ * 숫자를 읽기 쉬운 형태로 포맷팅 (K, M, B 단위)
+ */
+export const formatNumber = (num: number): string => {
+  if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+  return num.toLocaleString();
+}; 
