@@ -76,24 +76,24 @@ export function useBybitTicker(initialCategory: BybitRawCategory = 'spot'): UseB
     }
   }, [lastUpdated, category]);
 
-  // 티커 데이터 가져오기
-  const fetchTickerData = useCallback(async () => {
-    try {
-      await fetchTickers(category);
-    } catch (err) {
-      console.error(`Bybit ${category} 티커 데이터 가져오기 실패:`, err);
-    }
-  }, [category, fetchTickers]);
-
   // 데이터 자동 업데이트
   useEffect(() => {
     // 초기 데이터 로드
-    fetchTickerData();
+    const loadData = async () => {
+      try {
+        await fetchTickers(category);
+      } catch (err) {
+        console.error(`Bybit ${category} 티커 데이터 가져오기 실패:`, err);
+      }
+    };
 
-    const interval = setInterval(fetchTickerData, DATA_UPDATE_INTERVALS.ticker.bybit);
+    loadData();
+
+    const interval = setInterval(loadData, DATA_UPDATE_INTERVALS.ticker.bybit);
 
     return () => clearInterval(interval);
-  }, [fetchTickerData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]); // fetchTickers는 의존성에서 제외 (zustand store 함수는 항상 최신 상태를 참조)
 
   // 정렬 변경 핸들러
   const handleSortChange = useCallback((newSortBy: TickerSortBy) => {
@@ -123,8 +123,11 @@ export function useBybitTicker(initialCategory: BybitRawCategory = 'spot'): UseB
 
   // 수동 새로고침
   const refreshData = useCallback(() => {
-    fetchTickerData();
-  }, [fetchTickerData]);
+    fetchTickers(category).catch(err => {
+      console.error(`Bybit ${category} 티커 데이터 새로고침 실패:`, err);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]); // fetchTickers는 의존성에서 제외 (zustand store 함수는 항상 최신 상태를 참조)
 
   // 카테고리 변경 시 데이터 리셋
   const handleCategoryChange = useCallback((newCategory: BybitRawCategory) => {

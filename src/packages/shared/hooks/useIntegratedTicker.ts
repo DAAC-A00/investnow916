@@ -103,7 +103,8 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
   useEffect(() => {
     const bybitCategory = getBybitCategoryFromIntegrated(category);
     bybitTicker.setCategory(bybitCategory);
-  }, [category, bybitTicker]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]); // bybitTicker는 의존성에서 제외 - 훅 객체는 항상 최신 상태를 참조
 
   // 통합 티커 데이터 계산
   const allTickers = [
@@ -157,7 +158,8 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
   const refreshData = useCallback(() => {
     bithumbTicker.refreshData();
     bybitTicker.refreshData();
-  }, [bithumbTicker, bybitTicker]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 의존성 배열 제거 - 티커 훅들의 refreshData 함수는 항상 최신 상태를 참조
 
   // 카테고리 변경 핸들러
   const handleCategoryChange = useCallback((newCategory: IntegratedCategory) => {

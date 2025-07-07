@@ -64,8 +64,10 @@ export function useBithumbTicker(): UseBithumbTickerReturn {
       console.log('TickerData 변환 완료:', tickerDataList.length);
       
       // 현재 티커 데이터를 이전 데이터로 저장 (애니메이션용)
-      setBeforeTickers(tickers);
-      setTickers(tickerDataList);
+      setTickers(prevTickers => {
+        setBeforeTickers(prevTickers); // 이전 상태를 beforeTickers로 저장
+        return tickerDataList;
+      });
       setLastUpdate(new Date());
       setIsLoading(false);
     } catch (err) {
@@ -75,13 +77,15 @@ export function useBithumbTicker(): UseBithumbTickerReturn {
       const testTickerData = apiClient.current.generateTestData();
       
       // 현재 티커 데이터를 이전 데이터로 저장 (애니메이션용)
-      setBeforeTickers(tickers);
-      setTickers(testTickerData);
+      setTickers(prevTickers => {
+        setBeforeTickers(prevTickers); // 이전 상태를 beforeTickers로 저장
+        return testTickerData;
+      });
       setLastUpdate(new Date());
       setIsLoading(false);
       setError(`빗썸 API 연결 실패 (테스트 데이터 사용 중): ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     }
-  }, [tickers]); // tickers를 의존성에 추가
+  }, []); // 의존성 배열 제거
 
   // 데이터 자동 업데이트
   useEffect(() => {
@@ -91,7 +95,7 @@ export function useBithumbTicker(): UseBithumbTickerReturn {
     const interval = setInterval(fetchTickerData, DATA_UPDATE_INTERVALS.ticker.bithumb);
 
     return () => clearInterval(interval);
-  }, []); // 빈 의존성 배열로 마운트 시에만 실행
+  }, [fetchTickerData]); // 빈 의존성 배열로 마운트 시에만 실행
 
   // 정렬 변경 핸들러
   const handleSortChange = useCallback((newSortBy: TickerSortBy) => {
