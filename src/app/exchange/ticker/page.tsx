@@ -30,7 +30,7 @@ const CategorySelector = ({
       case 'spot':
         return 'SPOT';
       case 'um':
-        return 'USDT-M';
+        return 'USDⓈ-M';
       case 'cm':
         return 'COIN-M';
       default:
@@ -126,8 +126,8 @@ export default function IntegratedTickerPage() {
         };
       case 'um':
         return {
-          title: 'USDT-M 실시간 티커',
-          subtitle: 'USDT 마진 선물 마켓의 실시간 가격 정보',
+          title: 'USDⓈ-M 실시간 티커',
+          subtitle: 'USDⓈ 마진 선물 마켓의 실시간 가격 정보',
         };
       case 'cm':
         return {
