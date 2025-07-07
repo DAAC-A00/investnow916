@@ -29,10 +29,10 @@ const CategorySelector = ({
     switch (cat) {
       case 'spot':
         return 'SPOT';
-      case 'futures':
-        return 'FUTURES';
-      case 'all':
-        return 'ALL';
+      case 'um':
+        return 'USDT-M';
+      case 'cm':
+        return 'COIN-M';
       default:
         return String(cat).toUpperCase();
     }
@@ -42,7 +42,7 @@ const CategorySelector = ({
     <div className="flex flex-col gap-4 mb-6">
       {/* 카테고리 선택 */}
       <div className="flex gap-2">
-        {(['spot', 'futures', 'all'] as IntegratedCategory[]).map((cat) => (
+        {(['spot', 'um', 'cm'] as IntegratedCategory[]).map((cat) => (
           <button
             key={cat}
             onClick={() => onCategoryChange(cat)}
@@ -124,15 +124,15 @@ export default function IntegratedTickerPage() {
           title: 'SPOT 실시간 티커',
           subtitle: '현물 마켓의 실시간 가격 정보',
         };
-      case 'futures':
+      case 'um':
         return {
-          title: 'FUTURES 실시간 티커',
-          subtitle: '선물 마켓의 실시간 가격 정보',
+          title: 'USDT-M 실시간 티커',
+          subtitle: 'USDT 마진 선물 마켓의 실시간 가격 정보',
         };
-      case 'all':
+      case 'cm':
         return {
-          title: '전체 실시간 티커',
-          subtitle: '모든 마켓의 실시간 가격 정보',
+          title: 'COIN-M 실시간 티커',
+          subtitle: '코인 마진 선물 마켓의 실시간 가격 정보',
         };
       default:
         return {

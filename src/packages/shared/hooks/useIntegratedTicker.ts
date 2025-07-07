@@ -9,7 +9,7 @@ import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
 import { BybitRawCategory } from '../constants/exchangeCategories';
 
-export type IntegratedCategory = 'spot' | 'futures' | 'all';
+export type IntegratedCategory = 'spot' | 'um' | 'cm';
 
 export interface UseIntegratedTickerReturn {
   // 데이터 상태
@@ -49,10 +49,10 @@ const getBybitCategoryFromIntegrated = (integratedCategory: IntegratedCategory):
   switch (integratedCategory) {
     case 'spot':
       return 'spot';
-    case 'futures':
+    case 'um':
       return 'linear';
-    case 'all':
-      return 'spot'; // 기본값
+    case 'cm':
+      return 'inverse';
     default:
       return 'spot';
   }
@@ -60,10 +60,6 @@ const getBybitCategoryFromIntegrated = (integratedCategory: IntegratedCategory):
 
 // 티커 데이터 필터링 함수
 const filterTickersByCategory = (tickers: TickerData[], category: IntegratedCategory): TickerData[] => {
-  if (category === 'all') {
-    return tickers;
-  }
-  
   return tickers.filter(ticker => {
     // Bithumb은 항상 spot으로 간주
     if (ticker.exchange === 'bithumb') {
@@ -105,10 +101,8 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
 
   // 카테고리 변경 시 Bybit 카테고리도 업데이트
   useEffect(() => {
-    if (category !== 'all') {
-      const bybitCategory = getBybitCategoryFromIntegrated(category);
-      bybitTicker.setCategory(bybitCategory);
-    }
+    const bybitCategory = getBybitCategoryFromIntegrated(category);
+    bybitTicker.setCategory(bybitCategory);
   }, [category, bybitTicker]);
 
   // 통합 티커 데이터 계산
