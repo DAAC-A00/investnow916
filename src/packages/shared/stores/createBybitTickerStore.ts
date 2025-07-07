@@ -17,6 +17,7 @@ interface BybitTickerState {
   error: string | null;
   tickers: Record<string, TickerData[]>; // category별로 티커 데이터 저장
   lastUpdated: Record<string, string>; // category별 마지막 업데이트 시간
+  beforePriceMap: Record<string, Record<string, number>>; // category별 이전 가격 정보 저장
   
   // 액션들
   fetchTickers: (category: BybitRawCategory) => Promise<boolean>;
@@ -37,12 +38,13 @@ const initialState = {
   error: null,
   tickers: {},
   lastUpdated: {},
+  beforePriceMap: {},
 };
 
 
 
 // Bybit 티커 데이터를 TickerData 형식으로 변환
-const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory): TickerData => {
+const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory, beforePrice?: number): TickerData => {
   const lastPrice = parseFloat(ticker.lastPrice) || 0;
   const prevPrice = parseFloat(ticker.prevPrice24h) || 0;
   const priceChange = lastPrice - prevPrice;
@@ -66,6 +68,7 @@ const transformBybitTicker = (ticker: BybitTicker, rawCategory: BybitRawCategory
     baseCode: ticker.symbol.slice(0, 3),
     quoteCode: ticker.symbol.slice(3),
     price: lastPrice,
+    beforePrice: beforePrice ?? lastPrice, // 이전 가격 정보 (애니메이션용)
     priceChange24h: priceChange,
     priceChangePercent24h: priceChangePercent,
     prevPrice24h: prevPrice,
@@ -117,16 +120,34 @@ export const useBybitTickerStore = create<BybitTickerState>()(
             throw new Error('Invalid response format');
           }
 
-          // 티커 데이터 변환
-          const transformedTickers = data.result.list.map(ticker => 
-            transformBybitTicker(ticker, rawCategory)
-          );
+          // 현재 저장된 이전 가격 정보 가져오기
+          const currentBeforePriceMap = get().beforePriceMap[rawCategory] || {};
+          
+          // 티커 데이터 변환 (이전 가격 정보 포함)
+          const transformedTickers = data.result.list.map(ticker => {
+            const beforePrice = currentBeforePriceMap[ticker.symbol];
+            const transformed = transformBybitTicker(ticker, rawCategory, beforePrice);
+            
+            // 애니메이션 디버깅을 위한 로그 (BTC 관련 심볼만)
+            if (ticker.symbol.includes('BTC') && beforePrice !== undefined) {
+              console.log(`[Bybit Animation] ${ticker.symbol}: beforePrice=${beforePrice}, currentPrice=${transformed.price}, hasDifference=${beforePrice !== transformed.price}`);
+            }
+            
+            return transformed;
+          });
 
           set((state) => {
             state.tickers[rawCategory] = transformedTickers;
             state.lastUpdated[rawCategory] = new Date().toISOString();
             state.isLoading = false;
             state.error = null;
+            
+            // 현재 가격을 다음 업데이트 시 beforePrice로 사용하기 위해 저장
+            const newBeforePriceMap: Record<string, number> = {};
+            transformedTickers.forEach(ticker => {
+              newBeforePriceMap[ticker.rawSymbol] = ticker.price;
+            });
+            state.beforePriceMap[rawCategory] = newBeforePriceMap;
           });
 
           console.log(`✅ Bybit ${rawCategory} 티커 정보 로드 완료:`, transformedTickers.length, '개');
@@ -221,9 +242,11 @@ export const useBybitTickerStore = create<BybitTickerState>()(
           if (rawCategory) {
             delete state.tickers[rawCategory];
             delete state.lastUpdated[rawCategory];
+            delete state.beforePriceMap[rawCategory];
           } else {
             state.tickers = {};
             state.lastUpdated = {};
+            state.beforePriceMap = {};
           }
         });
       },

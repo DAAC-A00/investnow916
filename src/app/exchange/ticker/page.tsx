@@ -9,12 +9,69 @@ import {
   TickerControls, 
   TickerEmptyState 
 } from '@/packages/shared/components';
-import { useBithumbTicker } from '@/packages/shared/hooks/useBithumbTicker';
+import { useIntegratedTicker, IntegratedCategory } from '@/packages/shared/hooks';
 
-export default function BithumbTickerPage() {
+// 카테고리 선택 컴포넌트
+const CategorySelector = ({ 
+  selectedCategory, 
+  onCategoryChange,
+  stats 
+}: {
+  selectedCategory: IntegratedCategory;
+  onCategoryChange: (category: IntegratedCategory) => void;
+  stats: {
+    bithumbCount: number;
+    bybitCount: number;
+    totalCount: number;
+  };
+}) => {
+  const getCategoryDisplay = (cat: IntegratedCategory) => {
+    switch (cat) {
+      case 'spot':
+        return 'SPOT';
+      case 'futures':
+        return 'FUTURES';
+      case 'all':
+        return 'ALL';
+      default:
+        return String(cat).toUpperCase();
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 mb-6">
+      {/* 카테고리 선택 */}
+      <div className="flex gap-2">
+        {(['spot', 'futures', 'all'] as IntegratedCategory[]).map((cat) => (
+          <button
+            key={cat}
+            onClick={() => onCategoryChange(cat)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              selectedCategory === cat
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {getCategoryDisplay(cat)}
+          </button>
+        ))}
+      </div>
+
+      {/* 거래소별 통계 */}
+      <div className="flex gap-4 text-sm text-gray-600">
+        <span>총 {stats.totalCount}개</span>
+        <span>Bithumb: {stats.bithumbCount}개</span>
+        <span>Bybit: {stats.bybitCount}개</span>
+      </div>
+    </div>
+  );
+};
+
+export default function IntegratedTickerPage() {
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
   
+  // 통합 티커 훅 사용
   const {
     tickers,
     filteredTickers,
@@ -28,41 +85,102 @@ export default function BithumbTickerPage() {
     handleSortChange,
     priceTracker,
     refreshData,
-  } = useBithumbTicker();
+    category,
+    setCategory,
+    stats,
+  } = useIntegratedTicker('spot');
 
   useEffect(() => {
-    setCurrentRoute('/exchange/ticker/bithumb');
+    setCurrentRoute('/exchange/ticker');
   }, [setCurrentRoute]);
 
+  // 가격 변경 핸들러 - 고유 키 기반으로 가격 변화 추적
   const handlePriceChange = useCallback((symbol: string, oldPrice: number, newPrice: number) => {
-    console.log(`빗썸 티커 - ${symbol}: ${oldPrice} → ${newPrice}`);
-  }, []);
+    // 현재 활성화된 ticker를 찾아서 고유 키 생성
+    const currentTicker = filteredTickers.find(t => t.rawSymbol === symbol);
+    if (currentTicker) {
+      const uniqueKey = `${currentTicker.exchange}-${currentTicker.rawCategory || 'spot'}-${currentTicker.rawSymbol}`;
+      console.log(`티커 - ${uniqueKey}: ${oldPrice} → ${newPrice}`);
+    } else {
+      console.log(`티커 - ${symbol}: ${oldPrice} → ${newPrice}`);
+    }
+  }, [filteredTickers]);
 
+  // 티커 클릭 핸들러
   const handleTickerClick = useCallback((data: any) => {
-    router.push(`/exchange/ticker/bithumb/spot/${data.rawSymbol}`);
+    if (data.exchange === 'bithumb') {
+      router.push(`/exchange/ticker/bithumb/spot/${data.rawSymbol}`);
+    } else {
+      // Bybit의 경우 카테고리 정보 포함
+      router.push(`/exchange/ticker/bybit/${data.rawCategory}/${data.rawSymbol}`);
+    }
   }, [router]);
+
+  // 카테고리별 제목 및 부제목
+  const getCategoryInfo = () => {
+    switch (category) {
+      case 'spot':
+        return {
+          title: 'SPOT 실시간 티커',
+          subtitle: '현물 마켓의 실시간 가격 정보',
+        };
+      case 'futures':
+        return {
+          title: 'FUTURES 실시간 티커',
+          subtitle: '선물 마켓의 실시간 가격 정보',
+        };
+      case 'all':
+        return {
+          title: '전체 실시간 티커',
+          subtitle: '모든 마켓의 실시간 가격 정보',
+        };
+      default:
+        return {
+          title: '실시간 티커',
+          subtitle: '실시간 가격 정보',
+        };
+    }
+  };
+
+  const { title, subtitle } = getCategoryInfo();
 
   // 오류 상태 및 데이터 없음 처리
   if (error && tickers.length === 0) {
     return (
-      <TickerEmptyState
-        type="error"
-        title="오류 발생"
-        description=""
-        errorMessage={error}
-        onAction={refreshData}
-        actionLabel="다시 시도"
-      />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <CategorySelector
+            selectedCategory={category}
+            onCategoryChange={setCategory}
+            stats={stats}
+          />
+          <TickerEmptyState
+            type="error"
+            title="오류 발생"
+            description=""
+            errorMessage={error}
+            onAction={refreshData}
+            actionLabel="다시 시도"
+          />
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6">
+        {/* 카테고리 선택 */}
+        <CategorySelector
+          selectedCategory={category}
+          onCategoryChange={setCategory}
+          stats={stats}
+        />
+
         {/* 헤더 */}
         <TickerHeader
-          title="빗썸 실시간 티커"
-          subtitle="KRW 마켓의 실시간 가격 정보"
+          title={title}
+          subtitle={subtitle}
           isLoading={isLoading}
           lastUpdate={lastUpdate}
           totalCount={tickers.length}
@@ -86,20 +204,23 @@ export default function BithumbTickerPage() {
           <TickerEmptyState
             type="loading"
             title=""
-            description="빗썸에서 데이터를 불러오는 중..."
+            description="데이터를 불러오는 중..."
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            {filteredTickers.map((ticker) => (
-              <Ticker
-                key={ticker.rawSymbol}
-                data={ticker}
-                priceTracker={priceTracker}
-                className="hover:scale-105 transition-transform duration-200"
-                onPriceChange={handlePriceChange}
-                onClick={handleTickerClick}
-              />
-            ))}
+            {filteredTickers.map((ticker) => {
+              const uniqueKey = `${ticker.exchange}-${ticker.rawCategory || 'spot'}-${ticker.rawSymbol}`;
+              return (
+                <Ticker
+                  key={uniqueKey}
+                  data={ticker}
+                  priceTracker={priceTracker}
+                  className="hover:scale-105 transition-transform duration-200"
+                  onPriceChange={handlePriceChange}
+                  onClick={handleTickerClick}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -120,7 +241,7 @@ export default function BithumbTickerPage() {
           <TickerEmptyState
             type="data"
             title="티커 데이터가 없습니다"
-            description="빗썸 API에서 데이터를 가져올 수 없습니다"
+            description="API에서 데이터를 가져올 수 없습니다"
             onAction={refreshData}
             actionLabel="새로고침"
           />

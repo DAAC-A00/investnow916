@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useTickerSettingStore, getTickerBorderStyle, getTickerPriceStyle, getTickerPercentBackgroundStyle, createPriceChangeAnimationManager, BottomDisplayMode } from '@/packages/shared/stores/createTickerSettingStore';
 import { TickerData, WARNING_TYPE_LABELS } from '@/packages/shared/types/exchange';
 import { formatPrice, formatPriceChange, PriceDecimalTracker } from '@/packages/shared/utils';
@@ -39,6 +40,58 @@ const calculatePercentFontSize = (text: string, baseFontSize: number, fixedWidth
 // rem 변환 함수
 const toRemSize = (size: number) => `${size}rem`;
 
+// 거래소 로고 컴포넌트
+const ExchangeLogo = ({ exchange }: { exchange: string }) => {
+  const logoStyle = "w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden";
+  
+  // 이미지가 있는 거래소들
+  const getExchangeImageSrc = (exchangeName: string) => {
+    switch (exchangeName.toLowerCase()) {
+      case 'binance':
+        return '/exchangeBinance.png';
+      case 'bitget':
+        return '/exchangeBitget.png';
+      case 'bybit':
+        return '/exchangeBybit.jpeg';
+      case 'okx':
+        return '/exchangeOkx.jpeg';
+      case 'upbit':
+        return '/exchangeUpbit.png';
+      case 'bithumb':
+        return '/exchangeBithumb.png';
+      default:
+        return null;
+    }
+  };
+
+  const imageSrc = getExchangeImageSrc(exchange);
+  
+  // 이미지가 있는 경우 이미지 표시
+  if (imageSrc) {
+    return (
+      <div className={logoStyle}>
+        <Image 
+          src={imageSrc}
+          alt={`${exchange} logo`}
+          width={20}
+          height={20}
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+
+  // 이미지가 없는 거래소들은 기존 텍스트 방식 유지
+  switch (exchange) {
+    default:
+      return (
+        <div className={`${logoStyle} bg-gray-500`}>
+          ??
+        </div>
+      );
+  }
+  };
+
 export function Ticker({ data, className = '', onPriceChange, priceTracker, onClick }: TickerProps) {
   const { 
     tickerColorMode,
@@ -70,6 +123,9 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   // 이전 데이터 참조 (무한 루프 방지)
   const prevDataRef = useRef(data);
 
+  // 고유 키 생성 (가격 추적, 포맷팅, 애니메이션용)
+  const uniqueKey = `${data.exchange}-${data.rawCategory || 'spot'}-${data.rawSymbol}`;
+
   // 컴포넌트 언마운트 시 애니메이션 정리
   useEffect(() => {
     return () => {
@@ -86,12 +142,12 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
     });
   }, [borderAnimationDuration]);
 
-  // 가격 추적 및 포맷팅
+  // 가격 추적 및 포맷팅 - 고유 키 사용
   useEffect(() => {
     if (priceTracker) {
-      priceTracker.trackPrice(data.rawSymbol, data.price);
+      priceTracker.trackPrice(uniqueKey, data.price);
     }
-  }, [data.price, data.rawSymbol, priceTracker]);
+  }, [data.price, data.rawSymbol, data.exchange, data.rawCategory, priceTracker, uniqueKey]);
 
   // 숫자 포맷팅 함수
   const formatNumber = (num: number) => {
@@ -104,12 +160,12 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const formattedTurnover = formatNumber(data.turnover24h);
   const formattedVolume = formatNumber(data.volume24h);
   
-  // 가격 포맷팅 (PriceDecimalTracker 사용)
+  // 가격 포맷팅 (PriceDecimalTracker 사용) - 고유 키 사용
   const formattedPrice = priceTracker 
-    ? priceTracker.formatPrice(data.integratedSymbol, data.price, true)
+    ? priceTracker.formatPrice(uniqueKey, data.price, true)
     : formatPrice(data.price, 2, true);
   const formattedPriceChange = priceTracker 
-    ? priceTracker.formatPriceChange(data.integratedSymbol, data.priceChange24h, true)
+    ? priceTracker.formatPriceChange(uniqueKey, data.priceChange24h, true)
     : formatPriceChange(data.priceChange24h, 2, true);
 
   let percentAbs = Math.abs(data.priceChangePercent24h);
@@ -137,10 +193,10 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
         onPriceChange(data.rawSymbol, oldPrice, newPrice);
       }
 
-      // 애니메이션 트리거 (가격이 실제로 다를 때만)
+      // 애니메이션 트리거 (가격이 실제로 다를 때만) - 고유 키 사용
       if (borderAnimationEnabled && oldPrice !== newPrice) {
         animationManager.triggerPriceChangeAnimation(
-          data.rawSymbol,
+          uniqueKey,
           oldPrice,
           newPrice,
           (symbol, isAnimating) => {
@@ -229,25 +285,28 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
       onClick={() => onClick?.(data)}
     >
       <div className="flex justify-between items-start">
-        <div className="text-left">
-          <div 
-            className="px-1 py-1 font-semibold overflow-hidden"
-            style={{ 
-              fontSize: toRemSize(symbolFontSize),
-              lineHeight: '1.2', // 2줄 표시를 위한 적절한 line-height
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              maxHeight: '2.5em',
-              wordBreak: 'break-all', // 긴 단어도 줄바꿈되도록
-              alignItems: 'center', // 세로 가운데 정렬
-              justifyContent: 'flex-start' // 가로는 왼쪽 정렬
-            }}
-          >
-            {data.integratedSymbol}
+        <div className="text-left flex-1">
+          {/* 첫 번째 줄: 거래소 로고, 심볼 */}
+          <div className="flex items-center gap-1 px-1 py-1">
+            <ExchangeLogo exchange={data.exchange} />
+            <div 
+              className="font-semibold overflow-hidden flex-1"
+              style={{ 
+                fontSize: toRemSize(symbolFontSize),
+                lineHeight: '1.2',
+                wordBreak: 'break-all',
+              }}
+            >
+              {data.integratedSymbol}
+            </div>
           </div>
+          
+          {/* 두 번째 줄: 경고 정보 (있는 경우) */}
           {data.warningType && (
-            <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
-              {WARNING_TYPE_LABELS[data.warningType]}
+            <div className="px-1">
+              <div className="text-xs px-2 py-1 bg-muted/50 rounded text-muted-foreground inline-block">
+                {WARNING_TYPE_LABELS[data.warningType]}
+              </div>
             </div>
           )}
         </div>
