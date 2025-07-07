@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useExchangeCoinsStore } from '../stores/createExchangeInstrumentStore';
+import { useExchangeCoinsStore, ExchangeInstrumentState } from '../stores/useExchangeCoinsStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
 import { EXCHANGE_RAW_CATEGORIES } from '../constants/exchangeCategories';
 import { needsUpdate } from '../constants/updateConfig';
@@ -22,13 +22,9 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
   autoFetch = true,
 }) => {
   const [mounted, setMounted] = useState(false);
-  const { 
-    fetchBybitCoins, 
-    fetchExchangeCoins,
-    getSymbolsForCategory
-  } = useExchangeCoinsStore();
-
-
+  const fetchBybitCoins = useExchangeCoinsStore((state: ExchangeInstrumentState) => state.fetchBybitCoins); // selector에서 state 파라미터에 타입 명시 (타입 안전)
+  const fetchExchangeCoins = useExchangeCoinsStore((state: ExchangeInstrumentState) => state.fetchExchangeCoins);
+  const getSymbolsForCategory = useExchangeCoinsStore((state: ExchangeInstrumentState) => state.getSymbolsForCategory);
 
   // 마운트 상태 체크 (하이드레이션 이슈 방지)
   useEffect(() => {
