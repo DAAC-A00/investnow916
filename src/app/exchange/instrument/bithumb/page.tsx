@@ -20,7 +20,8 @@ import { normalizeSearchTerm } from '@/packages/shared/utils';
 
 import { 
   BithumbRawCategory,
-  IntegratedCategory
+  IntegratedCategory,
+  CoinInfo
 } from '@/packages/shared/types/exchange';
 
 // 스토어 import 추가
@@ -108,7 +109,7 @@ const BithumbInstrumentPage = () => {
         console.log(`📊 Bithumb에서 ${filteredCoins.length}개의 코인 정보를 로드했습니다.`);
 
         // InstrumentInfo 형식으로 변환
-        const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
+        const instrumentInfos: InstrumentInfo[] = filteredCoins.map((coin: CoinInfo) => ({
           rawSymbol: coin.rawSymbol,
           integratedSymbol: coin.integratedSymbol,
           baseCode: coin.baseCode,

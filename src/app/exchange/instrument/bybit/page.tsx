@@ -27,6 +27,8 @@ import {
   EXCHANGE_SUPPORTED_CATEGORIES 
 } from '@/packages/shared/constants/exchangeCategories';
 
+import { CoinInfo } from '@/packages/shared/types/exchange';
+
 // 스토어 import 추가
 import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
 
@@ -98,7 +100,8 @@ const BybitInstrumentPage = () => {
       const allInstruments: InstrumentInfo[] = [];
       let hasAnyData = false;
 
-      for (const rawCategory of ['linear', 'inverse', 'spot', 'option'] as BybitRawCategory[]) {
+      // option 카테고리는 현재 API에서 지원하지 않아 제외
+      for (const rawCategory of ['linear', 'inverse', 'spot'] as BybitRawCategory[]) {
         const success = await fetchBybitCoins(rawCategory);
         
         if (success) {
@@ -111,7 +114,7 @@ const BybitInstrumentPage = () => {
             });
 
             // InstrumentInfo 형식으로 변환
-            const instrumentInfos: InstrumentInfo[] = filteredCoins.map(coin => ({
+            const instrumentInfos: InstrumentInfo[] = filteredCoins.map((coin: CoinInfo) => ({
               rawSymbol: coin.rawSymbol,
               integratedSymbol: coin.integratedSymbol,
               quantity: (coin as any).quantity || 1,

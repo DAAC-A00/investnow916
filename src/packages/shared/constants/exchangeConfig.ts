@@ -180,6 +180,7 @@ export const API_ENDPOINTS = {
   },
   bybit: {
     tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,
+    instruments: (category: string) => `https://api.bybit.com/v5/market/instruments-info?category=${category}`,
   },
 } as const;
 
