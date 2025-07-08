@@ -274,6 +274,44 @@ interface SymbolInfo {
 
 ---
 
+## 🗄️ Instrument 정보의 localStorage 저장 구조 및 카테고리 매핑
+
+### 저장 키(Key) 규칙
+- **형식:** `$exchange-$integratedCategory`
+  - 예시: `bybit-um`, `bybit-cm`, `bybit-spot`, `bithumb-spot`
+- **절대 rawCategory(예: linear, inverse)로 저장하지 않음!**
+
+### 저장 값(Value) 규칙
+- **형식:** `ISO8601타임스탬프:::심볼데이터`
+  - 예시: `2025-07-08T00:23:36.935Z:::BTC/USDT=BTCUSDT,ETH/USDT=ETHUSDT`
+- **타임스탬프**: 마지막 데이터 갱신 시각(UTC)
+- **심볼데이터**: 콤마(,)로 구분된 심볼 목록(상세 포맷은 위 [네이밍 컨벤션] 참고)
+
+### 카테고리 매핑 (rawCategory → integratedCategory)
+
+| 거래소   | rawCategory | integratedCategory | 저장 키 예시      |
+|--------|-------------|-------------------|------------------|
+| bybit  | linear      | um                | bybit-um         |
+| bybit  | inverse     | cm                | bybit-cm         |
+| bybit  | spot        | spot              | bybit-spot       |
+| bybit  | option      | options           | bybit-options    |
+| bithumb| spot        | spot              | bithumb-spot     |
+
+- **rawCategory**: API에서 받은 원본 카테고리명
+- **integratedCategory**: UI/스토리지/비즈니스 로직에서 사용하는 통합 카테고리명
+- **저장 키**: 항상 `$exchange-$integratedCategory`로 저장됨
+
+### 예시 (bybit 선물)
+- bybit의 linear(USDT 무기한 선물) → integratedCategory: `um` → 저장 키: `bybit-um`
+- bybit의 inverse(코인 마진 선물) → integratedCategory: `cm` → 저장 키: `bybit-cm`
+
+### 참고
+- 카테고리 매핑 로직은 `src/packages/shared/constants/exchangeCategories.ts` 및 `exchangeConfig.ts`에서 관리
+- instrument 관련 스토어(`createExchangeInstrumentStore.ts`, `useExchangeCoinsStore.ts`)는 항상 integratedCategory 기준으로 localStorage에 접근/저장
+- 기존에 rawCategory로 저장된 데이터가 있다면 반드시 마이그레이션 필요
+
+---
+
 ## 🧪 개발 시작
 
 개발 서버 실행:

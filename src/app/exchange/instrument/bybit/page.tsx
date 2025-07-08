@@ -24,7 +24,8 @@ import {
   BybitRawCategory,
   IntegratedCategory,
   toIntegratedCategory,
-  EXCHANGE_SUPPORTED_CATEGORIES 
+  EXCHANGE_SUPPORTED_CATEGORIES,
+  toRawCategory
 } from '@/packages/shared/constants/exchangeCategories';
 
 import { CoinInfo } from '@/packages/shared/types/exchange';
@@ -41,13 +42,24 @@ import {
 
 // 업데이트 시간 관련 함수들
 const getUpdateTimeKey = (category: string): string => {
-  return `bybit-${category}-updated`;
+  return `bybit-${category}`;
 };
 
 const getUpdateTime = (category: string): Date | null => {
+  if (typeof window === 'undefined') return null;
+  
   try {
-    const timeStr = localStorage.getItem(getUpdateTimeKey(category));
-    return timeStr ? new Date(timeStr) : null;
+    const key = getUpdateTimeKey(category);
+    const dataStr = localStorage.getItem(key);
+    
+    if (!dataStr) return null;
+    
+    // 데이터 형식: "2025-07-08T00:23:36.935Z:::BTC/USDT=BTCUSDT,ETH/USDT=ETHUSDT"
+    const parts = dataStr.split(':::');
+    if (parts.length < 2) return null;
+    
+    const timestamp = parts[0];
+    return timestamp ? new Date(timestamp) : null;
   } catch (error) {
     console.error(`업데이트 시간 조회 실패 (${category}):`, error);
     return null;
@@ -59,10 +71,17 @@ const needsUpdate = (category: string): boolean => {
   if (!updateTime) return true;
   
   // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-  return needsDataUpdate('bybit', category);
+  // category는 이미 integratedCategory이므로 isRawCategory를 false로 설정
+  return needsDataUpdate('bybit', category, false);
 };
 
-// 더 이상 localStorage에서 직접 파싱하지 않으므로 관련 함수들 제거됨
+// 실제 데이터를 가져오는 raw 카테고리들 (option은 현재 API에서 지원하지 않음)
+const SUPPORTED_RAW_CATEGORIES: BybitRawCategory[] = ['linear', 'inverse', 'spot'];
+
+// 실제 데이터를 가져오는 integrated 카테고리들
+const SUPPORTED_INTEGRATED_CATEGORIES: IntegratedCategory[] = SUPPORTED_RAW_CATEGORIES.map(
+  rawCategory => toIntegratedCategory('bybit', rawCategory)
+);
 
 const BybitInstrumentPage = () => {
   const [instrumentData, setInstrumentData] = useState<InstrumentInfo[]>([]);
@@ -79,7 +98,7 @@ const BybitInstrumentPage = () => {
   // 업데이트 시간 정보 수집 함수
   const collectUpdateTimes = () => {
     const categoryUpdateTimes: {[category: string]: Date | null} = {};
-    EXCHANGE_SUPPORTED_CATEGORIES.bybit.forEach(category => {
+    SUPPORTED_INTEGRATED_CATEGORIES.forEach(category => {
       categoryUpdateTimes[category] = getUpdateTime(category);
     });
     setUpdateTimes(categoryUpdateTimes);
@@ -100,8 +119,8 @@ const BybitInstrumentPage = () => {
       const allInstruments: InstrumentInfo[] = [];
       let hasAnyData = false;
 
-      // option 카테고리는 현재 API에서 지원하지 않아 제외
-      for (const rawCategory of ['linear', 'inverse', 'spot'] as BybitRawCategory[]) {
+      // 지원하는 raw 카테고리들에 대해 데이터 가져오기
+      for (const rawCategory of SUPPORTED_RAW_CATEGORIES) {
         const success = await fetchBybitCoins(rawCategory);
         
         if (success) {
@@ -325,7 +344,7 @@ const BybitInstrumentPage = () => {
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {EXCHANGE_SUPPORTED_CATEGORIES.bybit.map(category => {
+          {SUPPORTED_INTEGRATED_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
             const needsUpdateFlag = needsUpdate(category);
             const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;

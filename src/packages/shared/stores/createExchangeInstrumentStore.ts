@@ -11,6 +11,7 @@ import {
   BithumbRawCategory,
   SUPPORTED_EXCHANGES,
 } from '@/packages/shared/constants/exchangeConfig';
+import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
 import type {
   CoinInfo,
   ExchangeInstrumentState,
@@ -56,15 +57,10 @@ const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   };
 };
 
-// 내부 저장용 카테고리로 변환 (integratedCategory 반환)
-const toStorageCategory = (category: string): string => {
-  return category;
-};
-
 // 로컬 스토리지 접근 함수
 const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
-  // isRawCategory가 true이면 API 요청용 카테고리이므로 저장용으로 변환
-  const storageCategory = isRawCategory ? toStorageCategory(category) : category;
+  // isRawCategory가 true이면 rawCategory를 integratedCategory로 변환
+  const storageCategory = isRawCategory ? toIntegratedCategory(exchange, category) : category;
   return `${exchange}-${storageCategory}`;
 };
 
@@ -214,11 +210,11 @@ const storeSymbols = (
   }
 };
 
-// 거래소별 카테고리 매핑
+// 거래소별 카테고리 매핑 (integratedCategory 반환)
 const getCategoriesForExchange = (exchange: ExchangeType): string[] => {
   switch (exchange) {
     case 'bybit':
-      return ['spot', 'inverse', 'linear'];
+      return ['spot', 'um', 'cm']; // integratedCategory 반환
     case 'bithumb':
       return ['spot'];
     default:
@@ -513,7 +509,7 @@ export const useExchangeInstrumentStore = create<ExchangeInstrumentState>()(
           const categories = category ? [category] : getCategoriesForExchange(ex);
           
           categories.forEach(cat => {
-            const stored = getStoredSymbols(ex, cat, ex === 'bybit');
+            const stored = getStoredSymbols(ex, cat, false);
             const symbols = parseStoredSymbols(stored);
             
             symbols.forEach(symbol => {

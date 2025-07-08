@@ -3,20 +3,34 @@ import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import type { CoinInfo, ExchangeInstrumentState } from '@/packages/shared/types/exchange';
 import { SUPPORTED_EXCHANGES, ExchangeType } from '@/packages/shared/constants/exchangeConfig';
+import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
 
 // getStoredSymbols 직접 구현 (복사)
 const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
   if (typeof window === 'undefined') return '';
-  const key = `${exchange}-${category}`;
+  // isRawCategory가 true이면 rawCategory를 integratedCategory로 변환
+  const storageCategory = isRawCategory ? toIntegratedCategory(exchange, category) : category;
+  const key = `${exchange}-${storageCategory}`;
   const storedValue = localStorage.getItem(key);
-  return storedValue || '';
+  
+  if (!storedValue) return '';
+  
+  // 시간 정보가 포함된 형태인지 확인 (:::로 구분)
+  const timeDataSeparator = ':::';
+  if (storedValue.includes(timeDataSeparator)) {
+    const [, symbolData] = storedValue.split(timeDataSeparator);
+    return symbolData || '';
+  }
+  
+  // 기존 형태의 데이터는 그대로 반환
+  return storedValue;
 };
 
-// 내부 getCategoriesForExchange 함수 복사
+// 내부 getCategoriesForExchange 함수 복사 (integratedCategory 반환)
 const getCategoriesForExchange = (exchange: ExchangeType): string[] => {
   switch (exchange) {
     case 'bybit':
-      return ['spot', 'inverse', 'linear'];
+      return ['spot', 'um', 'cm']; // integratedCategory 반환
     case 'bithumb':
       return ['spot'];
     default:
@@ -56,7 +70,7 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
         for (const ex of exchanges) {
           const categories: string[] = filter.category ? [filter.category] : getCategoriesForExchange(ex);
           for (const cat of categories) {
-            const stored = getStoredSymbols(ex, cat) || '';
+            const stored = getStoredSymbols(ex, cat, false) || '';
             let symbols: any[] = [];
             try {
               symbols = JSON.parse(stored);

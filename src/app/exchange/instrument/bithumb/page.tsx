@@ -35,12 +35,12 @@ import {
 } from '@/packages/shared/constants/updateConfig';
 
 // Bithumb은 spot만 지원하므로 고정된 카테고리
-const BITHUMB_CATEGORIES: IntegratedCategory[] = ['spot'];
+const SUPPORTED_RAW_CATEGORIES: BithumbRawCategory[] = ['spot'];
+const SUPPORTED_INTEGRATED_CATEGORIES: IntegratedCategory[] = ['spot'];
 
-// 업데이트 시간 관련 함수들 (스토어와 일치하도록 수정)
+// 업데이트 시간 관련 함수들 (실제 데이터에서 타임스탬프 추출)
 const getUpdateTimeKey = (category: string): string => {
-  // 스토어의 getUpdateTimeKey 함수와 동일한 로직 사용
-  return `bithumb-${category}-updated`;
+  return `bithumb-${category}`;
 };
 
 const getUpdateTime = (category: string): Date | null => {
@@ -48,8 +48,16 @@ const getUpdateTime = (category: string): Date | null => {
   
   try {
     const key = getUpdateTimeKey(category);
-    const timeStr = localStorage.getItem(key);
-    return timeStr ? new Date(timeStr) : null;
+    const dataStr = localStorage.getItem(key);
+    
+    if (!dataStr) return null;
+    
+    // 데이터 형식: "2025-07-08T00:23:36.935Z:::BTC/USDT=BTCUSDT,ETH/USDT=ETHUSDT"
+    const parts = dataStr.split(':::');
+    if (parts.length < 2) return null;
+    
+    const timestamp = parts[0];
+    return timestamp ? new Date(timestamp) : null;
   } catch (error) {
     console.error(`업데이트 시간 조회 실패 (${category}):`, error);
     return null;
@@ -79,7 +87,7 @@ const BithumbInstrumentPage = () => {
   // 업데이트 시간 정보 수집 함수
   const collectUpdateTimes = () => {
     const categoryUpdateTimes: {[category: string]: Date | null} = {};
-    BITHUMB_CATEGORIES.forEach(category => {
+    SUPPORTED_INTEGRATED_CATEGORIES.forEach(category => {
       categoryUpdateTimes[category] = getUpdateTime(category);
     });
     setUpdateTimes(categoryUpdateTimes);
@@ -298,7 +306,7 @@ const BithumbInstrumentPage = () => {
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {BITHUMB_CATEGORIES.map(category => {
+          {SUPPORTED_INTEGRATED_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
             const needsUpdateFlag = needsUpdate(category);
             const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;
