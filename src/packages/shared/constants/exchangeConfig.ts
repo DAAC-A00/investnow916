@@ -177,6 +177,9 @@ export const API_ENDPOINTS = {
       `https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`,
     orderbook: (baseCode: string, quoteCode: string) =>
       `https://api.bithumb.com/public/orderbook/${baseCode}_${quoteCode}`,
+    // [추가] 빗썸 instrument(시장 정보) 및 warning(경보) API endpoint
+    instruments: 'https://api.bithumb.com/v1/market/all?isDetails=true',
+    virtualAssetWarning: 'https://api.bithumb.com/v1/market/virtual_asset_warning',
   },
   bybit: {
     tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,

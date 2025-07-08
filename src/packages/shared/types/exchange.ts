@@ -11,7 +11,7 @@ export type {
   ExchangeType,
   SupportedExchange,
   IntegratedCategory,
-  BybitRawCategory, 
+  BybitRawCategory,
   BinanceRawCategory,
   UpbitRawCategory,
   BithumbRawCategory,
@@ -377,6 +377,8 @@ export interface TickerData {
     koreanName?: string;
     /** 영어 이름 (Bithumb의 경우) */
     englishName?: string;
+    /** 시장 경고 (유의 종목 등, Bithumb의 경우) */
+    marketWarning?: 'NONE' | 'CAUTION';
   };
   
   // === Warning 정보 ===

@@ -13,10 +13,24 @@ interface InstrumentInfo {
   settlementCode?: string;
   remark?: string;
   search?: string;
+  // 추가: API에서 온 데이터인지 여부
+  fromApi?: boolean;
+  // 추가: instrument/warning 정보
+  instrument?: {
+    korean_name: string;
+    english_name: string;
+    market_warning: 'NONE' | 'CAUTION';
+  };
+  warning?: {
+    warning_type: string;
+    end_date: string;
+  };
 }
 
 // 공유 유틸리티에서 한국어 QWERTY 변환 함수 가져오기
 import { normalizeSearchTerm } from '@/packages/shared/utils';
+// [추가] 빗썸 instrument/warning fetch 함수 import
+import { fetchBithumbMarketAll, fetchBithumbVirtualAssetWarning } from '@/packages/shared/utils/bithumbApiClient';
 
 import { 
   BithumbRawCategory,
@@ -98,26 +112,13 @@ const BithumbInstrumentPage = () => {
     try {
       setLoading(true);
       setError(null);
-
-      console.log('🔄 Bithumb 데이터 로드 시작...');
-
-      // 업데이트 시간 정보 먼저 수집
       collectUpdateTimes();
-
-      // Bithumb spot 데이터 가져오기 (자동으로 2시간 체크 후 필요시 갱신)
+      // 기존 localStorage 기반 데이터
       const success = await fetchBithumbCoins('spot');
-      
+      let instrumentInfos: InstrumentInfo[] = [];
       if (success) {
-        // 스토어에서 필터링된 코인 정보 가져오기
-        const filteredCoins = getFilteredCoins({
-          exchange: 'bithumb',
-          category: 'spot'
-        });
-
-        console.log(`📊 Bithumb에서 ${filteredCoins.length}개의 코인 정보를 로드했습니다.`);
-
-        // InstrumentInfo 형식으로 변환
-        const instrumentInfos: InstrumentInfo[] = filteredCoins.map((coin: CoinInfo) => ({
+        const filteredCoins = getFilteredCoins({ exchange: 'bithumb', category: 'spot' });
+        instrumentInfos = filteredCoins.map((coin: CoinInfo) => ({
           rawSymbol: coin.rawSymbol,
           integratedSymbol: coin.integratedSymbol,
           baseCode: coin.baseCode,
@@ -127,23 +128,53 @@ const BithumbInstrumentPage = () => {
           integratedCategory: coin.integratedCategory as IntegratedCategory,
           settlementCode: coin.settlementCode,
           remark: '',
-          search: ''
+          search: '',
+          fromApi: false,
         }));
-
-        setInstrumentData(instrumentInfos);
-        setFilteredData(instrumentInfos);
-
-        // 업데이트 시간 다시 수집 (갱신 후)
-        collectUpdateTimes();
-        setLastRefreshTime(new Date());
-        
-        console.log('✅ Bithumb 데이터 로드 완료');
-      } else {
-        throw new Error('Bithumb 데이터를 가져오는데 실패했습니다.');
       }
+      // [추가] API에서 직접 instrument/warning 데이터 확보
+      const [apiInstruments, apiWarnings] = await Promise.all([
+        fetchBithumbMarketAll(),
+        fetchBithumbVirtualAssetWarning(),
+      ]);
+      // API 데이터 → InstrumentInfo로 변환 (localStorage에 없는 경우만 추가)
+      const localSymbols = new Set(instrumentInfos.map(i => `KRW-${i.baseCode}`));
+      const apiInstrumentInfos: InstrumentInfo[] = apiInstruments.map(inst => {
+        const warning = apiWarnings.find(w => w.market === inst.market);
+        const [quote, base] = inst.market.split('-');
+        return {
+          rawSymbol: `${base}${quote}`,
+          integratedSymbol: `${base}/${quote}`,
+          baseCode: base,
+          quoteCode: quote,
+          pair: `${base}/${quote}`,
+          rawCategory: 'spot',
+          integratedCategory: 'spot',
+          fromApi: !localSymbols.has(inst.market),
+          instrument: inst,
+          warning: warning ? { warning_type: warning.warning_type, end_date: warning.end_date } : undefined,
+        };
+      });
+      // localStorage 기반 + API 기반(중복 제외) 병합
+      const merged = [
+        ...instrumentInfos.map(i => {
+          // instrument/warning 정보도 병합
+          const inst = apiInstruments.find(a => a.market === `KRW-${i.baseCode}`);
+          const warning = apiWarnings.find(w => w.market === `KRW-${i.baseCode}`);
+          return {
+            ...i,
+            instrument: inst,
+            warning: warning ? { warning_type: warning.warning_type, end_date: warning.end_date } : undefined,
+          };
+        }),
+        ...apiInstrumentInfos.filter(i => i.fromApi),
+      ];
+      setInstrumentData(merged);
+      setFilteredData(merged);
+      collectUpdateTimes();
+      setLastRefreshTime(new Date());
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-      console.error('❌ Bithumb 데이터 로드 실패:', errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -185,14 +216,16 @@ const BithumbInstrumentPage = () => {
   }, [searchTerm, instrumentData]);
 
   // 테이블 헤더 정의
-  const tableHeaders = ['integratedSymbol', 'baseCode', 'quoteCode', 'rawSymbol', 'integratedCategory'] as const;
+  const tableHeaders = ['integratedSymbol', 'baseCode', 'quoteCode', 'rawSymbol', 'integratedCategory', 'instrument', 'warning'] as const;
   const headerKorean = {
     integratedSymbol: '심볼',
     baseCode: '기초자산',
     quoteCode: '견적자산',
     rawSymbol: '원시심볼',
     integratedCategory: '카테고리',
-    settlementCode: '결제통화'
+    settlementCode: '결제통화',
+    instrument: '시장정보',
+    warning: '경보',
   };
 
   // 로딩 상태
@@ -362,11 +395,31 @@ const BithumbInstrumentPage = () => {
             {filteredData.map((instrument, index) => (
               <tr key={instrument.rawSymbol ? `${instrument.rawSymbol}-${instrument.rawCategory}-${index}` : index} className="hover:bg-muted/50">
                 {tableHeaders.map((header) => (
-                  <td 
-                    key={header} 
-                    className="px-4 py-3 whitespace-nowrap text-foreground"
-                  >
-                    {instrument[header] === undefined || instrument[header] === null || instrument[header] === '' ? '' : String(instrument[header])}
+                  <td key={header} className="px-4 py-3 whitespace-nowrap text-foreground">
+                    {/* [수정] instrument/warning/⚡ 표기 */}
+                    {header === 'instrument' && instrument.instrument ? (
+                      <span>
+                        {instrument.instrument.korean_name} ({instrument.instrument.english_name})
+                        {instrument.instrument.market_warning === 'CAUTION' && <span className="ml-1 text-yellow-500">⚠️</span>}
+                        {instrument.fromApi && <span className="ml-1 text-blue-500">⚡</span>}
+                      </span>
+                    ) : header === 'warning' && instrument.warning ? (
+                      <span>
+                        {instrument.warning.warning_type}
+                        {instrument.warning.end_date && (
+                          <span className="ml-1 text-xs text-muted-foreground">({instrument.warning.end_date})</span>
+                        )}
+                        {instrument.fromApi && <span className="ml-1 text-blue-500">⚡</span>}
+                      </span>
+                    ) : (
+                      <>
+                        {instrument[header] === undefined || instrument[header] === null || instrument[header] === ''
+                          ? ''
+                          : String(instrument[header])}
+                        {/* [추가] localStorage 아닌 경우 ⚡ */}
+                        {instrument.fromApi && header !== 'instrument' && header !== 'warning' && <span className="ml-1 text-blue-500">⚡</span>}
+                      </>
+                    )}
                   </td>
                 ))}
               </tr>
