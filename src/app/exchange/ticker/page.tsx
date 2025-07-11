@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNavigationActions } from '@/packages/shared/stores/createNavigationStore';
 import { 
@@ -67,14 +67,21 @@ const CategorySelector = ({
   );
 };
 
+// quoteCode filter의 localStorage key 생성 함수
+const getQuoteCodeStorageKey = (category: string) => `integrated-ticker-quoteCode-${category}`;
+
 export default function IntegratedTickerPage() {
   const router = useRouter();
   const { setCurrentRoute } = useNavigationActions();
   
+  // [수정] 카테고리별 quoteCode 필터 상태 (localStorage 연동)
+  const [selectedQuoteCodes, setSelectedQuoteCodes] = useState<{ [cat: string]: string }>({ spot: '', um: '', cm: '' });
+  const [selectedQuoteCode, setSelectedQuoteCode] = useState<string>('');
+
   // 통합 티커 훅 사용
   const {
     tickers,
-    filteredTickers,
+    filteredTickers: baseFilteredTickers,
     isLoading,
     error,
     lastUpdate,
@@ -89,6 +96,41 @@ export default function IntegratedTickerPage() {
     setCategory,
     stats,
   } = useIntegratedTicker('spot');
+
+  // 카테고리 변경 시 해당 카테고리의 quoteCode 필터값을 localStorage에서 불러옴
+  useEffect(() => {
+    const key = getQuoteCodeStorageKey(category);
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    setSelectedQuoteCode(saved || '');
+  }, [category]);
+
+  // quoteCode 선택 시 상태/로컬스토리지 동기화
+  const handleQuoteCodeChange = (qc: string) => {
+    setSelectedQuoteCode(qc);
+    setSelectedQuoteCodes(prev => ({ ...prev, [category]: qc }));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(getQuoteCodeStorageKey(category), qc);
+    }
+  };
+
+  // [수정] quoteCode별 개수 집계 및 인기순 정렬
+  const quoteCodes = useMemo(() => {
+    const countMap = new Map<string, number>();
+    tickers.forEach(t => {
+      if (t.quoteCode) {
+        countMap.set(t.quoteCode, (countMap.get(t.quoteCode) || 0) + 1);
+      }
+    });
+    return Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1]) // 개수 내림차순
+      .map(([qc]) => qc);
+  }, [tickers]);
+
+  // [수정] quoteCode로 2차 필터링
+  const filteredTickers = useMemo(() => {
+    if (!selectedQuoteCode) return baseFilteredTickers;
+    return baseFilteredTickers.filter(t => t.quoteCode === selectedQuoteCode);
+  }, [baseFilteredTickers, selectedQuoteCode]);
 
   useEffect(() => {
     setCurrentRoute('/exchange/ticker');
@@ -176,6 +218,27 @@ export default function IntegratedTickerPage() {
           onCategoryChange={setCategory}
           stats={stats}
         />
+
+        {/* [수정] quoteCode 간편 필터 (가로 스크롤) */}
+        <div className="mb-4 overflow-x-auto">
+          <div className="flex flex-nowrap gap-2 min-w-fit">
+            <button
+              className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${selectedQuoteCode === '' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+              onClick={() => handleQuoteCodeChange('')}
+            >
+              All
+            </button>
+            {quoteCodes.map(qc => (
+              <button
+                key={qc}
+                className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${selectedQuoteCode === qc ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                onClick={() => handleQuoteCodeChange(qc)}
+              >
+                {qc}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* 헤더 */}
         <TickerHeader
