@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExchangeInstrumentStore';
+import { Button } from '@/packages/shared/components/Button';
 
 export default function BithumbTestPage() {
   const [results, setResults] = useState<any[]>([]);
@@ -100,49 +101,55 @@ export default function BithumbTestPage() {
       <h1 className="text-2xl font-bold mb-6">Bithumb API 테스트</h1>
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <button
+        <Button
           onClick={handleFetchSpot}
           disabled={loading}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          variant="primary"
+          size="md"
         >
           {loading ? '로딩...' : 'Spot 데이터 가져오기'}
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={handleFetchAll}
           disabled={loading}
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+          variant="secondary"
+          size="md"
         >
           {loading ? '로딩...' : '모든 데이터 가져오기'}
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={handleClear}
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          variant="tertiary"
+          size="md"
         >
           데이터 지우기
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={handleFilterTest}
-          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+          variant="outline"
+          size="md"
         >
           BTC 필터링 테스트
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={handleFilterByQuote}
-          className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
+          variant="ghost"
+          size="md"
         >
           KRW 쌍 필터링 테스트
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={handleCheckLocalStorage}
-          className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+          variant="primary"
+          size="sm"
         >
           localStorage 확인
-        </button>
+        </Button>
       </div>
 
       <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">

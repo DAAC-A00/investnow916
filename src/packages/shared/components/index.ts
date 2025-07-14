@@ -8,9 +8,11 @@ export { TickerEmptyState } from './TickerEmptyState';
 export { BithumbTickerHeader } from './BithumbTickerHeader';
 export { BithumbOrderbook } from './BithumbOrderbook';
 export { BithumbTickerDetails } from './BithumbTickerDetails';
+export { Button } from './Button';
 
 // 타입 재export
 export type { TickerData } from '@/packages/shared/types/exchange';
+export type { ButtonVariant, ButtonSize } from './Button';
 
 // 유틸리티 재export
 export { 

@@ -7,7 +7,8 @@ import {
   Ticker, 
   TickerHeader, 
   TickerControls, 
-  TickerEmptyState 
+  TickerEmptyState,
+  Button
 } from '@/packages/shared/components';
 import { useIntegratedTicker, IntegratedCategory } from '@/packages/shared/hooks';
 
@@ -43,17 +44,15 @@ const CategorySelector = ({
       {/* 카테고리 선택 */}
       <div className="flex gap-2">
         {(['spot', 'um', 'cm'] as IntegratedCategory[]).map((cat) => (
-          <button
+          <Button
             key={cat}
             onClick={() => onCategoryChange(cat)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedCategory === cat
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            variant={selectedCategory === cat ? 'primary' : 'outline'}
+            size="md"
+            selected={selectedCategory === cat}
           >
             {getCategoryDisplay(cat)}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -222,20 +221,24 @@ export default function IntegratedTickerPage() {
         {/* [수정] quoteCode 간편 필터 (가로 스크롤) */}
         <div className="mb-4 overflow-x-auto">
           <div className="flex flex-nowrap gap-2 min-w-fit">
-            <button
-              className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${selectedQuoteCode === '' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+            <Button
+              variant={selectedQuoteCode === '' ? 'primary' : 'outline'}
+              size="sm"
+              selected={selectedQuoteCode === ''}
               onClick={() => handleQuoteCodeChange('')}
             >
               All
-            </button>
+            </Button>
             {quoteCodes.map(qc => (
-              <button
+              <Button
                 key={qc}
-                className={`px-3 py-1 rounded border text-sm font-medium transition-colors ${selectedQuoteCode === qc ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                variant={selectedQuoteCode === qc ? 'primary' : 'outline'}
+                size="sm"
+                selected={selectedQuoteCode === qc}
                 onClick={() => handleQuoteCodeChange(qc)}
               >
                 {qc}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

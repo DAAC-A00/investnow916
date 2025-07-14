@@ -9,9 +9,10 @@ import {
   type TickerColorMode 
 } from '@/packages/ui-kit/tokens/design-tokens';
 import { Toggle, RatingStars, ChipSelection } from '@/packages/ui-kit/web/components';
+import { Button } from '@/packages/shared/components/Button';
 
 // Simple UI components to replace missing imports
-const Button = ({ 
+const LegacyButton = ({ 
   children, 
   variant = 'default', 
   size = 'default', 
@@ -434,14 +435,77 @@ export default function ColorPage() {
 
         <TabsContent value="components" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Primary Button */}
+            {/* New Button Component Showcase */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Primary Button</CardTitle>
-                <CardDescription>주요 액션 버튼</CardDescription>
+                <CardTitle className="text-sm">New Button Component</CardTitle>
+                <CardDescription>개선된 Button 컴포넌트 - 다양한 variant와 size</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Primary Variant</h4>
+                  <div className="flex gap-2">
+                    <Button variant="primary" size="sm">Small</Button>
+                    <Button variant="primary" size="md">Medium</Button>
+                    <Button variant="primary" size="lg">Large</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Secondary Variant</h4>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm">Small</Button>
+                    <Button variant="secondary" size="md">Medium</Button>
+                    <Button variant="secondary" size="lg">Large</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Tertiary Variant</h4>
+                  <div className="flex gap-2">
+                    <Button variant="tertiary" size="sm">Small</Button>
+                    <Button variant="tertiary" size="md">Medium</Button>
+                    <Button variant="tertiary" size="lg">Large</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Outline Variant</h4>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">Small</Button>
+                    <Button variant="outline" size="md">Medium</Button>
+                    <Button variant="outline" size="lg">Large</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">Ghost Variant</h4>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm">Small</Button>
+                    <Button variant="ghost" size="md">Medium</Button>
+                    <Button variant="ghost" size="lg">Large</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground">States</h4>
+                  <div className="flex gap-2">
+                    <Button variant="primary" size="md">Normal</Button>
+                    <Button variant="primary" size="md" selected>Selected</Button>
+                    <Button variant="primary" size="md" disabled>Disabled</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Legacy Button */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Legacy Button</CardTitle>
+                <CardDescription>기존 버튼 스타일</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
+                <LegacyButton 
                   className="w-full"
                   style={{ 
                     backgroundColor: `hsl(${themeColors.primary[900]})`,
@@ -449,8 +513,8 @@ export default function ColorPage() {
                   }}
                 >
                   Primary Action
-                </Button>
-                <Button 
+                </LegacyButton>
+                <LegacyButton 
                   variant="outline" 
                   className="w-full"
                   style={{ 
@@ -459,7 +523,7 @@ export default function ColorPage() {
                   }}
                 >
                   Secondary Action
-                </Button>
+                </LegacyButton>
               </CardContent>
             </Card>
 
@@ -911,8 +975,6 @@ export default function ColorPage() {
                     label="Toggle (Usable - Default Off)"
                     defaultActive={false}
                     disabled={false}
-                    themeColors={themeColors}
-                    currentTheme={currentTheme}
                     onChange={(active) => console.log('Toggle (Off) changed:', active)}
                   />
                   
@@ -921,8 +983,6 @@ export default function ColorPage() {
                     label="Toggle (Usable - Default On)"
                     defaultActive={true}
                     disabled={false}
-                    themeColors={themeColors}
-                    currentTheme={currentTheme}
                     onChange={(active) => console.log('Toggle (On) changed:', active)}
                   />
                   
@@ -931,8 +991,6 @@ export default function ColorPage() {
                     label="Toggle (Unusable)"
                     defaultActive={false}
                     disabled={true}
-                    themeColors={themeColors}
-                    currentTheme={currentTheme}
                   />
                 </div>
               </CardContent>
