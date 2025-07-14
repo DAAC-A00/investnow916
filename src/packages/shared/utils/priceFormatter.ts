@@ -33,6 +33,12 @@ export class PriceDecimalTracker {
     
     // 현재 가격의 소수점 자릿수가 기존 최대값보다 크면 업데이트
     if (currentDecimals > existingMax) {
+      // 가격이 0.000001 이상인 경우 최대 12자리까지만 허용
+      if (price >= 0.000001 && currentDecimals > 12) {
+        console.log(`[PriceDecimalTracker] ${symbol}: price=${price}가 0.000001 이상이므로 maxDecimal을 12로 제한 (원래 ${currentDecimals})`);
+        return; // 13자리 이상으로 업데이트하지 않음
+      }
+      
       this.maxDecimals[symbol] = currentDecimals;
       console.log(`[PriceDecimalTracker] ${symbol}: maxDecimal 업데이트 ${existingMax} → ${currentDecimals} (price: ${price})`);
     }
