@@ -161,6 +161,18 @@ export const EXCHANGE_RAW_CATEGORY_LABELS = {
     usdm: 'USDⓈ-M 선물',
     coinm: 'COIN-M 선물',
     options: '옵션 거래'
+  },
+  okx: {
+    spot: '현물 거래',
+    swap: 'USDT 무기한 선물',
+    futures: '선물 거래',
+    option: '옵션 거래'
+  },
+  bitget: {
+    spot: '현물 거래',
+    umcbl: 'USDT 무기한 선물',
+    dmcbl: '코인 마진 선물',
+    cmcbl: '선물 거래'
   }
 } as const;
 

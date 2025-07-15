@@ -110,6 +110,15 @@ const defaultMenuItems: MenuItemType[] = [
     isRightNav: false, // 우측 네비게이션에 표시하지 않음
   },
   {
+    id: 'exchange-binance-instrument',
+    label: '바낸',
+    icon: '🛠️',
+    route: '/exchange/instrument/binance',
+    description: '바이낸스 Instrument 정보 조회',
+    isAdminOnly: false,
+    isRightNav: true, // 우측 네비게이션에 표시
+  },
+  {
     id: 'storage',
     label: '저장소',
     icon: '📂️',

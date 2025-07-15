@@ -11,7 +11,9 @@ import {
   BithumbRawCategory,
   SUPPORTED_EXCHANGES,
 } from '@/packages/shared/constants/exchangeConfig';
+import { saveBinanceInstrumentsToStorage } from '@/packages/shared/utils/binanceApiClient';
 import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
+import { needsUpdate, storeUpdateTime, getUpdateTime } from '../constants/updateConfig';
 import type {
   CoinInfo,
   ExchangeInstrumentState,
@@ -64,67 +66,9 @@ const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: 
   return `${exchange}-${storageCategory}`;
 };
 
-// 업데이트 시간 조회 - 데이터에서 시간 정보 추출
-const getUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): Date | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const key = getStorageKey(exchange, category, isRawCategory);
-    const storedValue = localStorage.getItem(key);
-    
-    if (!storedValue) return null;
-    
-    // 시간 정보가 포함된 형태인지 확인 (:::로 구분)
-    const timeDataSeparator = ':::';
-    if (storedValue.includes(timeDataSeparator)) {
-      const [timeStr] = storedValue.split(timeDataSeparator);
-      return timeStr ? new Date(timeStr) : null;
-    }
-    
-    // 기존 형태의 데이터는 시간 정보가 없으므로 null 반환
-    return null;
-  } catch (error) {
-    console.error(`업데이트 시간 조회 실패 (${exchange}-${category}):`, error);
-    return null;
-  }
-};
+// 로컬 getUpdateTime 함수 제거 - updateConfig.ts에서 import된 함수 사용
 
-// 데이터 갱신 필요 여부 확인 (2시간 기준)
-const needsUpdate = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): boolean => {
-  // 1. 로컬 스토리지에 데이터가 있는지 확인
-  const storedData = getStoredSymbols(exchange, category, isRawCategory);
-  if (!storedData || storedData.trim() === '' || storedData === '[]') {
-    console.log(`${exchange} ${category} 데이터가 로컬 스토리지에 없습니다. 갱신이 필요합니다.`);
-    return true;
-  }
-
-  // 2. 업데이트 시간 확인
-  const updateTime = getUpdateTime(exchange, category, isRawCategory);
-  if (!updateTime) {
-    console.log(`${exchange} ${category} 업데이트 시간 정보가 없습니다. 갱신이 필요합니다.`);
-    return true;
-  }
-
-  // 3. 2시간이 지났는지 확인하여 갱신 필요 여부 결정
-  const now = new Date();
-  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  const needsRefresh = diffHours >= 2;
-
-  if (needsRefresh) {
-    console.log(
-      `${exchange} ${category} 데이터가 ${diffHours.toFixed(
-        1,
-      )}시간 전에 업데이트되었습니다. 2시간 주기로 갱신이 필요합니다.`,
-    );
-  } else {
-    console.log(
-      `${exchange} ${category} 데이터가 ${diffHours.toFixed(
-        1,
-      )}시간 전에 업데이트되었습니다. 2시간 주기 내에서 최신 상태입니다.`,
-    );
-  }
-
-  return needsRefresh;
-};
+// 로컬 needsUpdate 함수 제거 - updateConfig.ts에서 import된 함수 사용
 
 // 로컬 스토리지에서 심볼 문자열 가져오기 - 시간 정보 분리
 const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
@@ -364,6 +308,53 @@ const fetchBithumbCoins = async (
   }
 };
 
+// Binance 거래소의 코인 정보 가져오기
+const fetchBinanceCoins = async (
+  set: (fn: (draft: Draft<ExchangeInstrumentState>) => void) => void,
+  _get: () => ExchangeInstrumentState
+): Promise<boolean> => {
+  try {
+    // 갱신 필요 여부 확인 (spot 카테고리로 통일)
+    if (!needsUpdate('binance', 'spot', false)) {
+      console.log('🔄 [Store] Binance spot 데이터가 최신입니다. (2시간 이내 갱신됨)');
+      return true; // 갱신이 필요하지 않으면 성공으로 처리
+    }
+
+    set((state: ExchangeInstrumentState) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+
+    console.log('🔄 [Store] Binance spot 데이터를 갱신합니다...');
+    
+    // binanceApiClient.ts의 saveBinanceInstrumentsToStorage() 함수를 직접 호출
+    // 이렇게 하면 테스트 페이지와 동일한 로직으로 데이터가 처리됩니다
+    console.log('🔄 [Store] saveBinanceInstrumentsToStorage() 호출...');
+    await saveBinanceInstrumentsToStorage();
+    
+    // 업데이트 시간 저장
+    storeUpdateTime('binance', 'spot', false);
+
+    set((state: ExchangeInstrumentState) => {
+      state.isLoading = false;
+      state.error = null;
+    });
+
+    console.log('✅ [Store] Binance spot 데이터 갱신 완료');
+    return true;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ [Store] Binance spot 데이터 갱신 실패:', errorMessage);
+    
+    set((state: ExchangeInstrumentState) => {
+      state.isLoading = false;
+      state.error = errorMessage;
+    });
+    
+    return false;
+  }
+};
+
 // 로컬 스토리지에서 심볼 데이터 파싱
 const parseStoredSymbols = (stored: string): CoinInfo[] => {
   if (!stored || stored.trim() === '') return [];
@@ -443,19 +434,31 @@ export const useExchangeInstrumentStore = create<ExchangeInstrumentState>()(
         return allSuccess;
       },
 
+      // Binance 코인 정보 가져오기
+      fetchBinanceCoins: async (): Promise<boolean> => {
+        return fetchBinanceCoins(set, get);
+      },
+
+      // 모든 Binance 코인 정보 가져오기 (spot만 지원)
+      fetchAllBinanceCoins: async (): Promise<boolean> => {
+        return await get().fetchBinanceCoins();
+      },
+
       // 특정 거래소의 코인 정보 가져오기
       fetchExchangeCoins: async (exchange: ExchangeType): Promise<boolean> => {
         if (exchange === 'bybit') {
           return await get().fetchAllBybitCoins();
         } else if (exchange === 'bithumb') {
           return await get().fetchAllBithumbCoins();
+        } else if (exchange === 'binance') {
+          return await get().fetchAllBinanceCoins();
         }
         return false;
       },
 
       // 모든 거래소의 코인 정보 가져오기
       fetchAllExchangeCoins: async (): Promise<boolean> => {
-        const exchanges: ExchangeType[] = ['bybit', 'bithumb'];
+        const exchanges: ExchangeType[] = ['bybit', 'bithumb', 'binance'];
         let allSuccess = true;
 
         for (const exchange of exchanges) {

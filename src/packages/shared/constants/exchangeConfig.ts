@@ -13,7 +13,7 @@
  * 지원하는 모든 거래소 목록
  * 새로운 거래소 추가 시 이 배열에만 추가하면 됩니다.
  */
-export const SUPPORTED_EXCHANGES = ['bybit', 'binance', 'upbit', 'bithumb'] as const;
+export const SUPPORTED_EXCHANGES = ['bybit', 'binance', 'upbit', 'bithumb', 'okx', 'bitget'] as const;
 
 /**
  * 거래소 타입 (SUPPORTED_EXCHANGES에서 자동 생성)
@@ -30,9 +30,11 @@ export type ExchangeType = typeof SUPPORTED_EXCHANGES[number];
  */
 export const EXCHANGE_RAW_CATEGORIES = {
   bybit: ['linear', 'inverse', 'spot', 'option'],
-  binance: ['spot', 'usdm', 'coinm', 'options'],
+  binance: ['spot'],
   upbit: ['spot'],
-  bithumb: ['spot']
+  bithumb: ['spot'],
+  okx: ['spot', 'swap', 'futures', 'option'],
+  bitget: ['spot', 'mix']
 } as const;
 
 /**
@@ -42,6 +44,8 @@ export type BybitRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bybit[number];
 export type BinanceRawCategory = typeof EXCHANGE_RAW_CATEGORIES.binance[number];
 export type UpbitRawCategory = typeof EXCHANGE_RAW_CATEGORIES.upbit[number];
 export type BithumbRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bithumb[number];
+export type OkxRawCategory = typeof EXCHANGE_RAW_CATEGORIES.okx[number];
+export type BitgetRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bitget[number];
 
 /**
  * 모든 Raw 카테고리 유니온 타입 (자동 생성)
@@ -50,7 +54,9 @@ export type AllRawCategories =
   | BybitRawCategory 
   | BinanceRawCategory 
   | UpbitRawCategory 
-  | BithumbRawCategory;
+  | BithumbRawCategory
+  | OkxRawCategory
+  | BitgetRawCategory;
 
 // ============================================================================
 // 3. 통합 카테고리 정의 (단일 소스)
@@ -83,16 +89,23 @@ export const EXCHANGE_CATEGORY_MAPPINGS = {
     option: 'options'
   },
   binance: {
-    spot: 'spot',
-    usdm: 'um',
-    coinm: 'cm',
-    options: 'options'
+    spot: 'spot'
   },
   upbit: {
     spot: 'spot'
   },
   bithumb: {
     spot: 'spot'
+  },
+  okx: {
+    spot: 'spot',
+    swap: 'um',
+    futures: 'cm',
+    option: 'options'
+  },
+  bitget: {
+    spot: 'spot',
+    mix: 'um'
   }
 } as const;
 
@@ -107,7 +120,9 @@ export const EXCHANGE_SUPPORTED_CATEGORIES = {
   bybit: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bybit),
   binance: Object.values(EXCHANGE_CATEGORY_MAPPINGS.binance),
   upbit: Object.values(EXCHANGE_CATEGORY_MAPPINGS.upbit),
-  bithumb: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bithumb)
+  bithumb: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bithumb),
+  okx: Object.values(EXCHANGE_CATEGORY_MAPPINGS.okx),
+  bitget: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bitget)
 } as const;
 
 // ============================================================================
@@ -130,6 +145,8 @@ export const DATA_UPDATE_INTERVALS = {
     bithumb: 2,
     binance: 2,
     upbit: 2,
+    okx: 2,
+    bitget: 2,
   },
   /**
    * 실시간 시세(ticker) API 요청 주기 (단위: 밀리초)
@@ -184,6 +201,11 @@ export const API_ENDPOINTS = {
   bybit: {
     tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,
     instruments: (category: string) => `https://api.bybit.com/v5/market/instruments-info?category=${category}`,
+  },
+  binance: {
+    exchangeInfo: '/api/binance/exchangeInfo',
+    ticker24hr: '/api/binance/ticker24hr',
+    tickerPrice: 'https://api.binance.com/api/v3/ticker/price',
   },
 } as const;
 

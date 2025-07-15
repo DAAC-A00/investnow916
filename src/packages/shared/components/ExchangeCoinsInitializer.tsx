@@ -17,7 +17,7 @@ interface ExchangeCoinsInitializerProps {
  * localStorage에서 데이터를 불러오고, 필요시 API에서 최신 데이터를 가져옵니다.
  */
 export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> = ({
-  exchanges = ['bybit', 'bithumb'],
+  exchanges = ['bybit', 'bithumb', 'binance'],
   category,
   autoFetch = true,
 }) => {

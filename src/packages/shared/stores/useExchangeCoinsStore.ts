@@ -4,6 +4,7 @@ import { devtools } from 'zustand/middleware';
 import type { CoinInfo, ExchangeInstrumentState } from '@/packages/shared/types/exchange';
 import { SUPPORTED_EXCHANGES, ExchangeType } from '@/packages/shared/constants/exchangeConfig';
 import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
+import { useExchangeInstrumentStore } from './createExchangeInstrumentStore';
 
 // getStoredSymbols 직접 구현 (복사)
 const getStoredSymbols = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
@@ -54,6 +55,14 @@ export const useExchangeCoinsStore = create<ExchangeInstrumentState>()(
       fetchBithumbCoins: async () => true,
       fetchAllBybitCoins: async () => true,
       fetchAllBithumbCoins: async () => true,
+      fetchBinanceCoins: async () => {
+        const instrumentStore = useExchangeInstrumentStore.getState();
+        return await instrumentStore.fetchBinanceCoins();
+      },
+      fetchAllBinanceCoins: async () => {
+        const instrumentStore = useExchangeInstrumentStore.getState();
+        return await instrumentStore.fetchAllBinanceCoins();
+      },
       fetchExchangeCoins: async () => true,
       fetchAllExchangeCoins: async () => true,
       getSymbolsForCategory: () => [],

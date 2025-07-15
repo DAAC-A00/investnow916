@@ -577,6 +577,8 @@ export interface ExchangeInstrumentState {
   fetchAllBybitCoins: () => Promise<boolean>;
   fetchBithumbCoins: (rawCategory: BithumbRawCategory) => Promise<boolean>;
   fetchAllBithumbCoins: () => Promise<boolean>;
+  fetchBinanceCoins: () => Promise<boolean>;
+  fetchAllBinanceCoins: () => Promise<boolean>;
   fetchExchangeCoins: (exchange: ExchangeType) => Promise<boolean>;
   fetchAllExchangeCoins: () => Promise<boolean>;
   clearSymbols: (exchange?: ExchangeType, category?: string) => void;
