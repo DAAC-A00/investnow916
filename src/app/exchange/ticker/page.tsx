@@ -12,6 +12,69 @@ import {
 } from '@/packages/shared/components';
 import { useIntegratedTicker, IntegratedCategory } from '@/packages/shared/hooks';
 
+// QuoteCode 선택 팝업 컴포넌트
+interface QuoteCodePopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+  quoteCodes: string[];
+  selectedQuoteCode: string;
+  onSelect: (quoteCode: string) => void;
+}
+
+const QuoteCodePopup: React.FC<QuoteCodePopupProps> = ({
+  isOpen,
+  onClose,
+  quoteCodes,
+  selectedQuoteCode,
+  onSelect
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* 배경 오버레이 */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        onClick={onClose}
+      />
+      
+      {/* 팝업 모달 */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div className="bg-background border border-border rounded-lg shadow-lg max-w-md w-full max-h-96 overflow-hidden">
+          {/* 헤더 */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <h3 className="text-lg font-semibold text-foreground">Quote Code 선택</h3>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          
+          {/* 내용 */}
+          <div className="p-4 overflow-y-auto max-h-80">
+            <div className="grid grid-cols-2 gap-2">
+              {quoteCodes.map((qc) => (
+                <Button
+                  key={qc}
+                  variant={selectedQuoteCode === qc ? 'primary' : 'outline'}
+                  size="sm"
+                  selected={selectedQuoteCode === qc}
+                  onClick={() => onSelect(qc)}
+                  className="justify-center"
+                >
+                  {qc}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 // 카테고리 선택 컴포넌트
 const CategorySelector = ({ 
   selectedCategory, 
@@ -76,6 +139,7 @@ export default function IntegratedTickerPage() {
   // [수정] 카테고리별 quoteCode 필터 상태 (localStorage 연동)
   const [selectedQuoteCodes, setSelectedQuoteCodes] = useState<{ [cat: string]: string }>({ spot: '', um: '', cm: '' });
   const [selectedQuoteCode, setSelectedQuoteCode] = useState<string>('');
+  const [isQuoteCodePopupOpen, setIsQuoteCodePopupOpen] = useState<boolean>(false);
 
   // 통합 티커 훅 사용
   const {
@@ -124,6 +188,10 @@ export default function IntegratedTickerPage() {
       .sort((a, b) => b[1] - a[1]) // 개수 내림차순
       .map(([qc]) => qc);
   }, [tickers]);
+
+  // 표시할 quoteCode (최대 10개)와 나머지 분리
+  const visibleQuoteCodes = useMemo(() => quoteCodes.slice(0, 10), [quoteCodes]);
+  const hiddenQuoteCodes = useMemo(() => quoteCodes.slice(10), [quoteCodes]);
 
   // [수정] quoteCode로 2차 필터링
   const filteredTickers = useMemo(() => {
@@ -218,7 +286,7 @@ export default function IntegratedTickerPage() {
           stats={stats}
         />
 
-        {/* [수정] quoteCode 간편 필터 (가로 스크롤) */}
+        {/* [수정] quoteCode 간편 필터 (최대 10개 + 더보기 버튼) */}
         <div className="mb-4 overflow-x-auto">
           <div className="flex flex-nowrap gap-2 min-w-fit">
             <Button
@@ -229,7 +297,7 @@ export default function IntegratedTickerPage() {
             >
               All
             </Button>
-            {quoteCodes.map(qc => (
+            {visibleQuoteCodes.map(qc => (
               <Button
                 key={qc}
                 variant={selectedQuoteCode === qc ? 'primary' : 'outline'}
@@ -240,8 +308,30 @@ export default function IntegratedTickerPage() {
                 {qc}
               </Button>
             ))}
+            {hiddenQuoteCodes.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsQuoteCodePopupOpen(true)}
+                className="text-gray-500 border-dashed"
+              >
+                +{hiddenQuoteCodes.length}
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* QuoteCode 선택 팝업 */}
+        <QuoteCodePopup
+          isOpen={isQuoteCodePopupOpen}
+          onClose={() => setIsQuoteCodePopupOpen(false)}
+          quoteCodes={hiddenQuoteCodes}
+          selectedQuoteCode={selectedQuoteCode}
+          onSelect={(qc) => {
+            handleQuoteCodeChange(qc);
+            setIsQuoteCodePopupOpen(false);
+          }}
+        />
 
         {/* 헤더 */}
         <TickerHeader
