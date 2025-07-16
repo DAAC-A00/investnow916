@@ -132,6 +132,26 @@ export async function fetchBinance24hrTicker(): Promise<Binance24hrTickerRespons
   }
 }
 
+// 새로운 quantity 추출 로직: 1이거나 1000 이상의 10의 배수만 허용
+const extractQuantityFromSymbol = (baseSymbol: string): { quantity: number; actualBaseCode: string } => {
+  let quantity = 1;
+  let actualBaseCode = baseSymbol;
+  
+  // 왼쪽에서 숫자 확인 (예: 1000DOGE → quantity: 1000, baseCode: DOGE)
+  const leftNumberMatch = baseSymbol.match(/^(\d+)(.+)$/);
+  if (leftNumberMatch) {
+    const extractedNumber = parseInt(leftNumberMatch[1]);
+    // 1000 이상이면서 10의 배수인 경우만 유효한 quantity로 간주
+    if (extractedNumber >= 1000 && extractedNumber % 10 === 0) {
+      quantity = extractedNumber;
+      actualBaseCode = leftNumberMatch[2];
+    }
+    // 그 외의 경우는 모두 quantity = 1, baseCode는 원본 그대로 (예: 100PEPE → quantity: 1, baseCode: 100PEPE)
+  }
+  
+  return { quantity, actualBaseCode };
+};
+
 /**
  * Binance 심볼을 간소화된 형태로 변환합니다
  * README.md의 네이밍 컨벤션에 따라 integratedSymbol을 생성합니다
@@ -142,34 +162,13 @@ function convertBinanceSymbol(symbol: any): BinanceSymbolData {
   const quoteAsset = symbol.quoteAsset;
   const status = symbol.status;
   
-  let quantity = 1;
-  let actualBaseCode = baseAsset;
-  
-  // baseAsset에서 quantity 추출 시도 (왼쪽 숫자)
-  const leftQuantityMatch = baseAsset.match(/^(\d+)(.+)$/);
-  if (leftQuantityMatch) {
-    const extractedQuantity = parseInt(leftQuantityMatch[1]);
-    if (extractedQuantity >= 10) {
-      quantity = extractedQuantity;
-      actualBaseCode = leftQuantityMatch[2];
-    }
-  }
-  
-  // 왼쪽에서 찾지 못한 경우 오른쪽 숫자 확인
-  if (quantity === 1) {
-    const rightQuantityMatch = baseAsset.match(/^(.+?)(\d+)$/);
-    if (rightQuantityMatch) {
-      const extractedQuantity = parseInt(rightQuantityMatch[2]);
-      if (extractedQuantity >= 10) {
-        quantity = extractedQuantity;
-        actualBaseCode = rightQuantityMatch[1];
-      }
-    }
-  }
+  // 공통 quantity 추출 로직 사용
+  const { quantity, actualBaseCode } = extractQuantityFromSymbol(baseAsset);
   
   // integratedSymbol 생성
-  const quantityPrefix = quantity >= 10 ? `${quantity}` : '';
-  const integratedSymbol = `${quantityPrefix}${actualBaseCode}/${quoteAsset}`;
+  const integratedSymbol = quantity > 1 
+    ? `${quantity}${actualBaseCode}/${quoteAsset}`
+    : `${actualBaseCode}/${quoteAsset}`;
   
   const result = {
     rawSymbol,

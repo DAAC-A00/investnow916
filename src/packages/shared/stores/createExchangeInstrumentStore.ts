@@ -59,6 +59,26 @@ const getCategoryInfo = (exchange: ExchangeType, rawCategory: string) => {
   };
 };
 
+// 새로운 quantity 추출 로직: 1이거나 1000 이상의 10의 배수만 허용
+const extractQuantityFromSymbol = (baseSymbol: string): { quantity: number; actualBaseCode: string } => {
+  let quantity = 1;
+  let actualBaseCode = baseSymbol;
+  
+  // 왼쪽에서 숫자 확인 (예: 1000DOGE → quantity: 1000, baseCode: DOGE)
+  const leftNumberMatch = baseSymbol.match(/^(\d+)(.+)$/);
+  if (leftNumberMatch) {
+    const extractedNumber = parseInt(leftNumberMatch[1]);
+    // 1000 이상이면서 10의 배수인 경우만 유효한 quantity로 간주
+    if (extractedNumber >= 1000 && extractedNumber % 10 === 0) {
+      quantity = extractedNumber;
+      actualBaseCode = leftNumberMatch[2];
+    }
+    // 그 외의 경우는 모두 quantity = 1, baseCode는 원본 그대로 (예: 100PEPE → quantity: 1, baseCode: 100PEPE)
+  }
+  
+  return { quantity, actualBaseCode };
+};
+
 // 로컬 스토리지 접근 함수
 const getStorageKey = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): string => {
   // isRawCategory가 true이면 rawCategory를 integratedCategory로 변환
@@ -207,11 +227,20 @@ const fetchBybitCoins = async (
     const instruments = data.result.list.map(item => {
       const { rawCategory: apiCategory, integratedCategory } = getCategoryInfo('bybit', rawCategory);
       
+      // 공통 quantity 추출 로직 사용
+      const { quantity, actualBaseCode } = extractQuantityFromSymbol(item.baseCoin || '');
+      
+      // integratedSymbol 생성
+      const integratedSymbol = quantity > 1 
+        ? `${quantity}${actualBaseCode}/${item.quoteCoin}`
+        : `${actualBaseCode}/${item.quoteCoin}`;
+      
       return {
         rawSymbol: item.symbol,
-        integratedSymbol: `${item.baseCoin}/${item.quoteCoin}`,
-        baseCode: item.baseCoin || '',
+        integratedSymbol,
+        baseCode: actualBaseCode,
         quoteCode: item.quoteCoin || '',
+        quantity,
         exchange: 'bybit' as ExchangeType,
         integratedCategory,
         rawCategory: apiCategory,

@@ -154,42 +154,43 @@ src/
 | `restOfSymbol`                   | 기타 심볼 정보 (만료일, 옵션 정보 등)                                       |
 | `rawCategory` / `integratedCategory` | API 원본 카테고리 / UI 표시용                                           |
 
+### quantity 추출 규칙
+
+**새로운 quantity 추출 로직:**
+- quantity는 **1** 또는 **1000 이상의 10의 배수**만 허용
+- 다른 모든 값은 quantity = 1로 처리
+- baseCoin의 왼쪽 숫자를 우선 확인하여 추출
+
+#### 예시:
+- `C98USDT` → quantity: **1**, baseCode: **C98**
+- `BANANAS31USDC` → quantity: **1**, baseCode: **BANANAS31**
+- `BROCCOLI714USDT` → quantity: **1**, baseCode: **BROCCOLI714**
+- `100PEPEUSDT` → quantity: **1**, baseCode: **100PEPE**
+- `1000DOGEUSDT` → quantity: **1000**, baseCode: **DOGE**
+- `2000BTCUSDT` → quantity: **2000**, baseCode: **BTC**
+- `1500ETHUSDT` → quantity: **1500**, baseCode: **ETH**
+- `1234BTCUSDT` → quantity: **1**, baseCode: **1234BTC** (1234는 10의 배수가 아니므로)
+
 ### integratedSymbol 조건부 포맷
 
-#### quantity가 10의 배수인 경우:
+#### quantity > 1인 경우 (1000 이상의 10의 배수):
 - **restOfSymbol 있음**: `${quantity}${baseCode}/${quoteCode}-${restOfSymbol}`
 - **restOfSymbol 없음**: `${quantity}${baseCode}/${quoteCode}`
-- **예시**: `100BTC/USDT`, `50ETH/USDT-25DEC24`
+- **예시**: `1000DOGE/USDT`, `1500ETH/USDT-25DEC24`
 
-#### quantity가 10의 배수가 아닌 경우:
+#### quantity = 1인 경우 (기본):
 - **restOfSymbol 있음**: `${baseCode}/${quoteCode}-${restOfSymbol}`
 - **restOfSymbol 없음**: `${baseCode}/${quoteCode}`
-- **예시**: `BTC/USDT`, `ETH/USDT-25DEC24`
+- **예시**: `C98/USDT`, `100PEPE/USDT`, `BANANAS31/USDC-25DEC24`
 
-### quantity 추출 로직
-
-1. **baseCoin 우선 처리**: `baseCoin`의 왼쪽 숫자가 10 이상인 경우
-   - 해당 숫자를 `quantity`로 사용
-   - 숫자 제거 후 나머지를 `baseCode`로 사용
-   - **예시**: `"100BTC"` → quantity: `100`, baseCode: `"BTC"`
-
-2. **fallback 처리**: baseCoin에서 추출 실패 시
-   - `restOfSymbol`에서 왼쪽 숫자 추출
-   - 10 이상인 경우만 유효한 quantity로 간주
-
-### settlementCode 결정 로직
-
-- **cm 카테고리 + USD 견적**: `settlementCode = baseCode`
-- **기타 모든 경우**: `settlementCode = quoteCode`
-
-### 저장 형식 (localStorage)
+### localStorage 저장 형식
 
 #### settlementCode와 quoteCode가 동일한 경우 (간소화):
-- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
+- **quantity >= 1000**: `${quantity}*${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
 - **quantity = 1**: `${baseCode}/${quoteCode}-${restOfSymbol}=${rawSymbol}`
 
 #### settlementCode와 quoteCode가 다른 경우 (확장):
-- **quantity > 1**: `${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
+- **quantity >= 1000**: `${quantity}*${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 - **quantity = 1**: `${baseCode}/${quoteCode}(${settlementCode})-${restOfSymbol}=${rawSymbol}`
 
 ### 타입 정의
