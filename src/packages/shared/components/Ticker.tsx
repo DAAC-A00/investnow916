@@ -126,6 +126,18 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   // 고유 키 생성 (가격 추적, 포맷팅, 애니메이션용)
   const uniqueKey = `${data.exchange}-${data.rawCategory || 'spot'}-${data.rawSymbol}`;
 
+  // localStorage instruments 정보 활용 - 우선순위: instruments > 기본 ticker 데이터
+  const displayQuoteCode = (data as any).instrumentQuoteCode || data.quoteCode;
+  const displayBaseCode = (data as any).instrumentBaseCode || data.baseCode;
+  const displayQuantity = (data as any).instrumentQuantity || 1;
+  const displaySettlementCode = (data as any).instrumentSettlementCode;
+  const displayRestOfSymbol = (data as any).instrumentRestOfSymbol;
+  
+  // 심볼 표시 형식: quantity가 1이 아닌 경우 ${quantity}${baseCode}/${quoteCode}, 1인 경우 ${baseCode}/${quoteCode}
+  const displaySymbol = displayQuantity > 1 
+    ? `${displayQuantity}${displayBaseCode}/${displayQuoteCode}`
+    : `${displayBaseCode}/${displayQuoteCode}`;
+
   // 컴포넌트 언마운트 시 애니메이션 정리
   useEffect(() => {
     return () => {
@@ -213,8 +225,8 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
     prevDataRef.current = data;
   }, [data, onPriceChange, animationManager, borderAnimationEnabled, previousPrice]);
 
-  // 동적 폰트 크기 계산
-  const symbolFontSize = calculateFontSize(data.integratedSymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
+  // 동적 폰트 크기 계산 - localStorage의 displaySymbol 사용
+  const symbolFontSize = calculateFontSize(displaySymbol, 1.125, 15); // 기본 text-lg (1.125rem), 최대 20글자
   const priceFontSize = calculateFontSize(formattedPrice, 1.125, 10); // 기본 text-lg (1.125rem), 최대 10글자
   
   // percent 영역의 동적 너비 설정 - 배경색과 % 기호 표시 여부에 따라 조정
@@ -243,7 +255,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
   const animationBeforePrice = data.beforePrice ?? data.price;
   const borderStyle = getTickerBorderStyle(borderAnimation, tickerColorMode, animationBeforePrice, data.price, borderAnimationEnabled);
 
-  // 하단 표시 모드에 따른 텍스트와 스타일 계산 (클라이언트에서만)
+  // 하단 표시 모드에 따른 텍스트와 스타일 계산 (클라이언트에서만) - localStorage의 displayQuoteCode 사용
   const getBottomDisplayContent = () => {
     if (!isClient) {
       // 서버 사이드에서는 기본값 사용
@@ -261,7 +273,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
         };
       case 'turnover':
         return {
-          text: `${formattedTurnover} ${data.quoteCode}`,
+          text: `${formattedTurnover} ${displayQuoteCode}`,
           style: { color: 'hsl(var(--muted-foreground))' }
         };
       case 'volume':
@@ -297,7 +309,7 @@ export function Ticker({ data, className = '', onPriceChange, priceTracker, onCl
                 wordBreak: 'break-all',
               }}
             >
-              {data.integratedSymbol}
+              {displaySymbol}
             </div>
           </div>
           

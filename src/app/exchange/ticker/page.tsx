@@ -12,6 +12,112 @@ import {
 } from '@/packages/shared/components';
 import { useIntegratedTicker, IntegratedCategory } from '@/packages/shared/hooks';
 
+// Instruments 정보를 위한 타입
+interface InstrumentInfo {
+  rawSymbol: string;
+  integratedSymbol: string;
+  baseCode: string;
+  quoteCode: string;
+  quantity?: number;
+  settlementCode?: string;
+  restOfSymbol?: string;
+}
+
+// localStorage에서 instruments 정보를 파싱하는 함수
+const parseInstrumentsFromStorage = (exchange: string, category: string): InstrumentInfo[] => {
+  if (typeof window === 'undefined') return [];
+  
+  const key = `${exchange}-${category}`;
+  const storedValue = localStorage.getItem(key);
+  
+  if (!storedValue) return [];
+  
+  try {
+    // 시간 정보가 포함된 형태인지 확인 (:::로 구분)
+    const timeDataSeparator = ':::';
+    let symbolData = '';
+    
+    if (storedValue.includes(timeDataSeparator)) {
+      const [, data] = storedValue.split(timeDataSeparator);
+      symbolData = data || '';
+    } else {
+      symbolData = storedValue;
+    }
+    
+    if (!symbolData.trim()) return [];
+    
+    // 심볼 데이터 파싱: "integratedSymbol=rawSymbol" 형태로 콤마 구분
+    const instruments = symbolData.split(',').map(entry => {
+      const [integratedSymbolPart, rawSymbol] = entry.split('=');
+      if (!integratedSymbolPart || !rawSymbol) return null;
+      
+      // quantity 추출 (예: "1000DOGE/USDT" 에서 1000 추출)
+      let quantity = 1;
+      let baseQuotePart = integratedSymbolPart;
+      
+      const quantityMatch = integratedSymbolPart.match(/^(\d+)\*(.+)$/);
+      if (quantityMatch) {
+        quantity = parseInt(quantityMatch[1]);
+        baseQuotePart = quantityMatch[2];
+      } else {
+        // quantity가 없다면 기준/견적 화폐에서 추출
+        const directQuantityMatch = integratedSymbolPart.match(/^(\d+)([A-Z]+)\/(.+)$/);
+        if (directQuantityMatch) {
+          const extractedNumber = parseInt(directQuantityMatch[1]);
+          if (extractedNumber >= 1000 && extractedNumber % 10 === 0) {
+            quantity = extractedNumber;
+            baseQuotePart = `${directQuantityMatch[2]}/${directQuantityMatch[3]}`;
+          }
+        }
+      }
+      
+      // baseCode/quoteCode 추출
+      const parts = baseQuotePart.split('/');
+      if (parts.length !== 2) return null;
+      
+      const [baseCode, quoteWithExtra] = parts;
+      
+      // settlementCode와 restOfSymbol 추출
+      let quoteCode = quoteWithExtra;
+      let settlementCode = '';
+      let restOfSymbol = '';
+      
+      // settlementCode 추출 (예: "USDT(USDT)" 에서 괄호 안의 값)
+      const settlementMatch = quoteWithExtra.match(/^(.+)\(([^)]+)\)(.*)$/);
+      if (settlementMatch) {
+        quoteCode = settlementMatch[1];
+        settlementCode = settlementMatch[2];
+        const remaining = settlementMatch[3];
+        if (remaining.startsWith('-')) {
+          restOfSymbol = remaining.substring(1);
+        }
+      } else {
+        // restOfSymbol 추출 (예: "USDT-25DEC24" 에서 "-" 뒤의 값)
+        const restMatch = quoteWithExtra.match(/^([^-]+)-(.+)$/);
+        if (restMatch) {
+          quoteCode = restMatch[1];
+          restOfSymbol = restMatch[2];
+        }
+      }
+      
+      return {
+        rawSymbol,
+        integratedSymbol: integratedSymbolPart,
+        baseCode,
+        quoteCode,
+        quantity,
+        settlementCode: settlementCode || quoteCode,
+        restOfSymbol: restOfSymbol || undefined,
+      };
+    }).filter(Boolean) as InstrumentInfo[];
+    
+    return instruments;
+  } catch (error) {
+    console.error(`Error parsing instruments from storage for ${key}:`, error);
+    return [];
+  }
+};
+
 // QuoteCode 선택 팝업 컴포넌트
 interface QuoteCodePopupProps {
   isOpen: boolean;
@@ -160,6 +266,47 @@ export default function IntegratedTickerPage() {
     stats,
   } = useIntegratedTicker('spot');
 
+  // localStorage에서 instruments 정보 가져오기
+  const instrumentsData = useMemo(() => {
+    const allInstruments: { [key: string]: InstrumentInfo } = {};
+    
+    // Bithumb spot 데이터
+    if (category === 'spot') {
+      const bithumbInstruments = parseInstrumentsFromStorage('bithumb', 'spot');
+      bithumbInstruments.forEach(instrument => {
+        allInstruments[`bithumb-${instrument.rawSymbol}`] = instrument;
+      });
+    }
+    
+    // Bybit 데이터
+    const bybitCategory = category === 'spot' ? 'spot' : category === 'um' ? 'um' : 'cm';
+    const bybitInstruments = parseInstrumentsFromStorage('bybit', bybitCategory);
+    bybitInstruments.forEach(instrument => {
+      allInstruments[`bybit-${instrument.rawSymbol}`] = instrument;
+    });
+    
+    return allInstruments;
+  }, [category]);
+
+  // ticker 데이터와 instruments 정보를 결합하여 확장된 티커 데이터 생성
+  const enrichedTickers = useMemo(() => {
+    return baseFilteredTickers.map(ticker => {
+      const instrumentKey = `${ticker.exchange}-${ticker.rawSymbol}`;
+      const instrumentInfo = instrumentsData[instrumentKey];
+      
+      return {
+        ...ticker,
+        // localStorage의 instruments 정보 추가
+        instrumentBaseCode: instrumentInfo?.baseCode || ticker.baseCode,
+        instrumentQuoteCode: instrumentInfo?.quoteCode || ticker.quoteCode,
+        instrumentQuantity: instrumentInfo?.quantity || 1,
+        instrumentIntegratedSymbol: instrumentInfo?.integratedSymbol || ticker.integratedSymbol,
+        instrumentSettlementCode: instrumentInfo?.settlementCode,
+        instrumentRestOfSymbol: instrumentInfo?.restOfSymbol,
+      };
+    });
+  }, [baseFilteredTickers, instrumentsData]);
+
   // 카테고리 변경 시 해당 카테고리의 quoteCode 필터값을 localStorage에서 불러옴
   useEffect(() => {
     const key = getQuoteCodeStorageKey(category);
@@ -176,28 +323,33 @@ export default function IntegratedTickerPage() {
     }
   };
 
-  // [수정] quoteCode별 개수 집계 및 인기순 정렬
+  // [수정] quoteCode별 개수 집계 및 인기순 정렬 - enriched 데이터 기준으로 변경
   const quoteCodes = useMemo(() => {
     const countMap = new Map<string, number>();
-    tickers.forEach(t => {
-      if (t.quoteCode) {
-        countMap.set(t.quoteCode, (countMap.get(t.quoteCode) || 0) + 1);
+    enrichedTickers.forEach(t => {
+      // instruments의 quoteCode를 우선 사용
+      const quoteCode = t.instrumentQuoteCode || t.quoteCode;
+      if (quoteCode) {
+        countMap.set(quoteCode, (countMap.get(quoteCode) || 0) + 1);
       }
     });
     return Array.from(countMap.entries())
       .sort((a, b) => b[1] - a[1]) // 개수 내림차순
       .map(([qc]) => qc);
-  }, [tickers]);
+  }, [enrichedTickers]);
 
   // 표시할 quoteCode (최대 10개)와 나머지 분리
   const visibleQuoteCodes = useMemo(() => quoteCodes.slice(0, 10), [quoteCodes]);
   const hiddenQuoteCodes = useMemo(() => quoteCodes.slice(10), [quoteCodes]);
 
-  // [수정] quoteCode로 2차 필터링
+  // [수정] quoteCode로 2차 필터링 - enriched 데이터 기준으로 변경
   const filteredTickers = useMemo(() => {
-    if (!selectedQuoteCode) return baseFilteredTickers;
-    return baseFilteredTickers.filter(t => t.quoteCode === selectedQuoteCode);
-  }, [baseFilteredTickers, selectedQuoteCode]);
+    if (!selectedQuoteCode) return enrichedTickers;
+    return enrichedTickers.filter(t => {
+      const quoteCode = t.instrumentQuoteCode || t.quoteCode;
+      return quoteCode === selectedQuoteCode;
+    });
+  }, [enrichedTickers, selectedQuoteCode]);
 
   useEffect(() => {
     setCurrentRoute('/exchange/ticker');
