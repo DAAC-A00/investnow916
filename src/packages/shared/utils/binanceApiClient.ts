@@ -1,4 +1,6 @@
 import { TickerData } from '../types/exchange';
+import { BinanceRawCategory } from '../constants/exchangeConfig';
+import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/exchangeConfig';
 
@@ -47,8 +49,8 @@ interface BinanceSymbolInfo {
   allowedSelfTradePreventionModes: string[];
 }
 
-// Binance 24hr 티커 통계 타입
-interface Binance24hrTickerResponse {
+// Binance Spot 24hr 티커 통계 타입
+interface BinanceSpotTickerResponse {
   symbol: string;
   priceChange: string;
   priceChangePercent: string;
@@ -71,6 +73,50 @@ interface Binance24hrTickerResponse {
   lastId: number;
   count: number;
 }
+
+// Binance USD-M Futures 24hr 티커 통계 타입
+interface BinanceUmTickerResponse {
+  symbol: string;
+  priceChange: string;
+  priceChangePercent: string;
+  weightedAvgPrice: string;
+  lastPrice: string;
+  lastQty: string;
+  openPrice: string;
+  highPrice: string;
+  lowPrice: string;
+  volume: string;
+  quoteVolume: string;
+  openTime: number;
+  closeTime: number;
+  firstId: number;
+  lastId: number;
+  count: number;
+}
+
+// Binance COIN-M Futures 24hr 티커 통계 타입
+interface BinanceCmTickerResponse {
+  symbol: string;
+  pair: string;
+  priceChange: string;
+  priceChangePercent: string;
+  weightedAvgPrice: string;
+  lastPrice: string;
+  lastQty: string;
+  openPrice: string;
+  highPrice: string;
+  lowPrice: string;
+  volume: string;
+  baseVolume: string; // COIN-M에서는 baseVolume 사용
+  openTime: number;
+  closeTime: number;
+  firstId: number;
+  lastId: number;
+  count: number;
+}
+
+// 통합 티커 응답 타입
+type BinanceTickerResponse = BinanceSpotTickerResponse | BinanceUmTickerResponse | BinanceCmTickerResponse;
 
 // Binance 심볼 정보 타입 (localStorage 저장용)
 interface BinanceSymbolData {
@@ -109,27 +155,35 @@ export async function fetchBinanceExchangeInfo(): Promise<BinanceSymbolInfo[]> {
 }
 
 /**
- * Binance 24hr 티커 통계를 가져옵니다
+ * Binance 카테고리별 24hr 티커 통계를 가져옵니다
  */
-export async function fetchBinance24hrTicker(): Promise<Binance24hrTickerResponse[]> {
+export async function fetchBinanceTickerByCategory(category: BinanceRawCategory): Promise<BinanceTickerResponse[]> {
   try {
-    const res = await defaultApiClient.get<Binance24hrTickerResponse[]>(
-      API_ENDPOINTS.binance.ticker24hr,
+    const endpoint = API_ENDPOINTS.binance.tickers[category as keyof typeof API_ENDPOINTS.binance.tickers];
+    const res = await defaultApiClient.get<BinanceTickerResponse[]>(
+      endpoint,
       {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 10000,
+        timeout: 15000,
         retryCount: 2,
       }
     );
     
     return res.data;
   } catch (error) {
-    console.error('Binance 24hr 티커 가져오기 실패:', error);
+    console.error(`Binance ${category} 티커 가져오기 실패:`, error);
     throw error;
   }
+}
+
+/**
+ * Binance 24hr 티커 통계를 가져옵니다 (기존 호환성)
+ */
+export async function fetchBinance24hrTicker(): Promise<BinanceSpotTickerResponse[]> {
+  return fetchBinanceTickerByCategory('spot') as Promise<BinanceSpotTickerResponse[]>;
 }
 
 // 새로운 quantity 추출 로직: 1이거나 1000 이상의 10의 배수만 허용
@@ -328,35 +382,36 @@ export function getBinanceInstrumentsFromStorage(): BinanceSymbolData[] {
  * Binance API 클라이언트 클래스
  */
 export class BinanceApiClient {
+  private priceTracker: PriceDecimalTracker;
   private beforePriceMap: Map<string, number> = new Map();
 
+  constructor(priceTracker: PriceDecimalTracker) {
+    this.priceTracker = priceTracker;
+  }
+
   /**
-   * Binance 티커 데이터를 가져옵니다
+   * Binance 카테고리별 티커 데이터를 가져옵니다
    */
-  async fetchTickerData(): Promise<TickerData[]> {
+  async fetchTickerData(category: BinanceRawCategory): Promise<TickerData[]> {
     try {
-      // instruments와 24hr 티커 데이터를 병렬로 요청
-      const [instruments, tickers] = await Promise.all([
-        fetchBinanceExchangeInfo(),
-        fetchBinance24hrTicker(),
-      ]);
+      console.log(`🔄 Binance ${category} 티커 정보 요청 시작`);
 
-      // spot 거래 가능한 심볼만 필터링
-      const spotInstruments = instruments.filter(symbol => 
-        symbol.isSpotTradingAllowed && symbol.status === 'TRADING'
-      );
+      // 티커 데이터 가져오기
+      const tickers = await fetchBinanceTickerByCategory(category);
 
-      // 티커 데이터와 instruments 정보를 매칭하여 변환
-      const tickerDataList = this.transformTickerData(tickers, spotInstruments);
+      // 티커 데이터를 표준 TickerData 형식으로 변환
+      const tickerDataList = this.transformTickerData(tickers, category);
       
       // 현재 가격을 이전 가격 Map에 저장
       tickerDataList.forEach(ticker => {
-        this.beforePriceMap.set(ticker.rawSymbol, ticker.price);
+        const key = `${category}-${ticker.rawSymbol}`;
+        this.beforePriceMap.set(key, ticker.price);
       });
 
+      console.log(`✅ Binance ${category} 티커 정보 로드 완료:`, tickerDataList.length, '개');
       return tickerDataList;
     } catch (error) {
-      console.error('Binance 티커 데이터 가져오기 실패:', error);
+      console.error(`Binance ${category} 티커 데이터 가져오기 실패:`, error);
       throw error;
     }
   }
@@ -365,30 +420,53 @@ export class BinanceApiClient {
    * Binance API 데이터를 TickerData 형식으로 변환합니다
    */
   private transformTickerData(
-    tickers: Binance24hrTickerResponse[],
-    instruments: BinanceSymbolInfo[]
+    tickers: BinanceTickerResponse[],
+    category: BinanceRawCategory
   ): TickerData[] {
     return tickers
       .map(ticker => {
-        // 해당 심볼의 instrument 정보 찾기
-        const instrument = instruments.find(inst => inst.symbol === ticker.symbol);
-        
-        // spot 거래 불가능한 심볼은 제외
-        if (!instrument || !instrument.isSpotTradingAllowed || instrument.status !== 'TRADING') {
-          return null;
-        }
-
-        const baseCode = instrument.baseAsset;
-        const quoteCode = instrument.quoteAsset;
+        // 심볼 파싱하여 baseCode, quoteCode 추출
+        const { baseCode, quoteCode, integratedSymbol, quantity } = this.parseSymbol(ticker.symbol, category);
         const rawSymbol = ticker.symbol;
-        const integratedSymbol = `${baseCode}/${quoteCode}`;
+        
+        // 이전 가격 정보를 Map에서 가져오기
+        const key = `${category}-${rawSymbol}`;
+        const beforePrice = this.beforePriceMap.get(key) ?? parseFloat(ticker.lastPrice);
         
         // 가격 정보 계산
         const currentPrice = parseFloat(ticker.lastPrice) || 0;
-        const beforePrice = this.beforePriceMap.get(rawSymbol) || currentPrice;
-        const prevPrice = parseFloat(ticker.prevClosePrice) || currentPrice;
         const priceChange = parseFloat(ticker.priceChange) || 0;
         const priceChangePercent = parseFloat(ticker.priceChangePercent) || 0;
+
+        // 이전 가격은 카테고리별로 다르게 계산
+        let prevPrice = currentPrice - priceChange;
+        if (category === 'spot') {
+          const spotTicker = ticker as BinanceSpotTickerResponse;
+          prevPrice = parseFloat(spotTicker.prevClosePrice) || prevPrice;
+        }
+
+        // 거래량/거래대금 처리 (카테고리별 차이)
+        let volume24h = parseFloat(ticker.volume) || 0;
+        let turnover24h = 0;
+        
+        if (category === 'cm') {
+          // COIN-M의 경우 baseVolume 사용
+          const cmTicker = ticker as BinanceCmTickerResponse;
+          turnover24h = parseFloat(cmTicker.baseVolume) || 0;
+        } else {
+          // spot, um의 경우 quoteVolume 사용
+          const quoteTicker = ticker as BinanceSpotTickerResponse | BinanceUmTickerResponse;
+          turnover24h = parseFloat(quoteTicker.quoteVolume) || 0;
+        }
+
+        // PriceDecimalTracker로 가격 추적
+        this.priceTracker.trackPrice(integratedSymbol, currentPrice);
+        if (prevPrice && prevPrice !== currentPrice) {
+          this.priceTracker.trackPrice(integratedSymbol, prevPrice);
+        }
+        if (priceChange && Math.abs(priceChange) > 0) {
+          this.priceTracker.trackPrice(integratedSymbol, Math.abs(priceChange));
+        }
 
         const transformedData: TickerData = {
           // === 기본 식별 정보 ===
@@ -396,9 +474,12 @@ export class BinanceApiClient {
           integratedSymbol,
           baseCode,
           quoteCode,
-          exchange: 'binance',
-          integratedCategory: 'spot',
-          rawCategory: 'spot',
+          exchange: 'binance' as const,
+          quantity,
+          
+          // === 카테고리 정보 ===
+          integratedCategory: this.getIntegratedCategory(category),
+          rawCategory: category,
           
           // === 현재 가격 정보 ===
           price: currentPrice,
@@ -408,28 +489,21 @@ export class BinanceApiClient {
           priceChangePercent24h: priceChangePercent,
           
           // === 거래 정보 ===
-          volume24h: parseFloat(ticker.volume) || 0,
-          turnover24h: parseFloat(ticker.quoteVolume) || 0,
+          volume24h,
+          turnover24h,
           highPrice24h: parseFloat(ticker.highPrice) || currentPrice,
           lowPrice24h: parseFloat(ticker.lowPrice) || currentPrice,
-          quantity: parseFloat(ticker.lastQty) || 0,
           
           // === Instrument 세부 정보 ===
           instrumentInfo: {
-            status: instrument.status,
-            baseAssetPrecision: instrument.baseAssetPrecision,
-            quoteAssetPrecision: instrument.quoteAssetPrecision,
-            orderTypes: instrument.orderTypes,
-            isSpotTradingAllowed: instrument.isSpotTradingAllowed,
-            isMarginTradingAllowed: instrument.isMarginTradingAllowed,
-            permissions: instrument.permissions,
-            displayName: `${baseCode}/${quoteCode}`,
-          } as any,
+            status: 'TRADING',
+            displayName: integratedSymbol,
+          },
           
           // === 메타데이터 ===
           metadata: {
             lastUpdated: new Date(ticker.closeTime),
-            dataSource: 'https://api.binance.com',
+            dataSource: this.getDataSource(category),
             rawApiResponse: ticker,
             reliability: 'HIGH',
           },
@@ -437,15 +511,21 @@ export class BinanceApiClient {
           // === 거래소별 확장 정보 ===
           exchangeSpecific: {
             binance: {
-              bidPrice: parseFloat(ticker.bidPrice),
-              bidQty: parseFloat(ticker.bidQty),
-              askPrice: parseFloat(ticker.askPrice),
-              askQty: parseFloat(ticker.askQty),
-              weightedAvgPrice: parseFloat(ticker.weightedAvgPrice),
+              weightedAvgPrice: parseFloat(ticker.weightedAvgPrice || '0'),
               openTime: ticker.openTime,
               closeTime: ticker.closeTime,
               count: ticker.count,
-              filters: instrument.filters,
+              // spot만 bid/ask 정보 있음
+              ...(category === 'spot' && {
+                bidPrice: parseFloat((ticker as BinanceSpotTickerResponse).bidPrice),
+                bidQty: parseFloat((ticker as BinanceSpotTickerResponse).bidQty),
+                askPrice: parseFloat((ticker as BinanceSpotTickerResponse).askPrice),
+                askQty: parseFloat((ticker as BinanceSpotTickerResponse).askQty),
+              }),
+              // COIN-M의 경우 pair 정보 추가
+              ...(category === 'cm' && {
+                pair: (ticker as BinanceCmTickerResponse).pair,
+              }),
             } as any
           }
         };
@@ -456,17 +536,149 @@ export class BinanceApiClient {
   }
 
   /**
+   * Binance 심볼을 파싱하여 baseCode, quoteCode, integratedSymbol을 추출합니다
+   */
+  private parseSymbol(rawSymbol: string, category: BinanceRawCategory): { baseCode: string; quoteCode: string; integratedSymbol: string; quantity: number } {
+    let baseCode = '';
+    let quoteCode = '';
+    let quantity = 1;
+    
+    try {
+      if (category === 'spot') {
+        // Spot: BTCUSDT, ETHBTC 등의 형태
+        // 일반적인 패턴들 시도
+        const patterns = [
+          /^(.+)(USDT)$/, /^(.+)(USDC)$/, /^(.+)(BUSD)$/, /^(.+)(BTC)$/, /^(.+)(ETH)$/, /^(.+)(BNB)$/
+        ];
+        
+        for (const pattern of patterns) {
+          const match = rawSymbol.match(pattern);
+          if (match) {
+            baseCode = match[1];
+            quoteCode = match[2];
+            break;
+          }
+        }
+        
+        // 숫자가 포함된 경우 quantity 추출 (1000SHIBUSDT -> 1000, SHIB)
+        if (baseCode) {
+          const quantityMatch = baseCode.match(/^(\d+)([A-Z]+)$/);
+          if (quantityMatch) {
+            const extractedQuantity = parseInt(quantityMatch[1]);
+            if (extractedQuantity >= 1000 && extractedQuantity % 10 === 0) {
+              quantity = extractedQuantity;
+              baseCode = quantityMatch[2];
+            }
+          }
+        }
+      } else if (category === 'um') {
+        // USD-M Futures: BTCUSDT, 1000SHIBUSDT 등
+        // 기본적으로 USDT로 끝나는 패턴
+        const match = rawSymbol.match(/^(.+)(USDT|BUSD)$/);
+        if (match) {
+          baseCode = match[1];
+          quoteCode = match[2];
+          
+          // quantity 추출
+          const quantityMatch = baseCode.match(/^(\d+)([A-Z]+)$/);
+          if (quantityMatch) {
+            const extractedQuantity = parseInt(quantityMatch[1]);
+            if (extractedQuantity >= 1000 && extractedQuantity % 10 === 0) {
+              quantity = extractedQuantity;
+              baseCode = quantityMatch[2];
+            }
+          }
+        }
+      } else if (category === 'cm') {
+        // COIN-M Futures: BTCUSD_PERP, ETHUSD_250925 등
+        if (rawSymbol.includes('_')) {
+          const [pairPart, suffixPart] = rawSymbol.split('_');
+          // USD로 끝나는 경우가 대부분
+          const match = pairPart.match(/^(.+)(USD)$/);
+          if (match) {
+            baseCode = match[1];
+            quoteCode = match[2];
+          }
+        }
+      }
+
+      // 파싱 실패 시 fallback
+      if (!baseCode || !quoteCode) {
+        baseCode = rawSymbol;
+        quoteCode = '';
+      }
+    } catch (error) {
+      console.warn(`Binance 심볼 파싱 실패: ${rawSymbol}, fallback 사용`);
+      baseCode = rawSymbol;
+      quoteCode = '';
+    }
+
+    // integratedSymbol 생성
+    let integratedSymbol = '';
+    if (quantity > 1) {
+      integratedSymbol = quoteCode ? `${quantity}${baseCode}/${quoteCode}` : `${quantity}${baseCode}`;
+    } else {
+      integratedSymbol = quoteCode ? `${baseCode}/${quoteCode}` : baseCode;
+    }
+
+    return { baseCode, quoteCode, integratedSymbol, quantity };
+  }
+
+  /**
+   * rawCategory를 integratedCategory로 매핑합니다
+   */
+  private getIntegratedCategory(rawCategory: BinanceRawCategory): string {
+    switch (rawCategory) {
+      case 'spot':
+        return 'spot';
+      case 'um':
+        return 'um';
+      case 'cm':
+        return 'cm';
+      default:
+        return rawCategory;
+    }
+  }
+
+  /**
+   * 카테고리별 데이터 소스 URL을 반환합니다
+   */
+  private getDataSource(category: BinanceRawCategory): string {
+    switch (category) {
+      case 'spot':
+        return API_ENDPOINTS.binance.api.spot.baseUrl;
+      case 'um':
+        return API_ENDPOINTS.binance.api.um.baseUrl;
+      case 'cm':
+        return API_ENDPOINTS.binance.api.cm.baseUrl;
+      default:
+        return API_ENDPOINTS.binance.api.spot.baseUrl;
+    }
+  }
+
+  /**
    * 테스트 데이터를 생성합니다
    */
-  generateTestData(): TickerData[] {
-    console.log('Binance 테스트 티커 데이터로 대체합니다...');
-    const testCoins = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'ETCUSDT', 'EOSUSDT'];
+  generateTestData(category: BinanceRawCategory): TickerData[] {
+    console.log(`Binance ${category} 테스트 티커 데이터로 대체합니다...`);
     
-    return testCoins.map((symbol) => {
-      const baseCode = symbol.replace('USDT', '');
-      const quoteCode = 'USDT';
-      const rawSymbol = symbol;
-      const integratedSymbol = `${baseCode}/${quoteCode}`;
+    let testSymbols: string[];
+    switch (category) {
+      case 'spot':
+        testSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'ETCUSDT', 'EOSUSDT'];
+        break;
+      case 'um':
+        testSymbols = ['BTCUSDT', 'ETHUSDT', '1000SHIBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'ETCUSDT', 'EOSUSDT'];
+        break;
+      case 'cm':
+        testSymbols = ['BTCUSD_PERP', 'ETHUSD_PERP', 'ADAUSD_PERP', 'DOTUSD_PERP', 'LINKUSD_PERP', 'LTCUSD_PERP', 'BCHUSD_PERP', 'ETCUSD_PERP', 'EOSUSD_PERP', 'BNBUSD_PERP'];
+        break;
+      default:
+        testSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'];
+    }
+    
+    return testSymbols.map((symbol) => {
+      const { baseCode, quoteCode, integratedSymbol, quantity } = this.parseSymbol(symbol, category);
       
       // 테스트용 랜덤 데이터 생성
       const price = Math.random() * 100 + 1;
@@ -474,13 +686,14 @@ export class BinanceApiClient {
       const priceChange = price * (changePercent / 100);
       
       return {
-        rawSymbol,
+        rawSymbol: symbol,
         integratedSymbol,
         baseCode,
         quoteCode,
         exchange: 'binance' as const,
-        integratedCategory: 'spot',
-        rawCategory: 'spot',
+        integratedCategory: this.getIntegratedCategory(category),
+        rawCategory: category,
+        quantity,
         price,
         beforePrice: price - priceChange,
         prevPrice24h: price - priceChange,
@@ -490,10 +703,9 @@ export class BinanceApiClient {
         turnover24h: Math.random() * 10000000,
         highPrice24h: price + Math.random() * price * 0.1,
         lowPrice24h: price - Math.random() * price * 0.1,
-        quantity: Math.random() * 100,
         instrumentInfo: {
           status: 'TRADING',
-          displayName: `${baseCode}/${quoteCode}`,
+          displayName: integratedSymbol,
         },
         metadata: {
           lastUpdated: new Date(),

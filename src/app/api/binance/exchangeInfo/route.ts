@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
 
 /**
  * Binance exchangeInfo API 프록시
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch('https://api.binance.com/api/v3/exchangeInfo', {
+    const response = await fetch(API_ENDPOINTS.binance.api.spot.exchangeInfo, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

@@ -30,7 +30,7 @@ export type ExchangeType = typeof SUPPORTED_EXCHANGES[number];
  */
 export const EXCHANGE_RAW_CATEGORIES = {
   bybit: ['linear', 'inverse', 'spot', 'option'],
-  binance: ['spot'],
+  binance: ['spot', 'um', 'cm'],
   upbit: ['spot'],
   bithumb: ['spot'],
   okx: ['spot', 'swap', 'futures', 'option'],
@@ -89,7 +89,9 @@ export const EXCHANGE_CATEGORY_MAPPINGS = {
     option: 'options'
   },
   binance: {
-    spot: 'spot'
+    spot: 'spot',
+    um: 'um',
+    cm: 'cm'
   },
   upbit: {
     spot: 'spot'
@@ -156,6 +158,7 @@ export const DATA_UPDATE_INTERVALS = {
     bybit: 500,       // Bybit 전체 티커
     bithumb: 1000,      // Bithumb 전체 티커
     bithumbDetail: 1000, // Bithumb 상세 티커
+    binance: 5000,    // Binance 전체 티커 (rate limit 고려)
   },
 } as const;
 
@@ -184,8 +187,21 @@ export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
   EXCHANGE_TRADING_CONCENTRATION: '거래소 거래 집중'
 };
 
+// ============================================================================
+// 9. API 엔드포인트 정의 (중앙 통합 관리)
+// ============================================================================
+
 /**
- * API 엔드포인트 정의
+ * Binance API 기본 URL 정의
+ */
+export const BINANCE_BASE_URLS = {
+  spot: 'https://api.binance.com',           // 현물 거래
+  um: 'https://fapi.binance.com',            // USD-M 선물
+  cm: 'https://dapi.binance.com',            // COIN-M 선물
+} as const;
+
+/**
+ * API 엔드포인트 정의 (중앙 통합 관리)
  */
 export const API_ENDPOINTS = {
   bithumb: {
@@ -203,9 +219,73 @@ export const API_ENDPOINTS = {
     instruments: (category: string) => `https://api.bybit.com/v5/market/instruments-info?category=${category}`,
   },
   binance: {
+    // 내부 API (Next.js API Routes)
     exchangeInfo: '/api/binance/exchangeInfo',
     ticker24hr: '/api/binance/ticker24hr',
-    tickerPrice: 'https://api.binance.com/api/v3/ticker/price',
+    
+    // 기본 URL 접근자
+    baseUrls: BINANCE_BASE_URLS,
+    
+    // 카테고리별 기본 URL 반환 함수
+    getBaseUrl: (category: 'spot' | 'um' | 'cm') => BINANCE_BASE_URLS[category],
+    
+    // 전체 API 엔드포인트 구조
+    api: {
+      // 현물 (SPOT)
+      spot: {
+        baseUrl: BINANCE_BASE_URLS.spot,
+        ticker24hr: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr`,
+        tickerPrice: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/price`,
+        exchangeInfo: `${BINANCE_BASE_URLS.spot}/api/v3/exchangeInfo`,
+        depth: (symbol: string, limit: number = 100) => 
+          `${BINANCE_BASE_URLS.spot}/api/v3/depth?symbol=${symbol}&limit=${limit}`,
+        trades: (symbol: string, limit: number = 500) => 
+          `${BINANCE_BASE_URLS.spot}/api/v3/trades?symbol=${symbol}&limit=${limit}`,
+        klines: (symbol: string, interval: string, limit: number = 500, startTime?: number, endTime?: number) => {
+          let url = `${BINANCE_BASE_URLS.spot}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+          if (startTime) url += `&startTime=${startTime}`;
+          if (endTime) url += `&endTime=${endTime}`;
+          return url;
+        },
+        tickerBySymbol: (symbol: string) => 
+          `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr?symbol=${symbol}`,
+      },
+      
+      // USD-M 선물
+      um: {
+        baseUrl: BINANCE_BASE_URLS.um,
+        ticker24hr: `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr`,
+        exchangeInfo: `${BINANCE_BASE_URLS.um}/fapi/v1/exchangeInfo`,
+        depth: (symbol: string, limit: number = 100) => 
+          `${BINANCE_BASE_URLS.um}/fapi/v1/depth?symbol=${symbol}&limit=${limit}`,
+        tickerBySymbol: (symbol: string) => 
+          `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr?symbol=${symbol}`,
+      },
+      
+      // COIN-M 선물
+      cm: {
+        baseUrl: BINANCE_BASE_URLS.cm,
+        ticker24hr: `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr`,
+        exchangeInfo: `${BINANCE_BASE_URLS.cm}/dapi/v1/exchangeInfo`,
+        depth: (symbol: string, limit: number = 100) => 
+          `${BINANCE_BASE_URLS.cm}/dapi/v1/depth?symbol=${symbol}&limit=${limit}`,
+        tickerBySymbol: (symbol: string) => 
+          `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr?symbol=${symbol}`,
+      },
+    },
+    
+    // 레거시 호환성을 위한 기존 구조 (단계적 제거 예정)
+    tickerPrice: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/price`,
+    tickers: {
+      spot: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr`,
+      um: `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr`,
+      cm: `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr`,
+    },
+    instruments: {
+      spot: `${BINANCE_BASE_URLS.spot}/api/v3/exchangeInfo`,
+      um: `${BINANCE_BASE_URLS.um}/fapi/v1/exchangeInfo`,
+      cm: `${BINANCE_BASE_URLS.cm}/dapi/v1/exchangeInfo`,
+    },
   },
 } as const;
 

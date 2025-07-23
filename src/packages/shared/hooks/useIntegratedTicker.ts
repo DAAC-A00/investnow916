@@ -3,6 +3,7 @@ import { TickerData } from '../types/exchange';
 import { TickerSortBy, TickerSortOrder } from '../types/bithumb';
 import { useBithumbTicker } from './useBithumbTicker';
 import { useBybitTicker } from './useBybitTicker';
+import { useBinanceTicker } from './useBinanceTicker';
 import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
@@ -40,6 +41,7 @@ export interface UseIntegratedTickerReturn {
   stats: {
     bithumbCount: number;
     bybitCount: number;
+    binanceCount: number;
     totalCount: number;
   };
 }
@@ -53,6 +55,19 @@ const getBybitCategoryFromIntegrated = (integratedCategory: IntegratedCategory):
       return 'linear';
     case 'cm':
       return 'inverse';
+    default:
+      return 'spot';
+  }
+};
+
+const getBinanceCategoryFromIntegrated = (integratedCategory: IntegratedCategory): 'spot' | 'um' | 'cm' => {
+  switch (integratedCategory) {
+    case 'spot':
+      return 'spot';
+    case 'um':
+      return 'um';
+    case 'cm':
+      return 'cm';
     default:
       return 'spot';
   }
@@ -72,6 +87,11 @@ const filterTickersByCategory = (tickers: TickerData[], category: IntegratedCate
       return ticker.rawCategory === bybitCategory;
     }
     
+    // Binance의 경우 직접 매핑
+    if (ticker.exchange === 'binance') {
+      return ticker.integratedCategory === category;
+    }
+    
     return false;
   });
 };
@@ -83,6 +103,7 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
   // 개별 거래소 훅들
   const bithumbTicker = useBithumbTicker();
   const bybitTicker = useBybitTicker('spot');
+  const binanceTicker = useBinanceTicker('spot');
   
   // 상태 관리
   const [category, setCategory] = useState<IntegratedCategory>(initialCategory);
@@ -99,32 +120,42 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
     setSortOrder(savedSettings.sortOrder);
   }, []);
 
-  // 카테고리 변경 시 Bybit 카테고리도 업데이트
+  // 카테고리 변경 시 각 거래소 카테고리 업데이트
   useEffect(() => {
     const bybitCategory = getBybitCategoryFromIntegrated(category);
     bybitTicker.setCategory(bybitCategory);
+    
+    const binanceCategory = getBinanceCategoryFromIntegrated(category);
+    binanceTicker.setCategory(binanceCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]); // bybitTicker는 의존성에서 제외 - 훅 객체는 항상 최신 상태를 참조
+  }, [category]); // 각 티커는 의존성에서 제외 - 훅 객체는 항상 최신 상태를 참조
 
   // 통합 티커 데이터 계산
   const allTickers = [
     ...bithumbTicker.tickers,
     ...bybitTicker.tickers,
+    ...binanceTicker.tickers,
   ];
 
   // 카테고리별 필터링된 티커 데이터
   const categoryFilteredTickers = filterTickersByCategory(allTickers, category);
 
   // 로딩 상태 계산
-  const isLoading = bithumbTicker.isLoading || bybitTicker.isLoading;
+  const isLoading = bithumbTicker.isLoading || bybitTicker.isLoading || binanceTicker.isLoading;
   
-  // 에러 상태 계산 (두 거래소 모두 에러인 경우만 에러로 처리)
-  const error = (bithumbTicker.error && bybitTicker.error) 
-    ? `Bithumb: ${bithumbTicker.error}, Bybit: ${bybitTicker.error}`
+  // 에러 상태 계산 (모든 거래소가 에러인 경우만 에러로 처리)
+  const errors = [
+    bithumbTicker.error ? `Bithumb: ${bithumbTicker.error}` : null,
+    bybitTicker.error ? `Bybit: ${bybitTicker.error}` : null,
+    binanceTicker.error ? `Binance: ${binanceTicker.error}` : null,
+  ].filter(Boolean);
+  
+  const error = (bithumbTicker.error && bybitTicker.error && binanceTicker.error) 
+    ? errors.join(', ')
     : null;
 
   // 마지막 업데이트 시간 계산
-  const lastUpdate = [bithumbTicker.lastUpdate, bybitTicker.lastUpdate]
+  const lastUpdate = [bithumbTicker.lastUpdate, bybitTicker.lastUpdate, binanceTicker.lastUpdate]
     .filter(Boolean)
     .sort((a, b) => (b?.getTime() || 0) - (a?.getTime() || 0))[0] || null;
 
@@ -158,6 +189,7 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
   const refreshData = useCallback(() => {
     bithumbTicker.refreshData();
     bybitTicker.refreshData();
+    binanceTicker.refreshData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 의존성 배열 제거 - 티커 훅들의 refreshData 함수는 항상 최신 상태를 참조
 
@@ -171,6 +203,7 @@ export function useIntegratedTicker(initialCategory: IntegratedCategory = 'spot'
   const stats = {
     bithumbCount: filterTickersByCategory(bithumbTicker.tickers, category).length,
     bybitCount: filterTickersByCategory(bybitTicker.tickers, category).length,
+    binanceCount: filterTickersByCategory(binanceTicker.tickers, category).length,
     totalCount: categoryFilteredTickers.length,
   };
 

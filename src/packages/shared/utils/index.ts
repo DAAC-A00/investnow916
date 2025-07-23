@@ -17,6 +17,26 @@ export * from './bybitApiClient';
 export * from './bybitDataTransformer';
 export * from './bybitDetailApi';
 
+// Binance 관련 유틸리티
+export * from './binanceApiClient';
+export type { 
+  BinanceSpotTicker,
+  BinanceUmTicker, 
+  BinanceCmTicker,
+} from './binanceDataTransformer';
+export { 
+  parseBinanceSymbol,
+  mapBinanceCategoryToIntegrated,
+  getBinanceDataSource,
+  transformBinanceSpotTicker,
+  transformBinanceUmTicker,
+  transformBinanceCmTicker,
+  formatBinancePrice,
+  formatBinanceVolume,
+  calculatePriceDirection as calculateBinancePriceDirection
+} from './binanceDataTransformer';
+export * from './binanceDetailApi';
+
 // 기타 유틸리티
 export * from './sortStorage';
 export * from './tickerSort';

@@ -192,6 +192,7 @@ const CategorySelector = ({
   stats: {
     bithumbCount: number;
     bybitCount: number;
+    binanceCount: number;
     totalCount: number;
   };
 }) => {
@@ -230,6 +231,7 @@ const CategorySelector = ({
         <span>총 {stats.totalCount}개</span>
         <span>Bithumb: {stats.bithumbCount}개</span>
         <span>Bybit: {stats.bybitCount}개</span>
+        <span>Binance: {stats.binanceCount}개</span>
       </div>
     </div>
   );
