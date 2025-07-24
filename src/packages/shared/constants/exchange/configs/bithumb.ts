@@ -11,7 +11,7 @@ const UPDATE_INTERVALS = {
 } as const;
 
 // Bithumb API URL 상수
-const API_URLS = {
+export const API_URLS = {
   BASE: 'https://api.bithumb.com',
   TICKER_ALL: 'https://api.bithumb.com/public/ticker/ALL_KRW',
   INSTRUMENTS: 'https://api.bithumb.com/v1/market/all?isDetails=true',

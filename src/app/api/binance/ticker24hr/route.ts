@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getFullUrl } from '@/packages/shared/constants/exchange/configs/binance';
 
 /**
  * Binance Spot 24hr ticker API 프록시
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr', {
+    const response = await fetch(getFullUrl.spot.ticker24hr(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

@@ -4,6 +4,7 @@ import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
 import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import type { BithumbWarningType } from '../constants/exchange';
+import { API_URLS } from '../constants/exchange/configs/bithumb';
 
 // [수정] 빗썸 instrument(시장 정보) 타입
 interface BithumbMarketInfo {
@@ -22,13 +23,13 @@ interface BithumbWarningInfo {
 
 // [수정] instrument(시장 정보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbMarketAll(): Promise<BithumbMarketInfo[]> {
-      const res = await defaultApiClient.get<BithumbMarketInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.instruments as string);
+  const res = await defaultApiClient.get<BithumbMarketInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.instruments as string);
   return res.data;
 }
 
 // [수정] warning(경보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbVirtualAssetWarning(): Promise<BithumbWarningInfo[]> {
-      const res = await defaultApiClient.get<BithumbWarningInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.virtualAssetWarning as string);
+  const res = await defaultApiClient.get<BithumbWarningInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.virtualAssetWarning as string);
   return res.data;
 }
 
@@ -189,7 +190,7 @@ export class BithumbApiClient {
           // === 메타데이터 ===
           metadata: {
             lastUpdated: new Date(),
-            dataSource: 'https://api.bithumb.com',
+            dataSource: API_URLS.BASE,
             rawApiResponse: rawTickerData,
             reliability: 'HIGH',
           },
@@ -209,6 +210,4 @@ export class BithumbApiClient {
       })
       .filter((ticker): ticker is NonNullable<typeof ticker> => ticker !== null); // null 값 필터링
   }
-
-
 } 

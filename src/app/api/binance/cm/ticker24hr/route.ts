@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getFullUrl } from '@/packages/shared/constants/exchange/configs/binance';
 
 /**
  * Binance COIN-M Futures 24hr ticker API 프록시
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch('https://dapi.binance.com/dapi/v1/ticker/24hr', {
+    const response = await fetch(getFullUrl.cm.ticker24hr(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

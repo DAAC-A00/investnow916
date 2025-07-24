@@ -3,6 +3,7 @@ import { BinanceRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
 import { EXCHANGE_CONFIGS } from '../constants/exchange';
+import { API_URLS } from '../constants/exchange/configs/binance';
 
 // Binance exchangeInfo API 응답 타입
 interface BinanceExchangeInfoResponse {
@@ -644,16 +645,15 @@ export class BinanceApiClient {
    * 카테고리별 데이터 소스 URL을 반환합니다
    */
   private getDataSource(category: BinanceRawCategory): string {
-    const binanceEndpoints = EXCHANGE_CONFIGS.binance.endpoints as any;
     switch (category) {
       case 'spot':
-        return binanceEndpoints.spot?.baseUrl || 'https://api.binance.com';
+        return API_URLS.BASE.SPOT;
       case 'um':
-        return binanceEndpoints.um?.baseUrl || 'https://fapi.binance.com';
+        return API_URLS.BASE.UM;
       case 'cm':
-        return binanceEndpoints.cm?.baseUrl || 'https://dapi.binance.com';
+        return API_URLS.BASE.CM;
       default:
-        return binanceEndpoints.spot?.baseUrl || 'https://api.binance.com';
+        return API_URLS.BASE.SPOT;
     }
   }
 
