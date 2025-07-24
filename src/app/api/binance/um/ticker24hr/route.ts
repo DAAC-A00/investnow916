@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Binance Spot 24hr ticker API 프록시
+ * Binance USD-M Futures 24hr ticker API 프록시
  * CORS 문제를 해결하기 위한 서버사이드 프록시
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch('https://api.binance.com/api/v3/ticker/24hr', {
+    const response = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`Binance Spot API 오류: ${response.status} ${response.statusText}`);
+      throw new Error(`Binance USD-M API 오류: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Binance Spot 24hr ticker 프록시 오류:', error);
+    console.error('Binance USD-M 24hr ticker 프록시 오류:', error);
     return NextResponse.json(
-      { error: 'Binance Spot 24hr ticker 데이터를 가져오는데 실패했습니다.' },
+      { error: 'Binance USD-M 24hr ticker 데이터를 가져오는데 실패했습니다.' },
       { status: 500 }
     );
   }
-}
+} 
