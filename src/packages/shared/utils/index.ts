@@ -13,9 +13,9 @@ export * from './bithumbDataTransformer';
 export * from './bithumbDetailApi';
 
 // Bybit 관련 유틸리티
-export * from './bybitApiClient';
-export * from './bybitDataTransformer';
-export * from './bybitDetailApi';
+export { fetchBybitTickerData } from './bybitApiClient';
+export { parseBybitSymbol, transformBybitTicker } from './bybitDataTransformer';
+// export * from './bybitDetailApi'; // 현재 사용되지 않음
 
 // Binance 관련 유틸리티
 export * from './binanceApiClient';
