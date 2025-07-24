@@ -26,8 +26,8 @@ export const EXCHANGE_CONFIG = {
       option: 'options'
     } as const,
     updateIntervals: {
-      instrument: 2,    // hours
-      ticker: 500       // milliseconds
+      instrument: 7200000,  // 2 hours in ms
+      ticker: 500           // milliseconds
     },
     apiBaseUrl: 'https://api.bybit.com',
     endpoints: {
@@ -44,7 +44,7 @@ export const EXCHANGE_CONFIG = {
       cm: 'cm'
     } as const,
     updateIntervals: {
-      instrument: 2,
+      instrument: 7200000,  // 2 hours in ms
       ticker: 5000
     },
     baseUrls: {
@@ -91,7 +91,7 @@ export const EXCHANGE_CONFIG = {
       spot: 'spot'
     } as const,
     updateIntervals: {
-      instrument: 2,
+      instrument: 7200000,  // 2 hours in ms
       ticker: 1000,
       tickerDetail: 1000
     },
@@ -113,7 +113,7 @@ export const EXCHANGE_CONFIG = {
       spot: 'spot'
     } as const,
     updateIntervals: {
-      instrument: 2,
+      instrument: 7200000,  // 2 hours in ms
       ticker: 1000
     },
     apiBaseUrl: 'https://api.upbit.com',
@@ -129,7 +129,7 @@ export const EXCHANGE_CONFIG = {
       option: 'options'
     } as const,
     updateIntervals: {
-      instrument: 2,
+      instrument: 7200000,  // 2 hours in ms
       ticker: 1000
     },
     apiBaseUrl: 'https://www.okx.com',
@@ -143,7 +143,7 @@ export const EXCHANGE_CONFIG = {
       mix: 'um'
     } as const,
     updateIntervals: {
-      instrument: 2,
+      instrument: 7200000,  // 2 hours in ms
       ticker: 1000
     },
     apiBaseUrl: 'https://api.bitget.com',

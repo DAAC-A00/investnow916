@@ -59,12 +59,12 @@ export const getUpdateTime = (exchange: ExchangeType, category: string, isRawCat
 };
 
 /**
- * 특정 거래소의 데이터 갱신 주기를 가져옵니다.
+ * 특정 거래소의 instrument 데이터 갱신 주기를 가져옵니다.
  * @param exchange - 거래소
- * @returns 갱신 주기 (시간 단위)
+ * @returns 갱신 주기 (밀리초 단위)
  */
-export const getUpdateInterval = (exchange: ExchangeType): number => {
-  return DATA_UPDATE_INTERVALS.instrument[exchange] || DATA_UPDATE_INTERVALS.instrument.default;
+export const getInstrumentUpdateInterval = (exchange: ExchangeType): number => {
+  return DATA_UPDATE_INTERVALS.instrument[exchange];
 };
 
 /**
@@ -99,12 +99,12 @@ export const needsUpdate = (exchange: ExchangeType, category: string, isRawCateg
   const updateTime = getUpdateTime(exchange, category, isRawCategory);
   if (!updateTime) return true;
   
-  // 3. 갱신 주기 확인
+  // 3. 갱신 주기 확인 (ms 단위로 비교)
   const now = new Date();
-  const diffHours = (now.getTime() - updateTime.getTime()) / (1000 * 60 * 60);
-  const intervalHours = getUpdateInterval(exchange);
+  const diffMs = now.getTime() - updateTime.getTime();
+  const intervalMs = getInstrumentUpdateInterval(exchange);
   
-  return diffHours >= intervalHours;
+  return diffMs >= intervalMs;
 };
 
 /**
@@ -119,6 +119,7 @@ export const needsDataUpdate = needsUpdate;
  * @returns 갱신 주기 설명 (예: "2시간마다 자동 갱신")
  */
 export const getUpdateIntervalDescription = (exchange: ExchangeType): string => {
-  const interval = getUpdateInterval(exchange);
-  return `${interval}시간마다 자동 갱신`;
+  const intervalMs = getInstrumentUpdateInterval(exchange);
+  const intervalHours = intervalMs / (1000 * 60 * 60);
+  return `${intervalHours}시간마다 자동 갱신`;
 };

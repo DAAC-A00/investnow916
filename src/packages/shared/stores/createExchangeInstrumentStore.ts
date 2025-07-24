@@ -13,7 +13,7 @@ import {
 } from '@/packages/shared/constants/exchangeConfig';
 import { saveBinanceInstrumentsToStorage } from '@/packages/shared/utils/binanceApiClient';
 import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
-import { needsUpdate, storeUpdateTime, getUpdateTime } from '../constants/updateConfig';
+import { needsUpdate, storeUpdateTime, getUpdateTime, getInstrumentUpdateInterval } from '../constants/updateConfig';
 import type {
   CoinInfo,
   ExchangeInstrumentState,
@@ -201,7 +201,9 @@ const fetchBybitCoins = async (
 
     // 갱신 필요 여부 확인
     if (!needsUpdate('bybit', rawCategory, true)) {
-      console.log(`Bybit ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
+      const intervalMs = getInstrumentUpdateInterval('bybit');
+      const intervalHours = intervalMs / (1000 * 60 * 60);
+      console.log(`Bybit ${rawCategory} 데이터가 최신입니다. (${intervalHours}시간 이내 갱신됨)`);
       return true; // 갱신이 필요하지 않으면 성공으로 처리
     }
 
@@ -281,7 +283,9 @@ const fetchBithumbCoins = async (
   try {
     // 갱신 필요 여부 확인
     if (!needsUpdate('bithumb', rawCategory, false)) {
-      console.log(`Bithumb ${rawCategory} 데이터가 최신입니다. (2시간 이내 갱신됨)`);
+      const intervalMs = getInstrumentUpdateInterval('bithumb');
+      const intervalHours = intervalMs / (1000 * 60 * 60);
+      console.log(`Bithumb ${rawCategory} 데이터가 최신입니다. (${intervalHours}시간 이내 갱신됨)`);
       return true; // 갱신이 필요하지 않으면 성공으로 처리
     }
 
@@ -345,7 +349,9 @@ const fetchBinanceCoins = async (
   try {
     // 갱신 필요 여부 확인 (spot 카테고리로 통일)
     if (!needsUpdate('binance', 'spot', false)) {
-      console.log('🔄 [Store] Binance spot 데이터가 최신입니다. (2시간 이내 갱신됨)');
+      const intervalMs = getInstrumentUpdateInterval('binance');
+      const intervalHours = intervalMs / (1000 * 60 * 60);
+      console.log(`🔄 [Store] Binance spot 데이터가 최신입니다. (${intervalHours}시간 이내 갱신됨)`);
       return true; // 갱신이 필요하지 않으면 성공으로 처리
     }
 
