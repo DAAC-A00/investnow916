@@ -1,184 +1,261 @@
 /**
- * 거래소 및 카테고리 설정을 중앙에서 관리하는 통합 설정 파일
- * 
- * 이 파일에서 모든 거래소와 카테고리 정보를 정의하며,
- * 다른 파일들은 이 파일에서 필요한 정보를 import하여 사용합니다.
+ * 거래소 및 카테고리 설정 통합 관리
  */
 
 // ============================================================================
-// 1. 기본 거래소 정의 (단일 소스)
+// Core Types & Constants
 // ============================================================================
 
-/**
- * 지원하는 모든 거래소 목록
- * 새로운 거래소 추가 시 이 배열에만 추가하면 됩니다.
- */
 export const SUPPORTED_EXCHANGES = ['bybit', 'binance', 'upbit', 'bithumb', 'okx', 'bitget'] as const;
-
-/**
- * 거래소 타입 (SUPPORTED_EXCHANGES에서 자동 생성)
- */
-export type ExchangeType = typeof SUPPORTED_EXCHANGES[number];
-
-// ============================================================================
-// 2. 거래소별 Raw 카테고리 정의 (단일 소스)
-// ============================================================================
-
-/**
- * 거래소별 Raw 카테고리 매핑
- * 새로운 거래소나 카테고리 추가 시 이 객체에만 추가하면 됩니다.
- */
-export const EXCHANGE_RAW_CATEGORIES = {
-  bybit: ['linear', 'inverse', 'spot', 'option'],
-  binance: ['spot', 'um', 'cm'],
-  upbit: ['spot'],
-  bithumb: ['spot'],
-  okx: ['spot', 'swap', 'futures', 'option'],
-  bitget: ['spot', 'mix']
-} as const;
-
-/**
- * 거래소별 Raw 카테고리 타입 (자동 생성)
- */
-export type BybitRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bybit[number];
-export type BinanceRawCategory = typeof EXCHANGE_RAW_CATEGORIES.binance[number];
-export type UpbitRawCategory = typeof EXCHANGE_RAW_CATEGORIES.upbit[number];
-export type BithumbRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bithumb[number];
-export type OkxRawCategory = typeof EXCHANGE_RAW_CATEGORIES.okx[number];
-export type BitgetRawCategory = typeof EXCHANGE_RAW_CATEGORIES.bitget[number];
-
-/**
- * 모든 Raw 카테고리 유니온 타입 (자동 생성)
- */
-export type AllRawCategories = 
-  | BybitRawCategory 
-  | BinanceRawCategory 
-  | UpbitRawCategory 
-  | BithumbRawCategory
-  | OkxRawCategory
-  | BitgetRawCategory;
-
-// ============================================================================
-// 3. 통합 카테고리 정의 (단일 소스)
-// ============================================================================
-
-/**
- * 통합 카테고리 목록
- * 새로운 통합 카테고리 추가 시 이 배열에만 추가하면 됩니다.
- */
 export const INTEGRATED_CATEGORIES = ['spot', 'um', 'cm', 'options'] as const;
 
-/**
- * 통합 카테고리 타입 (자동 생성)
- */
+export type ExchangeType = typeof SUPPORTED_EXCHANGES[number];
 export type IntegratedCategory = typeof INTEGRATED_CATEGORIES[number];
 
 // ============================================================================
-// 4. 카테고리 매핑 정의 (단일 소스)
+// Exchange Configuration (Single Source of Truth)
 // ============================================================================
 
-/**
- * 거래소별 Raw 카테고리 → 통합 카테고리 매핑
- * 새로운 매핑 추가 시 이 객체에만 추가하면 됩니다.
- */
-export const EXCHANGE_CATEGORY_MAPPINGS = {
+export const EXCHANGE_CONFIG = {
   bybit: {
-    linear: 'um',
-    inverse: 'cm', 
-    spot: 'spot',
-    option: 'options'
+    rawCategories: ['linear', 'inverse', 'spot', 'option'] as const,
+    categoryMapping: {
+      linear: 'um',
+      inverse: 'cm', 
+      spot: 'spot',
+      option: 'options'
+    } as const,
+    updateIntervals: {
+      instrument: 2,    // hours
+      ticker: 500       // milliseconds
+    },
+    apiBaseUrl: 'https://api.bybit.com',
+    endpoints: {
+      tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,
+      instruments: (category: string) => `https://api.bybit.com/v5/market/instruments-info?category=${category}`,
+    }
   },
+  
   binance: {
-    spot: 'spot',
-    um: 'um',
-    cm: 'cm'
+    rawCategories: ['spot', 'um', 'cm'] as const,
+    categoryMapping: {
+      spot: 'spot',
+      um: 'um',
+      cm: 'cm'
+    } as const,
+    updateIntervals: {
+      instrument: 2,
+      ticker: 5000
+    },
+    baseUrls: {
+      spot: 'https://api.binance.com',
+      um: 'https://fapi.binance.com',
+      cm: 'https://dapi.binance.com',
+    },
+    endpoints: {
+      // Internal API routes
+      exchangeInfo: '/api/binance/exchangeInfo',
+      
+      // External API endpoints
+      spot: {
+        ticker24hr: 'https://api.binance.com/api/v3/ticker/24hr',
+        tickerPrice: 'https://api.binance.com/api/v3/ticker/price',
+        exchangeInfo: 'https://api.binance.com/api/v3/exchangeInfo',
+        depth: (symbol: string, limit = 100) => 
+          `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=${limit}`,
+        tickerBySymbol: (symbol: string) => 
+          `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`,
+      },
+      um: {
+        ticker24hr: 'https://fapi.binance.com/fapi/v1/ticker/24hr',
+        exchangeInfo: 'https://fapi.binance.com/fapi/v1/exchangeInfo',
+        depth: (symbol: string, limit = 100) => 
+          `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}&limit=${limit}`,
+        tickerBySymbol: (symbol: string) => 
+          `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbol}`,
+      },
+      cm: {
+        ticker24hr: 'https://dapi.binance.com/dapi/v1/ticker/24hr',
+        exchangeInfo: 'https://dapi.binance.com/dapi/v1/exchangeInfo',
+        depth: (symbol: string, limit = 100) => 
+          `https://dapi.binance.com/dapi/v1/depth?symbol=${symbol}&limit=${limit}`,
+        tickerBySymbol: (symbol: string) => 
+          `https://dapi.binance.com/dapi/v1/ticker/24hr?symbol=${symbol}`,
+      },
+    }
   },
-  upbit: {
-    spot: 'spot'
-  },
+  
   bithumb: {
-    spot: 'spot'
+    rawCategories: ['spot'] as const,
+    categoryMapping: {
+      spot: 'spot'
+    } as const,
+    updateIntervals: {
+      instrument: 2,
+      ticker: 1000,
+      tickerDetail: 1000
+    },
+    apiBaseUrl: 'https://api.bithumb.com',
+    endpoints: {
+      tickerAll: 'https://api.bithumb.com/public/ticker/ALL_KRW',
+      ticker: (baseCode: string, quoteCode: string) =>
+        `https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`,
+      orderbook: (baseCode: string, quoteCode: string) =>
+        `https://api.bithumb.com/public/orderbook/${baseCode}_${quoteCode}`,
+      instruments: 'https://api.bithumb.com/v1/market/all?isDetails=true',
+      virtualAssetWarning: 'https://api.bithumb.com/v1/market/virtual_asset_warning',
+    }
   },
+  
+  upbit: {
+    rawCategories: ['spot'] as const,
+    categoryMapping: {
+      spot: 'spot'
+    } as const,
+    updateIntervals: {
+      instrument: 2,
+      ticker: 1000
+    },
+    apiBaseUrl: 'https://api.upbit.com',
+    endpoints: {}
+  },
+  
   okx: {
-    spot: 'spot',
-    swap: 'um',
-    futures: 'cm',
-    option: 'options'
+    rawCategories: ['spot', 'swap', 'futures', 'option'] as const,
+    categoryMapping: {
+      spot: 'spot',
+      swap: 'um',
+      futures: 'cm',
+      option: 'options'
+    } as const,
+    updateIntervals: {
+      instrument: 2,
+      ticker: 1000
+    },
+    apiBaseUrl: 'https://www.okx.com',
+    endpoints: {}
   },
+  
   bitget: {
-    spot: 'spot',
-    mix: 'um'
+    rawCategories: ['spot', 'mix'] as const,
+    categoryMapping: {
+      spot: 'spot',
+      mix: 'um'
+    } as const,
+    updateIntervals: {
+      instrument: 2,
+      ticker: 1000
+    },
+    apiBaseUrl: 'https://api.bitget.com',
+    endpoints: {}
   }
 } as const;
 
 // ============================================================================
-// 5. 거래소별 지원 카테고리 (자동 생성)
+// Derived Types (Auto-generated from config)
 // ============================================================================
 
-/**
- * 거래소별로 지원하는 통합 카테고리 목록 (자동 생성)
- */
-export const EXCHANGE_SUPPORTED_CATEGORIES = {
-  bybit: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bybit),
-  binance: Object.values(EXCHANGE_CATEGORY_MAPPINGS.binance),
-  upbit: Object.values(EXCHANGE_CATEGORY_MAPPINGS.upbit),
-  bithumb: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bithumb),
-  okx: Object.values(EXCHANGE_CATEGORY_MAPPINGS.okx),
-  bitget: Object.values(EXCHANGE_CATEGORY_MAPPINGS.bitget)
-} as const;
+export type BybitRawCategory = typeof EXCHANGE_CONFIG.bybit.rawCategories[number];
+export type BinanceRawCategory = typeof EXCHANGE_CONFIG.binance.rawCategories[number];
+export type BithumbRawCategory = typeof EXCHANGE_CONFIG.bithumb.rawCategories[number];
+export type UpbitRawCategory = typeof EXCHANGE_CONFIG.upbit.rawCategories[number];
+export type OkxRawCategory = typeof EXCHANGE_CONFIG.okx.rawCategories[number];
+export type BitgetRawCategory = typeof EXCHANGE_CONFIG.bitget.rawCategories[number];
+
+export type AllRawCategories = 
+  | BybitRawCategory 
+  | BinanceRawCategory 
+  | BithumbRawCategory
+  | UpbitRawCategory
+  | OkxRawCategory
+  | BitgetRawCategory;
+
+type ExchangeConfigType = typeof EXCHANGE_CONFIG;
+
+export type ExchangeRawCategoryMap = {
+  [K in ExchangeType]: ExchangeConfigType[K]['rawCategories'][number];
+};
+
+export type ExchangeCategoryMappingMap = {
+  [K in ExchangeType]: ExchangeConfigType[K]['categoryMapping'];
+};
 
 // ============================================================================
-// 6. 데이터 갱신 주기 설정 (instrument, ticker)
+// Convenience Accessors (Legacy compatibility)
 // ============================================================================
 
-/**
- * 데이터 유형별 갱신 주기 통합 관리
- * - instrument: 종목 정보 (단위: 시간)
- * - ticker: 실시간 시세 정보 (단위: 밀리초)
- */
+export const EXCHANGE_RAW_CATEGORIES = Object.fromEntries(
+  SUPPORTED_EXCHANGES.map(exchange => [
+    exchange, 
+    EXCHANGE_CONFIG[exchange].rawCategories
+  ])
+) as { [K in ExchangeType]: ExchangeConfigType[K]['rawCategories'] };
+
+export const EXCHANGE_CATEGORY_MAPPINGS = Object.fromEntries(
+  SUPPORTED_EXCHANGES.map(exchange => [
+    exchange, 
+    EXCHANGE_CONFIG[exchange].categoryMapping
+  ])
+) as { [K in ExchangeType]: ExchangeConfigType[K]['categoryMapping'] };
+
+export const EXCHANGE_SUPPORTED_CATEGORIES = Object.fromEntries(
+  SUPPORTED_EXCHANGES.map(exchange => [
+    exchange, 
+    Object.values(EXCHANGE_CONFIG[exchange].categoryMapping)
+  ])
+) as { [K in ExchangeType]: Array<IntegratedCategory> };
+
 export const DATA_UPDATE_INTERVALS = {
-  /**
-   * 종목 정보(instrument) 갱신 주기 (단위: 시간)
-   * - 이 시간이 지나면 데이터를 다시 불러옵니다.
-   */
-  instrument: {
-    default: 2, // 기본 갱신 주기
-    bybit: 2,
-    bithumb: 2,
-    binance: 2,
-    upbit: 2,
-    okx: 2,
-    bitget: 2,
-  },
-  /**
-   * 실시간 시세(ticker) API 요청 주기 (단위: 밀리초)
-   * - 이 주기마다 API를 호출하여 화면을 업데이트합니다.
-   */
-  ticker: {
-    bybit: 500,       // Bybit 전체 티커
-    bithumb: 1000,      // Bithumb 전체 티커
-    bithumbDetail: 1000, // Bithumb 상세 티커
-    binance: 5000,    // Binance 전체 티커 (rate limit 고려)
-  },
-} as const;
+  instrument: Object.fromEntries(
+    SUPPORTED_EXCHANGES.map(exchange => [
+      exchange, 
+      EXCHANGE_CONFIG[exchange].updateIntervals.instrument
+    ])
+  ) as { [K in ExchangeType]: number },
+  
+  ticker: Object.fromEntries(
+    SUPPORTED_EXCHANGES.map(exchange => [
+      exchange, 
+      EXCHANGE_CONFIG[exchange].updateIntervals.ticker
+    ])
+  ) as { [K in ExchangeType]: number }
+};
+
+// Legacy API_ENDPOINTS (for backward compatibility)
+export const API_ENDPOINTS = {
+  bithumb: EXCHANGE_CONFIG.bithumb.endpoints,
+  bybit: EXCHANGE_CONFIG.bybit.endpoints,
+  binance: {
+    ...EXCHANGE_CONFIG.binance.endpoints,
+    baseUrls: EXCHANGE_CONFIG.binance.baseUrls,
+    getBaseUrl: (category: BinanceRawCategory) => EXCHANGE_CONFIG.binance.baseUrls[category],
+    
+    // Legacy flat structure
+    tickerPrice: EXCHANGE_CONFIG.binance.endpoints.spot.tickerPrice,
+    tickers: {
+      spot: EXCHANGE_CONFIG.binance.endpoints.spot.ticker24hr,
+      um: EXCHANGE_CONFIG.binance.endpoints.um.ticker24hr,
+      cm: EXCHANGE_CONFIG.binance.endpoints.cm.ticker24hr,
+    },
+    instruments: {
+      spot: EXCHANGE_CONFIG.binance.endpoints.spot.exchangeInfo,
+      um: EXCHANGE_CONFIG.binance.endpoints.um.exchangeInfo,
+      cm: EXCHANGE_CONFIG.binance.endpoints.cm.exchangeInfo,
+    },
+  }
+};
 
 // ============================================================================
-// 8. Bithumb Warning 관련 정의
+// Bithumb Specific Types
 // ============================================================================
 
-/**
- * Bithumb Warning 타입 정의
- */
 export type BithumbWarningType = 
-  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'    // 거래량 급등
-  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'    // 입금량 급등
-  | 'PRICE_DIFFERENCE_HIGH'                // 가격 차이
-  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'    // 소수계좌 거래 집중
-  | 'EXCHANGE_TRADING_CONCENTRATION';      // 거래소 거래 집중
+  | 'TRADING_VOLUME_SUDDEN_FLUCTUATION'
+  | 'DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION'
+  | 'PRICE_DIFFERENCE_HIGH'
+  | 'SPECIFIC_ACCOUNT_HIGH_TRANSACTION'
+  | 'EXCHANGE_TRADING_CONCENTRATION';
 
-/**
- * Bithumb Warning 타입별 한글 라벨
- */
 export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
   TRADING_VOLUME_SUDDEN_FLUCTUATION: '거래량 급등',
   DEPOSIT_AMOUNT_SUDDEN_FLUCTUATION: '입금량 급등', 
@@ -188,158 +265,48 @@ export const BITHUMB_WARNING_LABELS: Record<BithumbWarningType, string> = {
 };
 
 // ============================================================================
-// 9. API 엔드포인트 정의 (중앙 통합 관리)
+// Utility Functions
 // ============================================================================
 
-/**
- * Binance API 기본 URL 정의
- */
-export const BINANCE_BASE_URLS = {
-  spot: 'https://api.binance.com',           // 현물 거래
-  um: 'https://fapi.binance.com',            // USD-M 선물
-  cm: 'https://dapi.binance.com',            // COIN-M 선물
-} as const;
-
-/**
- * API 엔드포인트 정의 (중앙 통합 관리)
- */
-export const API_ENDPOINTS = {
-  bithumb: {
-    tickerAll: 'https://api.bithumb.com/public/ticker/ALL_KRW',
-    ticker: (baseCode: string, quoteCode: string) =>
-      `https://api.bithumb.com/public/ticker/${baseCode}_${quoteCode}`,
-    orderbook: (baseCode: string, quoteCode: string) =>
-      `https://api.bithumb.com/public/orderbook/${baseCode}_${quoteCode}`,
-    // [추가] 빗썸 instrument(시장 정보) 및 warning(경보) API endpoint
-    instruments: 'https://api.bithumb.com/v1/market/all?isDetails=true',
-    virtualAssetWarning: 'https://api.bithumb.com/v1/market/virtual_asset_warning',
-  },
-  bybit: {
-    tickers: (category: string) => `https://api.bybit.com/v5/market/tickers?category=${category}`,
-    instruments: (category: string) => `https://api.bybit.com/v5/market/instruments-info?category=${category}`,
-  },
-  binance: {
-    // 내부 API (Next.js API Routes)
-    exchangeInfo: '/api/binance/exchangeInfo',
-    ticker24hr: '/api/binance/ticker24hr',
-    
-    // 기본 URL 접근자
-    baseUrls: BINANCE_BASE_URLS,
-    
-    // 카테고리별 기본 URL 반환 함수
-    getBaseUrl: (category: 'spot' | 'um' | 'cm') => BINANCE_BASE_URLS[category],
-    
-    // 전체 API 엔드포인트 구조
-    api: {
-      // 현물 (SPOT)
-      spot: {
-        baseUrl: BINANCE_BASE_URLS.spot,
-        ticker24hr: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr`,
-        tickerPrice: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/price`,
-        exchangeInfo: `${BINANCE_BASE_URLS.spot}/api/v3/exchangeInfo`,
-        depth: (symbol: string, limit: number = 100) => 
-          `${BINANCE_BASE_URLS.spot}/api/v3/depth?symbol=${symbol}&limit=${limit}`,
-        trades: (symbol: string, limit: number = 500) => 
-          `${BINANCE_BASE_URLS.spot}/api/v3/trades?symbol=${symbol}&limit=${limit}`,
-        klines: (symbol: string, interval: string, limit: number = 500, startTime?: number, endTime?: number) => {
-          let url = `${BINANCE_BASE_URLS.spot}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-          if (startTime) url += `&startTime=${startTime}`;
-          if (endTime) url += `&endTime=${endTime}`;
-          return url;
-        },
-        tickerBySymbol: (symbol: string) => 
-          `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr?symbol=${symbol}`,
-      },
-      
-      // USD-M 선물
-      um: {
-        baseUrl: BINANCE_BASE_URLS.um,
-        ticker24hr: `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr`,
-        exchangeInfo: `${BINANCE_BASE_URLS.um}/fapi/v1/exchangeInfo`,
-        depth: (symbol: string, limit: number = 100) => 
-          `${BINANCE_BASE_URLS.um}/fapi/v1/depth?symbol=${symbol}&limit=${limit}`,
-        tickerBySymbol: (symbol: string) => 
-          `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr?symbol=${symbol}`,
-      },
-      
-      // COIN-M 선물
-      cm: {
-        baseUrl: BINANCE_BASE_URLS.cm,
-        ticker24hr: `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr`,
-        exchangeInfo: `${BINANCE_BASE_URLS.cm}/dapi/v1/exchangeInfo`,
-        depth: (symbol: string, limit: number = 100) => 
-          `${BINANCE_BASE_URLS.cm}/dapi/v1/depth?symbol=${symbol}&limit=${limit}`,
-        tickerBySymbol: (symbol: string) => 
-          `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr?symbol=${symbol}`,
-      },
-    },
-    
-    // 레거시 호환성을 위한 기존 구조 (단계적 제거 예정)
-    tickerPrice: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/price`,
-    tickers: {
-      spot: `${BINANCE_BASE_URLS.spot}/api/v3/ticker/24hr`,
-      um: `${BINANCE_BASE_URLS.um}/fapi/v1/ticker/24hr`,
-      cm: `${BINANCE_BASE_URLS.cm}/dapi/v1/ticker/24hr`,
-    },
-    instruments: {
-      spot: `${BINANCE_BASE_URLS.spot}/api/v3/exchangeInfo`,
-      um: `${BINANCE_BASE_URLS.um}/fapi/v1/exchangeInfo`,
-      cm: `${BINANCE_BASE_URLS.cm}/dapi/v1/exchangeInfo`,
-    },
-  },
-} as const;
-
-// ============================================================================
-// 9. 유틸리티 타입 (자동 생성)
-// ============================================================================
-
-/**
- * 지원하는 거래소 타입 (호환성 유지)
- */
-export type SupportedExchange = ExchangeType;
-
-/**
- * 거래소별 Raw 카테고리 매핑 타입
- */
-export type ExchangeRawCategoryMap = {
-  [K in ExchangeType]: typeof EXCHANGE_RAW_CATEGORIES[K][number];
-};
-
-/**
- * 거래소별 지원 카테고리 매핑 타입
- */
-export type ExchangeSupportedCategoryMap = {
-  [K in ExchangeType]: typeof EXCHANGE_SUPPORTED_CATEGORIES[K][number];
-};
-
-// ============================================================================
-// 10. 검증 함수들
-// ============================================================================
-
-/**
- * 유효한 거래소인지 확인
- */
 export const isValidExchange = (exchange: string): exchange is ExchangeType => {
   return SUPPORTED_EXCHANGES.includes(exchange as ExchangeType);
 };
 
-/**
- * 유효한 통합 카테고리인지 확인
- */
 export const isValidIntegratedCategory = (category: string): category is IntegratedCategory => {
   return INTEGRATED_CATEGORIES.includes(category as IntegratedCategory);
 };
 
-/**
- * 거래소에서 지원하는 Raw 카테고리인지 확인
- */
 export const isValidRawCategory = (exchange: ExchangeType, category: string): boolean => {
-  return EXCHANGE_RAW_CATEGORIES[exchange].includes(category as any);
+  return EXCHANGE_CONFIG[exchange].rawCategories.includes(category as any);
 };
 
-/**
- * 거래소에서 지원하는 통합 카테고리인지 확인
- */
 export const isValidSupportedCategory = (exchange: ExchangeType, category: IntegratedCategory): boolean => {
-  return EXCHANGE_SUPPORTED_CATEGORIES[exchange].includes(category as any);
+  const supportedCategories = Object.values(EXCHANGE_CONFIG[exchange].categoryMapping);
+  return supportedCategories.includes(category as any);
+};
+
+export const getRawCategories = (exchange: ExchangeType) => {
+  return EXCHANGE_CONFIG[exchange].rawCategories;
+};
+
+export const getCategoryMapping = (exchange: ExchangeType) => {
+  return EXCHANGE_CONFIG[exchange].categoryMapping;
+};
+
+export const getSupportedCategories = (exchange: ExchangeType): IntegratedCategory[] => {
+  return Object.values(EXCHANGE_CONFIG[exchange].categoryMapping);
+};
+
+export const getUpdateInterval = (exchange: ExchangeType, dataType: 'instrument' | 'ticker') => {
+  return EXCHANGE_CONFIG[exchange].updateIntervals[dataType];
+};
+
+export const getEndpoints = (exchange: ExchangeType) => {
+  return EXCHANGE_CONFIG[exchange].endpoints;
+};
+
+// Legacy type aliases for compatibility
+export type SupportedExchange = ExchangeType;
+export type ExchangeSupportedCategoryMap = {
+  [K in ExchangeType]: typeof EXCHANGE_SUPPORTED_CATEGORIES[K][number];
 };

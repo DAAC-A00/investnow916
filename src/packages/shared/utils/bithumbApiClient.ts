@@ -210,54 +210,5 @@ export class BithumbApiClient {
       .filter((ticker): ticker is NonNullable<typeof ticker> => ticker !== null); // null 값 필터링
   }
 
-  /**
-   * 테스트 데이터를 생성합니다
-   */
-  generateTestData(): TickerData[] {
-    console.log('테스트 티커 데이터로 대체합니다...');
-    const testCoins = ['BTC', 'ETH', 'XRP', 'ADA', 'DOT', 'LINK', 'LTC', 'BCH', 'ETC', 'EOS'];
-    
-    return testCoins.map((symbol) => {
-      const baseCode = symbol;
-      const quoteCode = 'KRW';
-      const rawSymbol = `${baseCode}${quoteCode}`;
-      const integratedSymbol = `${baseCode}/${quoteCode}`;
-      
-      // 테스트용 랜덤 데이터 생성
-      const price = Math.random() * 100000 + 1000;
-      const changePercent = (Math.random() - 0.5) * 10;
-      const priceChange = price * (changePercent / 100);
-      
-      return {
-        rawSymbol,
-        integratedSymbol,
-        baseCode,
-        quoteCode,
-        exchange: 'bithumb' as const,
-        integratedCategory: 'spot',
-        rawCategory: 'spot',
-        price,
-        beforePrice: price - priceChange, // 테두리 애니메이션용 이전 가격
-        prevPrice24h: price - priceChange,
-        priceChange24h: priceChange,
-        priceChangePercent24h: changePercent,
-        volume24h: Math.random() * 1000000,
-        turnover24h: Math.random() * 10000000000,
-        highPrice24h: price + Math.random() * price * 0.1,
-        lowPrice24h: price - Math.random() * price * 0.1,
-        quantity: 1,
-        instrumentInfo: {
-          status: 'Trading',
-          koreanName: symbol,
-          englishName: symbol,
-        },
-        metadata: {
-          lastUpdated: new Date(),
-          dataSource: 'test-data',
-          rawApiResponse: null,
-          reliability: 'LOW' as const,
-        },
-      };
-    });
-  }
+
 } 
