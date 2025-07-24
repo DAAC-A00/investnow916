@@ -6,7 +6,7 @@ interface TickerHeaderProps {
   subtitle: string;
   isLoading: boolean;
   lastUpdate: Date | null;
-  totalCount: number;
+  totalCount?: number;
   error?: string | null;
   onRefresh?: () => void;
 }
@@ -62,9 +62,6 @@ export function TickerHeader({
             마지막 업데이트: {lastUpdate.toLocaleTimeString('ko-KR')}
           </div>
         )}
-        <div>
-          총 {totalCount}개 코인
-        </div>
         {error && (
           <div className="text-yellow-600">
             ⚠️ {error}

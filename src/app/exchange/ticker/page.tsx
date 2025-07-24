@@ -228,10 +228,10 @@ const CategorySelector = ({
 
       {/* 거래소별 통계 */}
       <div className="flex gap-4 text-sm text-gray-600">
-        <span>총 {stats.totalCount}개</span>
-        <span>Bithumb: {stats.bithumbCount}개</span>
-        <span>Bybit: {stats.bybitCount}개</span>
-        <span>Binance: {stats.binanceCount}개</span>
+        <span>총 {stats.totalCount.toLocaleString('ko-KR')}개</span>
+        <span>Bithumb: {stats.bithumbCount.toLocaleString('ko-KR')}개</span>
+        <span>Bybit: {stats.bybitCount.toLocaleString('ko-KR')}개</span>
+        <span>Binance: {stats.binanceCount.toLocaleString('ko-KR')}개</span>
       </div>
     </div>
   );
