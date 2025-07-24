@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
+import { API_ENDPOINTS } from '@/packages/shared/constants/exchange';
 
 /**
  * Binance exchangeInfo API 프록시

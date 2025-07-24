@@ -7,7 +7,7 @@ import { TickerData } from '@/packages/shared/types/exchange';
 import { OrderbookData } from '@/packages/shared/types/bithumb';
 import { PriceDecimalTracker } from '@/packages/shared/utils';
 import { useTickerSettingStore } from '@/packages/shared/stores/createTickerSettingStore';
-import { DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchangeConfig';
+import { DATA_UPDATE_INTERVALS } from '@/packages/shared/constants/exchange';
 import { toBithumbTickerData } from '@/packages/shared/utils/tickerDataBuilder';
 import { transformBithumbOrderbook } from '@/packages/shared/utils/bithumbDataTransformer';
 import { fetchBithumbOrderbook, fetchBithumbTicker } from '@/packages/shared/utils/bithumbDetailApi';

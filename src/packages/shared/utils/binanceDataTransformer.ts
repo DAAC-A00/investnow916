@@ -1,5 +1,5 @@
 import { TickerData } from '../types/exchange';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 
 // Binance Spot 티커 타입
 export interface BinanceSpotTicker {

@@ -2,7 +2,7 @@
  * 데이터 갱신 관련 유틸리티 함수를 제공하는 파일
  */
 
-import { ExchangeType, DATA_UPDATE_INTERVALS } from './exchangeConfig';
+import { ExchangeType, DATA_UPDATE_INTERVALS } from './exchange';
 
 /**
  * 로컬 스토리지에서 데이터를 저장하기 위한 키를 생성합니다.
@@ -15,18 +15,6 @@ export const getUpdateTimeKey = (exchange: ExchangeType, category: string, isRaw
   // 새로운 구조에서는 데이터 키와 동일
   const storageCategory = isRawCategory ? category : category;
   return `${exchange}-${storageCategory}`;
-};
-
-/**
- * @deprecated 더 이상 사용하지 않습니다. 데이터 저장 시 시간 정보가 자동으로 포함됩니다.
- * 특정 거래소, 특정 카테고리의 데이터가 마지막으로 업데이트된 시간을 로컬 스토리지에 저장합니다.
- * @param exchange - 거래소
- * @param category - 카테고리
- * @param isRawCategory - 카테고리가 raw인지 여부 (기본값: false)
- */
-export const storeUpdateTime = (exchange: ExchangeType, category: string, isRawCategory: boolean = false): void => {
-  // 새로운 구조에서는 데이터 저장 시 시간 정보가 자동으로 포함되므로 별도 저장 불필요
-  console.warn('storeUpdateTime is deprecated. Update time is now automatically stored with data.');
 };
 
 /**
@@ -116,12 +104,6 @@ export const needsUpdate = (exchange: ExchangeType, category: string, isRawCateg
   
   return diffMs >= intervalMs;
 };
-
-/**
- * needsUpdate의 별칭 함수 (하위 호환성을 위해)
- * @deprecated needsUpdate를 사용하세요
- */
-export const needsDataUpdate = needsUpdate;
 
 /**
  * 특정 거래소의 갱신 주기에 대한 설명을 가져옵니다.

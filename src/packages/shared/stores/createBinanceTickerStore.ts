@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { TickerData } from '../types/exchange';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
 import { defaultApiClient } from '../utils/apiClient';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 import { 
   BinanceSpotTicker,
   BinanceUmTicker,

@@ -44,7 +44,7 @@ import { useExchangeInstrumentStore } from '@/packages/shared/stores/createExcha
 // 중앙 관리 갱신 설정 import
 import { 
   getUpdateInterval,
-  needsDataUpdate,
+  needsUpdate,
   getUpdateIntervalDescription
 } from '@/packages/shared/constants/updateConfig';
 
@@ -78,12 +78,12 @@ const getUpdateTime = (category: string): Date | null => {
   }
 };
 
-const needsUpdate = (category: string): boolean => {
+const checkNeedsUpdate = (category: string): boolean => {
   const updateTime = getUpdateTime(category);
   if (!updateTime) return true; // 업데이트 시간이 없으면 갱신 필요
   
   // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-  return needsDataUpdate('bithumb', category);
+  return needsUpdate('bithumb', category);
 };
 
 const BithumbInstrumentPage = () => {
@@ -341,7 +341,7 @@ const BithumbInstrumentPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {SUPPORTED_INTEGRATED_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
-            const needsUpdateFlag = needsUpdate(category);
+            const needsUpdateFlag = checkNeedsUpdate(category);
             const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;
             
             return (

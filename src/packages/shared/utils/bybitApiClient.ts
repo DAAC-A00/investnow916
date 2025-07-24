@@ -3,7 +3,7 @@ import { TickerData } from '../types/exchange';
 import { BybitRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 
 export class BybitApiClient {
   private priceTracker: PriceDecimalTracker;

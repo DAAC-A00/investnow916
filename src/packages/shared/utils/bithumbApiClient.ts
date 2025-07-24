@@ -2,8 +2,8 @@ import { BithumbTickerResponse, BithumbTicker } from '../types/exchange';
 import { TickerData } from '../types/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
-import type { BithumbWarningType } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
+import type { BithumbWarningType } from '../constants/exchange';
 
 // [수정] 빗썸 instrument(시장 정보) 타입
 interface BithumbMarketInfo {

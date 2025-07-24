@@ -1,5 +1,5 @@
 import { get, ApiError } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 import { BithumbOrderbookResponse, BithumbTickerResponse } from '../types/bithumb';
 
 /**

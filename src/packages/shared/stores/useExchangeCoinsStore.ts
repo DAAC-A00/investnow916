@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import type { CoinInfo, ExchangeInstrumentState } from '@/packages/shared/types/exchange';
-import { SUPPORTED_EXCHANGES, ExchangeType } from '@/packages/shared/constants/exchangeConfig';
+import { SUPPORTED_EXCHANGES, ExchangeType } from '@/packages/shared/constants/exchange';
 import { toIntegratedCategory } from '@/packages/shared/constants/exchange/utils';
 import { useExchangeInstrumentStore } from './createExchangeInstrumentStore';
 

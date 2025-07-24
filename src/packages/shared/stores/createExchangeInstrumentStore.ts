@@ -10,10 +10,10 @@ import {
   BybitRawCategory,
   BithumbRawCategory,
   SUPPORTED_EXCHANGES,
-} from '@/packages/shared/constants/exchangeConfig';
+} from '@/packages/shared/constants/exchange';
 import { saveBinanceInstrumentsToStorage } from '@/packages/shared/utils/binanceApiClient';
 import { toIntegratedCategory } from '@/packages/shared/constants/exchange/utils';
-import { needsUpdate, storeUpdateTime, getUpdateTime, getInstrumentUpdateInterval } from '../constants/updateConfig';
+import { needsUpdate, getUpdateTime, getInstrumentUpdateInterval } from '../constants/updateConfig';
 import type {
   CoinInfo,
   ExchangeInstrumentState,
@@ -367,8 +367,7 @@ const fetchBinanceCoins = async (
     console.log('🔄 [Store] saveBinanceInstrumentsToStorage() 호출...');
     await saveBinanceInstrumentsToStorage();
     
-    // 업데이트 시간 저장
-    storeUpdateTime('binance', 'spot', false);
+    // 업데이트 시간은 saveBinanceInstrumentsToStorage()에서 자동으로 저장됩니다
 
     set((state: ExchangeInstrumentState) => {
       state.isLoading = false;

@@ -59,7 +59,7 @@ import {
 // 중앙 관리 갱신 설정 import
 import { 
   getUpdateInterval,
-  needsDataUpdate,
+  needsUpdate,
   getUpdateIntervalDescription
 } from '@/packages/shared/constants/updateConfig';
 
@@ -89,12 +89,12 @@ const getUpdateTime = (category: string): Date | null => {
   }
 };
 
-const needsUpdate = (category: string): boolean => {
+const checkNeedsUpdate = (category: string): boolean => {
   const updateTime = getUpdateTime(category);
   if (!updateTime) return true;
   
   // 중앙 관리 설정을 사용하여 갱신 필요 여부 확인
-  return needsDataUpdate('binance', category, false);
+  return needsUpdate('binance', category, false);
 };
 
 // Binance는 현재 spot만 지원
@@ -237,7 +237,7 @@ const BinanceInstrumentPage = () => {
       let storedInstruments = loadStoredSymbols();
       
       // 데이터가 없거나 갱신이 필요한 경우 API에서 가져오기
-      if (storedInstruments.length === 0 || needsUpdate('spot')) {
+      if (storedInstruments.length === 0 || checkNeedsUpdate('spot')) {
         console.log('📡 Binance API에서 최신 데이터 가져오는 중...');
         await fetchBinanceCoins();
         storedInstruments = loadStoredSymbols();
@@ -420,7 +420,7 @@ const BinanceInstrumentPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {SUPPORTED_INTEGRATED_CATEGORIES.map(category => {
             const updateTime = updateTimes[category];
-            const needsUpdateFlag = needsUpdate(category);
+            const needsUpdateFlag = checkNeedsUpdate(category);
             const hoursAgo = updateTime ? (new Date().getTime() - updateTime.getTime()) / (1000 * 60 * 60) : null;
             
             return (

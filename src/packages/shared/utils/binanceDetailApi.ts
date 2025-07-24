@@ -4,7 +4,7 @@ import {
   BinanceUmTicker, 
   BinanceCmTicker 
 } from './binanceDataTransformer';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 
 /**
  * Binance Spot 특정 심볼의 24hr 티커 정보 조회

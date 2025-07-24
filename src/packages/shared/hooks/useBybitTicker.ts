@@ -6,7 +6,7 @@ import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
-import { DATA_UPDATE_INTERVALS } from '../constants/exchangeConfig';
+import { DATA_UPDATE_INTERVALS } from '../constants/exchange';
 import { BybitRawCategory } from '../constants/exchange';
 
 export interface UseBybitTickerReturn {

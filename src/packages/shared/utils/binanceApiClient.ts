@@ -2,7 +2,7 @@ import { TickerData } from '../types/exchange';
 import { BinanceRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchangeConfig';
+import { API_ENDPOINTS } from '../constants/exchange';
 
 // Binance exchangeInfo API 응답 타입
 interface BinanceExchangeInfoResponse {

@@ -17,12 +17,12 @@ export type {
   BithumbRawCategory,
   AllRawCategories,
   BithumbWarningType
-} from '@/packages/shared/constants/exchangeConfig';
+} from '@/packages/shared/constants/exchange';
 
 // Warning 관련 상수들도 중앙 설정에서 import
 export { 
   BITHUMB_WARNING_LABELS 
-} from '@/packages/shared/constants/exchangeConfig';
+} from '@/packages/shared/constants/exchange';
 
 // 내부에서 사용하기 위한 import
 import type { 
@@ -30,8 +30,8 @@ import type {
   BybitRawCategory,
   BithumbRawCategory,
   BithumbWarningType 
-} from '@/packages/shared/constants/exchangeConfig';
-import { BITHUMB_WARNING_LABELS } from '@/packages/shared/constants/exchangeConfig';
+} from '@/packages/shared/constants/exchange';
+import { BITHUMB_WARNING_LABELS } from '@/packages/shared/constants/exchange';
 
 // 환율 API 응답 타입
 export interface ExchangeRateResponse {
@@ -505,12 +505,8 @@ export interface TickerData {
   };
 }
 
-// 기존 warningType 필드는 warningInfo.warningType으로 이동하여 호환성 유지
-// 하지만 기존 코드와의 호환성을 위해 루트 레벨에도 유지
-export interface TickerDataLegacy extends TickerData {
-  /** @deprecated warningInfo.warningType 사용 권장 */
-  warningType?: WarningType;
-}
+// TickerData 인터페이스는 warningType을 루트 레벨에서 지원하며,
+// warningInfo.warningType을 통해 더 구조화된 경고 정보에 접근할 수 있습니다.
 
 /**
  * 티커 데이터 생성을 위한 유틸리티 함수 타입
