@@ -11,7 +11,7 @@ export const fetchBithumbOrderbook = async (symbol: string) => {
   
   try {
     const response = await get<BithumbOrderbookResponse>(
-      API_ENDPOINTS.bithumb.orderbook(baseCode, quoteCode)
+      (API_ENDPOINTS.bithumb.orderbook as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
     );
     
     if (response.data.status === '0000' && response.data.data) {
@@ -46,7 +46,7 @@ export const fetchBithumbTicker = async (symbol: string) => {
   
   try {
     const response = await get<BithumbTickerResponse>(
-      API_ENDPOINTS.bithumb.ticker(baseCode, quoteCode)
+      (API_ENDPOINTS.bithumb.ticker as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
     );
     
     if (response.data.status === '0000' && response.data.data) {

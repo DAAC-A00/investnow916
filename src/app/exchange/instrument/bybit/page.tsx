@@ -23,10 +23,9 @@ import { normalizeSearchTerm } from '@/packages/shared/utils';
 import {
   BybitRawCategory,
   IntegratedCategory,
-  toIntegratedCategory,
-  EXCHANGE_SUPPORTED_CATEGORIES,
-  toRawCategory
-} from '@/packages/shared/constants/exchangeCategories';
+  EXCHANGE_SUPPORTED_CATEGORIES
+} from '@/packages/shared/constants/exchange';
+import { toIntegratedCategory, toRawCategory } from '@/packages/shared/constants/exchange/utils';
 
 import { CoinInfo } from '@/packages/shared/types/exchange';
 

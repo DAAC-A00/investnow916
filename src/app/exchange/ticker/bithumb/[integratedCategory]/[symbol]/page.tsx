@@ -115,7 +115,7 @@ export default function BithumbTickerDetailPage() {
         console.error('데이터 갱신 실패:', error);
         // 실시간 갱신 에러는 조용히 처리
       }
-    }, DATA_UPDATE_INTERVALS.ticker.bithumbDetail);
+    }, DATA_UPDATE_INTERVALS.bithumbDetail);
 
     return () => clearInterval(interval);
   }, [symbol, integratedCategory, fetchTickerInfo, fetchOrderbook]);

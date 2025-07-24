@@ -67,7 +67,10 @@ export const DATA_UPDATE_INTERVALS = {
       exchange, 
       EXCHANGE_CONFIGS[exchange].updateIntervals.ticker
     ])
-  ) as { [K in ExchangeType]: number }
+  ) as { [K in ExchangeType]: number },
+  
+  // Bithumb의 특별한 tickerDetail interval 추가
+  bithumbDetail: EXCHANGE_CONFIGS.bithumb.updateIntervals.tickerDetail || 1000
 };
 
 // Legacy API_ENDPOINTS (for backward compatibility)

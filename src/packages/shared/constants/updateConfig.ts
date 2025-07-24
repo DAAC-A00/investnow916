@@ -68,6 +68,16 @@ export const getInstrumentUpdateInterval = (exchange: ExchangeType): number => {
 };
 
 /**
+ * 특정 거래소의 갱신 주기를 가져옵니다.
+ * @param exchange - 거래소
+ * @param dataType - 데이터 타입 ('instrument' | 'ticker')
+ * @returns 갱신 주기 (밀리초 단위)
+ */
+export const getUpdateInterval = (exchange: ExchangeType, dataType: 'instrument' | 'ticker' = 'instrument'): number => {
+  return DATA_UPDATE_INTERVALS[dataType][exchange];
+};
+
+/**
  * 특정 거래소, 특정 카테고리의 데이터가 갱신이 필요한지 확인합니다.
  * @param exchange - 거래소
  * @param category - 카테고리

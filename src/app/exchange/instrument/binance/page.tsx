@@ -43,7 +43,7 @@ import { normalizeSearchTerm } from '@/packages/shared/utils';
 
 import {
   IntegratedCategory,
-} from '@/packages/shared/constants/exchangeCategories';
+} from '@/packages/shared/constants/exchange';
 
 import { CoinInfo } from '@/packages/shared/types/exchange';
 

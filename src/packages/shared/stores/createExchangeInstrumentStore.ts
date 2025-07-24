@@ -12,7 +12,7 @@ import {
   SUPPORTED_EXCHANGES,
 } from '@/packages/shared/constants/exchangeConfig';
 import { saveBinanceInstrumentsToStorage } from '@/packages/shared/utils/binanceApiClient';
-import { toIntegratedCategory } from '@/packages/shared/constants/exchangeCategories';
+import { toIntegratedCategory } from '@/packages/shared/constants/exchange/utils';
 import { needsUpdate, storeUpdateTime, getUpdateTime, getInstrumentUpdateInterval } from '../constants/updateConfig';
 import type {
   CoinInfo,
@@ -215,7 +215,7 @@ const fetchBybitCoins = async (
     console.log(`Bybit ${rawCategory} 데이터를 갱신합니다...`);
 
     // 중앙화된 API_ENDPOINTS 사용 - instruments API로 변경
-    const response = await apiGet<BybitInstrumentsResponse>(API_ENDPOINTS.bybit.instruments(rawCategory));
+    const response = await apiGet<BybitInstrumentsResponse>((API_ENDPOINTS.bybit.instruments as (category: string) => string)(rawCategory));
     const data = response.data;
     
     if (data.retCode !== 0) {
@@ -297,7 +297,7 @@ const fetchBithumbCoins = async (
     console.log(`Bithumb ${rawCategory} 데이터를 갱신합니다...`);
 
     // API 호출 - tickerAll로 모든 코인 목록 가져오기
-    const response = await apiGet<any>(API_ENDPOINTS.bithumb.tickerAll);
+    const response = await apiGet<any>(API_ENDPOINTS.bithumb.tickerAll as string);
     const data = response.data;
 
     // 응답 데이터 처리 - Bithumb ticker API는 KRW 마켓 정보를 제공

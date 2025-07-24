@@ -74,6 +74,30 @@ export const getSupportedCategories = (exchange: ExchangeType): IntegratedCatego
 };
 
 /**
+ * Raw 카테고리에서 통합 카테고리로 변환
+ */
+export const toIntegratedCategory = <T extends ExchangeType>(
+  exchange: T,
+  rawCategory: string
+): IntegratedCategory => {
+  const mapping = getCategoryMapping(exchange);
+  const result = (mapping as any)[rawCategory];
+  return result || 'spot'; // 기본값으로 spot 반환
+};
+
+/**
+ * 통합 카테고리에서 거래소별 Raw 카테고리로 변환
+ */
+export const toRawCategory = <T extends ExchangeType>(
+  exchange: T,
+  integratedCategory: IntegratedCategory
+): string => {
+  const mapping = getCategoryMapping(exchange);
+  const entry = Object.entries(mapping).find(([_, value]) => value === integratedCategory);
+  return entry?.[0] || integratedCategory;
+};
+
+/**
  * 거래소의 업데이트 간격 가져오기
  */
 export const getUpdateInterval = (exchange: ExchangeType, dataType: 'instrument' | 'ticker') => {
