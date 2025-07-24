@@ -7,7 +7,7 @@ import { API_ENDPOINTS } from '@/packages/shared/constants/exchangeConfig';
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(API_ENDPOINTS.binance.api.spot.ticker24hr, {
+    const response = await fetch((API_ENDPOINTS.binance as any).spot.ticker24hr, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

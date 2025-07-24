@@ -182,15 +182,16 @@ export const mapBinanceCategoryToIntegrated = (category: 'spot' | 'um' | 'cm'): 
  * 카테고리별 데이터 소스 URL을 반환합니다
  */
 export const getBinanceDataSource = (category: 'spot' | 'um' | 'cm'): string => {
+  const binanceEndpoints = API_ENDPOINTS.binance as any;
   switch (category) {
     case 'spot':
-      return API_ENDPOINTS.binance.api.spot.baseUrl;
+      return binanceEndpoints.spot.baseUrl;
     case 'um':
-      return API_ENDPOINTS.binance.api.um.baseUrl;
+      return binanceEndpoints.um.baseUrl;
     case 'cm':
-      return API_ENDPOINTS.binance.api.cm.baseUrl;
+      return binanceEndpoints.cm.baseUrl;
     default:
-      return API_ENDPOINTS.binance.api.spot.baseUrl;
+      return binanceEndpoints.spot.baseUrl;
   }
 };
 

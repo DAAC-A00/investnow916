@@ -7,7 +7,7 @@ import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
 import { DATA_UPDATE_INTERVALS } from '../constants/exchangeConfig';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 
 export interface UseBybitTickerReturn {
   // 데이터 상태

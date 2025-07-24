@@ -1,6 +1,6 @@
 import { BybitTickerResponse, BybitTicker } from '../types/exchange';
 import { TickerData } from '../types/exchange';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/exchangeConfig';
@@ -19,7 +19,7 @@ export class BybitApiClient {
   async fetchTickerData(category: BybitRawCategory): Promise<TickerData[]> {
     try {
       const response = await defaultApiClient.get<BybitTickerResponse>(
-        API_ENDPOINTS.bybit.tickers(category),
+        (API_ENDPOINTS.bybit.tickers as (category: string) => string)(category),
         {
           headers: {
             'Accept': 'application/json',

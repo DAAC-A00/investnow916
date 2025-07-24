@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore, ExchangeInstrumentState } from '../stores/useExchangeCoinsStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { EXCHANGE_RAW_CATEGORIES } from '../constants/exchangeCategories';
+import { EXCHANGE_RAW_CATEGORIES } from '../constants/exchange';
 import { needsUpdate } from '../constants/updateConfig';
 
 interface ExchangeCoinsInitializerProps {

@@ -52,15 +52,16 @@ const priceTracker = new PriceDecimalTracker();
 
 // 카테고리별 API URL 가져오기
 const getApiUrl = (category: BinanceCategory): string => {
+  const binanceEndpoints = API_ENDPOINTS.binance as any;
   switch (category) {
     case 'spot':
-      return API_ENDPOINTS.binance.api.spot.ticker24hr;
+      return binanceEndpoints.spot.ticker24hr;
     case 'um':
-      return API_ENDPOINTS.binance.api.um.ticker24hr;
+      return binanceEndpoints.um.ticker24hr;
     case 'cm':
-      return API_ENDPOINTS.binance.api.cm.ticker24hr;
+      return binanceEndpoints.cm.ticker24hr;
     default:
-      return API_ENDPOINTS.binance.api.spot.ticker24hr;
+      return binanceEndpoints.spot.ticker24hr;
   }
 };
 

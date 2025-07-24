@@ -1,6 +1,6 @@
 import { BybitTicker } from '../types/exchange';
 import { TickerData } from '../types/exchange';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 
 /**
  * Bybit 심볼을 파싱하여 baseCode, quoteCode, integratedSymbol을 추출합니다

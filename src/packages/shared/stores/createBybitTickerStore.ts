@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { 
   TickerData, 
 } from '../types/exchange';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 import { BybitApiClient } from '../utils/bybitApiClient';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
 

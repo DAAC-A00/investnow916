@@ -1,15 +1,16 @@
 import { get, ApiError } from './apiClient';
 import { API_ENDPOINTS } from '../constants/exchangeConfig';
 import { BybitTickerResponse, BybitTicker } from '../types/exchange';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 
 /**
  * Bybit 특정 심볼의 티커 정보 조회
  */
 export const fetchBybitTicker = async (symbol: string, category: BybitRawCategory = 'spot') => {
   try {
+    const tickerFunc = API_ENDPOINTS.bybit.tickers as (category: string) => string;
     const response = await get<BybitTickerResponse>(
-      `${API_ENDPOINTS.bybit.tickers(category)}&symbol=${symbol}`
+      `${tickerFunc(category)}&symbol=${symbol}`
     );
 
     if (response.data.retCode === 0 && response.data.result?.list?.length > 0) {
@@ -259,7 +260,7 @@ export const fetchBybitInstrumentInfo = async (symbol: string, category: BybitRa
         }>;
       };
     }>(
-      `${API_ENDPOINTS.bybit.instruments(category)}&symbol=${symbol}`
+      `${(API_ENDPOINTS.bybit.instruments as (category: string) => string)(category)}&symbol=${symbol}`
     );
 
     if (response.data.retCode === 0 && response.data.result?.list?.length > 0) {

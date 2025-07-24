@@ -1,5 +1,5 @@
 import { TickerData } from '../types/exchange';
-import { BinanceRawCategory } from '../constants/exchangeConfig';
+import { BinanceRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/exchangeConfig';
@@ -136,7 +136,7 @@ interface BinanceSymbolData {
 export async function fetchBinanceExchangeInfo(): Promise<BinanceSymbolInfo[]> {
   try {
     const res = await defaultApiClient.get<BinanceExchangeInfoResponse>(
-      API_ENDPOINTS.binance.exchangeInfo,
+      (API_ENDPOINTS.binance as any).exchangeInfo,
       {
         headers: {
           'Accept': 'application/json',
@@ -644,15 +644,16 @@ export class BinanceApiClient {
    * 카테고리별 데이터 소스 URL을 반환합니다
    */
   private getDataSource(category: BinanceRawCategory): string {
+    const binanceEndpoints = API_ENDPOINTS.binance as any;
     switch (category) {
       case 'spot':
-        return API_ENDPOINTS.binance.api.spot.baseUrl;
+        return binanceEndpoints.spot?.baseUrl || 'https://api.binance.com';
       case 'um':
-        return API_ENDPOINTS.binance.api.um.baseUrl;
+        return binanceEndpoints.um?.baseUrl || 'https://fapi.binance.com';
       case 'cm':
-        return API_ENDPOINTS.binance.api.cm.baseUrl;
+        return binanceEndpoints.cm?.baseUrl || 'https://dapi.binance.com';
       default:
-        return API_ENDPOINTS.binance.api.spot.baseUrl;
+        return binanceEndpoints.spot?.baseUrl || 'https://api.binance.com';
     }
   }
 

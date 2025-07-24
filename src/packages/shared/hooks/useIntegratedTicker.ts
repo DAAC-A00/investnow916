@@ -8,7 +8,7 @@ import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
-import { BybitRawCategory } from '../constants/exchangeCategories';
+import { BybitRawCategory } from '../constants/exchange';
 
 export type IntegratedCategory = 'spot' | 'um' | 'cm';
 

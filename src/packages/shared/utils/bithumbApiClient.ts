@@ -22,13 +22,13 @@ interface BithumbWarningInfo {
 
 // [수정] instrument(시장 정보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbMarketAll(): Promise<BithumbMarketInfo[]> {
-  const res = await defaultApiClient.get<BithumbMarketInfo[]>(API_ENDPOINTS.bithumb.instruments);
+  const res = await defaultApiClient.get<BithumbMarketInfo[]>(API_ENDPOINTS.bithumb.instruments as string);
   return res.data;
 }
 
 // [수정] warning(경보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbVirtualAssetWarning(): Promise<BithumbWarningInfo[]> {
-  const res = await defaultApiClient.get<BithumbWarningInfo[]>(API_ENDPOINTS.bithumb.virtualAssetWarning);
+  const res = await defaultApiClient.get<BithumbWarningInfo[]>(API_ENDPOINTS.bithumb.virtualAssetWarning as string);
   return res.data;
 }
 
@@ -48,7 +48,7 @@ export class BithumbApiClient {
       // [변경] ticker, instrument, warning 데이터를 병렬로 요청
       const [tickerRes, marketAll, warningList] = await Promise.all([
         defaultApiClient.get<BithumbTickerResponse>(
-          API_ENDPOINTS.bithumb.tickerAll,
+          API_ENDPOINTS.bithumb.tickerAll as string,
           {
             headers: {
               'Accept': 'application/json',
