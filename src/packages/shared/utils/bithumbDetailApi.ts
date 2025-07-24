@@ -1,5 +1,5 @@
 import { get, ApiError } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import { BithumbOrderbookResponse, BithumbTickerResponse } from '../types/bithumb';
 
 /**
@@ -11,7 +11,7 @@ export const fetchBithumbOrderbook = async (symbol: string) => {
   
   try {
     const response = await get<BithumbOrderbookResponse>(
-      (API_ENDPOINTS.bithumb.orderbook as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
+      (EXCHANGE_CONFIGS.bithumb.endpoints.orderbook as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
     );
     
     if (response.data.status === '0000' && response.data.data) {
@@ -46,7 +46,7 @@ export const fetchBithumbTicker = async (symbol: string) => {
   
   try {
     const response = await get<BithumbTickerResponse>(
-      (API_ENDPOINTS.bithumb.ticker as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
+      (EXCHANGE_CONFIGS.bithumb.endpoints.ticker as (baseCode: string, quoteCode: string) => string)(baseCode, quoteCode)
     );
     
     if (response.data.status === '0000' && response.data.data) {

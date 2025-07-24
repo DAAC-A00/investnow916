@@ -1,5 +1,5 @@
 import { get, ApiError } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import { BybitTickerResponse, BybitTicker } from '../types/exchange';
 import { BybitRawCategory } from '../constants/exchange';
 
@@ -8,7 +8,7 @@ import { BybitRawCategory } from '../constants/exchange';
  */
 export const fetchBybitTicker = async (symbol: string, category: BybitRawCategory = 'spot') => {
   try {
-    const tickerFunc = API_ENDPOINTS.bybit.tickers as (category: string) => string;
+    const tickerFunc = EXCHANGE_CONFIGS.bybit.endpoints.tickers as (category: string) => string;
     const response = await get<BybitTickerResponse>(
       `${tickerFunc(category)}&symbol=${symbol}`
     );
@@ -260,7 +260,7 @@ export const fetchBybitInstrumentInfo = async (symbol: string, category: BybitRa
         }>;
       };
     }>(
-      `${(API_ENDPOINTS.bybit.instruments as (category: string) => string)(category)}&symbol=${symbol}`
+      `${(EXCHANGE_CONFIGS.bybit.endpoints.instruments as (category: string) => string)(category)}&symbol=${symbol}`
     );
 
     if (response.data.retCode === 0 && response.data.result?.list?.length > 0) {

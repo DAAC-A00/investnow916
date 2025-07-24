@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import { get as apiGet } from '@/packages/shared/utils/apiClient';
 import {
-  API_ENDPOINTS,
+  EXCHANGE_CONFIGS,
   ExchangeType,
   IntegratedCategory,
   BybitRawCategory,
@@ -215,7 +215,7 @@ const fetchBybitCoins = async (
     console.log(`Bybit ${rawCategory} 데이터를 갱신합니다...`);
 
     // 중앙화된 API_ENDPOINTS 사용 - instruments API로 변경
-    const response = await apiGet<BybitInstrumentsResponse>((API_ENDPOINTS.bybit.instruments as (category: string) => string)(rawCategory));
+          const response = await apiGet<BybitInstrumentsResponse>((EXCHANGE_CONFIGS.bybit.endpoints.instruments as (category: string) => string)(rawCategory));
     const data = response.data;
     
     if (data.retCode !== 0) {
@@ -297,7 +297,7 @@ const fetchBithumbCoins = async (
     console.log(`Bithumb ${rawCategory} 데이터를 갱신합니다...`);
 
     // API 호출 - tickerAll로 모든 코인 목록 가져오기
-    const response = await apiGet<any>(API_ENDPOINTS.bithumb.tickerAll as string);
+    const response = await apiGet<any>(EXCHANGE_CONFIGS.bithumb.endpoints.tickerAll as string);
     const data = response.data;
 
     // 응답 데이터 처리 - Bithumb ticker API는 KRW 마켓 정보를 제공

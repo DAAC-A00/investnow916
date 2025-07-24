@@ -1,5 +1,5 @@
 import { TickerData } from '../types/exchange';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 
 // Binance Spot 티커 타입
 export interface BinanceSpotTicker {
@@ -182,7 +182,7 @@ export const mapBinanceCategoryToIntegrated = (category: 'spot' | 'um' | 'cm'): 
  * 카테고리별 데이터 소스 URL을 반환합니다
  */
 export const getBinanceDataSource = (category: 'spot' | 'um' | 'cm'): string => {
-  const binanceEndpoints = API_ENDPOINTS.binance as any;
+  const binanceEndpoints = EXCHANGE_CONFIGS.binance.endpoints as any;
   switch (category) {
     case 'spot':
       return binanceEndpoints.spot.baseUrl;

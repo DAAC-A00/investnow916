@@ -2,7 +2,7 @@ import { BithumbTickerResponse, BithumbTicker } from '../types/exchange';
 import { TickerData } from '../types/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import type { BithumbWarningType } from '../constants/exchange';
 
 // [수정] 빗썸 instrument(시장 정보) 타입
@@ -22,13 +22,13 @@ interface BithumbWarningInfo {
 
 // [수정] instrument(시장 정보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbMarketAll(): Promise<BithumbMarketInfo[]> {
-  const res = await defaultApiClient.get<BithumbMarketInfo[]>(API_ENDPOINTS.bithumb.instruments as string);
+      const res = await defaultApiClient.get<BithumbMarketInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.instruments as string);
   return res.data;
 }
 
 // [수정] warning(경보) fetch 함수 (defaultApiClient 사용)
 export async function fetchBithumbVirtualAssetWarning(): Promise<BithumbWarningInfo[]> {
-  const res = await defaultApiClient.get<BithumbWarningInfo[]>(API_ENDPOINTS.bithumb.virtualAssetWarning as string);
+      const res = await defaultApiClient.get<BithumbWarningInfo[]>(EXCHANGE_CONFIGS.bithumb.endpoints.virtualAssetWarning as string);
   return res.data;
 }
 
@@ -48,7 +48,7 @@ export class BithumbApiClient {
       // [변경] ticker, instrument, warning 데이터를 병렬로 요청
       const [tickerRes, marketAll, warningList] = await Promise.all([
         defaultApiClient.get<BithumbTickerResponse>(
-          API_ENDPOINTS.bithumb.tickerAll as string,
+          EXCHANGE_CONFIGS.bithumb.endpoints.tickerAll as string,
           {
             headers: {
               'Accept': 'application/json',

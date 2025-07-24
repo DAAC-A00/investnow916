@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useExchangeCoinsStore, ExchangeInstrumentState } from '../stores/useExchangeCoinsStore';
 import { BybitRawCategory, ExchangeType } from '../types/exchange';
-import { EXCHANGE_RAW_CATEGORIES } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import { needsUpdate } from '../constants/updateConfig';
 
 interface ExchangeCoinsInitializerProps {
@@ -51,7 +51,7 @@ export const ExchangeCoinsInitializer: React.FC<ExchangeCoinsInitializerProps> =
             }
           } else {
             // Bybit의 모든 카테고리 데이터 가져오기
-            for (const cat of EXCHANGE_RAW_CATEGORIES.bybit) {
+            for (const cat of EXCHANGE_CONFIGS.bybit.rawCategories) {
               // 해당 카테고리의 심볼 데이터가 있는지 확인
               const symbols = getSymbolsForCategory(exchange, cat);
               const hasData = symbols.length > 0;

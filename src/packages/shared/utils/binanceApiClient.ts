@@ -2,7 +2,7 @@ import { TickerData } from '../types/exchange';
 import { BinanceRawCategory } from '../constants/exchange';
 import { PriceDecimalTracker } from './priceFormatter';
 import { defaultApiClient } from './apiClient';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 
 // Binance exchangeInfo API 응답 타입
 interface BinanceExchangeInfoResponse {
@@ -136,7 +136,7 @@ interface BinanceSymbolData {
 export async function fetchBinanceExchangeInfo(): Promise<BinanceSymbolInfo[]> {
   try {
     const res = await defaultApiClient.get<BinanceExchangeInfoResponse>(
-      (API_ENDPOINTS.binance as any).exchangeInfo,
+      (EXCHANGE_CONFIGS.binance.endpoints as any).exchangeInfo,
       {
         headers: {
           'Accept': 'application/json',
@@ -159,7 +159,7 @@ export async function fetchBinanceExchangeInfo(): Promise<BinanceSymbolInfo[]> {
  */
 export async function fetchBinanceTickerByCategory(category: BinanceRawCategory): Promise<BinanceTickerResponse[]> {
   try {
-    const endpoint = API_ENDPOINTS.binance.tickers[category as keyof typeof API_ENDPOINTS.binance.tickers];
+    const endpoint = (EXCHANGE_CONFIGS.binance.endpoints as any).tickers[category];
     const res = await defaultApiClient.get<BinanceTickerResponse[]>(
       endpoint,
       {
@@ -644,7 +644,7 @@ export class BinanceApiClient {
    * 카테고리별 데이터 소스 URL을 반환합니다
    */
   private getDataSource(category: BinanceRawCategory): string {
-    const binanceEndpoints = API_ENDPOINTS.binance as any;
+    const binanceEndpoints = EXCHANGE_CONFIGS.binance.endpoints as any;
     switch (category) {
       case 'spot':
         return binanceEndpoints.spot?.baseUrl || 'https://api.binance.com';

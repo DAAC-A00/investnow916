@@ -6,7 +6,7 @@ import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
-import { DATA_UPDATE_INTERVALS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import { BybitRawCategory } from '../constants/exchange';
 
 export interface UseBybitTickerReturn {
@@ -89,7 +89,7 @@ export function useBybitTicker(initialCategory: BybitRawCategory = 'spot'): UseB
 
     loadData();
 
-    const interval = setInterval(loadData, DATA_UPDATE_INTERVALS.ticker.bybit);
+    const interval = setInterval(loadData, EXCHANGE_CONFIGS.bybit.updateIntervals.ticker);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps

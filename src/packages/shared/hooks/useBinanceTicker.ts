@@ -6,7 +6,7 @@ import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
-import { DATA_UPDATE_INTERVALS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 
 // Binance 카테고리 타입
 type BinanceCategory = 'spot' | 'um' | 'cm';
@@ -92,7 +92,7 @@ export function useBinanceTicker(initialCategory: BinanceCategory = 'spot'): Use
     loadData();
 
     // Binance ticker 갱신 주기 사용
-    const interval = setInterval(loadData, DATA_UPDATE_INTERVALS.ticker.binance);
+    const interval = setInterval(loadData, EXCHANGE_CONFIGS.binance.updateIntervals.ticker);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps

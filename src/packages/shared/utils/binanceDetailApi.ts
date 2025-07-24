@@ -4,7 +4,7 @@ import {
   BinanceUmTicker, 
   BinanceCmTicker 
 } from './binanceDataTransformer';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 
 /**
  * Binance Spot 특정 심볼의 24hr 티커 정보 조회
@@ -12,7 +12,7 @@ import { API_ENDPOINTS } from '../constants/exchange';
 export const fetchBinanceSpotTicker = async (symbol: string) => {
   try {
     const response = await get<BinanceSpotTicker[]>(
-      (API_ENDPOINTS.binance as any).spot.tickerBySymbol(symbol)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).spot.tickerBySymbol(symbol)
     );
 
     if (response.data && response.data.length > 0) {
@@ -47,7 +47,7 @@ export const fetchBinanceSpotTicker = async (symbol: string) => {
 export const fetchBinanceUmTicker = async (symbol: string) => {
   try {
     const response = await get<BinanceUmTicker[]>(
-      (API_ENDPOINTS.binance as any).um.tickerBySymbol(symbol)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).um.tickerBySymbol(symbol)
     );
 
     if (response.data && response.data.length > 0) {
@@ -82,7 +82,7 @@ export const fetchBinanceUmTicker = async (symbol: string) => {
 export const fetchBinanceCmTicker = async (symbol: string) => {
   try {
     const response = await get<BinanceCmTicker[]>(
-      (API_ENDPOINTS.binance as any).cm.tickerBySymbol(symbol)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).cm.tickerBySymbol(symbol)
     );
 
     if (response.data && response.data.length > 0) {
@@ -121,7 +121,7 @@ export const fetchBinanceSpotOrderbook = async (symbol: string, limit: number = 
       bids: [string, string][]; // [price, quantity]
       asks: [string, string][]; // [price, quantity]
     }>(
-      (API_ENDPOINTS.binance as any).spot.depth(symbol, limit)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).spot.depth(symbol, limit)
     );
 
     if (response.data) {
@@ -174,7 +174,7 @@ export const fetchBinanceUmOrderbook = async (symbol: string, limit: number = 10
       bids: [string, string][]; // [price, quantity]
       asks: [string, string][]; // [price, quantity]
     }>(
-      (API_ENDPOINTS.binance as any).um.depth(symbol, limit)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).um.depth(symbol, limit)
     );
 
     if (response.data) {
@@ -229,7 +229,7 @@ export const fetchBinanceCmOrderbook = async (symbol: string, limit: number = 10
       bids: [string, string][]; // [price, quantity]
       asks: [string, string][]; // [price, quantity]
     }>(
-      (API_ENDPOINTS.binance as any).cm.depth(symbol, limit)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).cm.depth(symbol, limit)
     );
 
     if (response.data) {
@@ -286,7 +286,7 @@ export const fetchBinanceSpotRecentTrades = async (symbol: string, limit: number
       isBuyerMaker: boolean;
       isBestMatch: boolean;
     }>>(
-      (API_ENDPOINTS.binance as any).spot.trades(symbol, limit)
+      (EXCHANGE_CONFIGS.binance.endpoints as any).spot.trades(symbol, limit)
     );
 
     if (response.data) {
@@ -336,7 +336,7 @@ export const fetchBinanceSpotKline = async (
   limit: number = 500
 ) => {
   try {
-    const url = (API_ENDPOINTS.binance as any).spot.klines(symbol, interval, limit, startTime, endTime);
+    const url = (EXCHANGE_CONFIGS.binance.endpoints as any).spot.klines(symbol, interval, limit, startTime, endTime);
 
     const response = await get<Array<[
       number, // Open time

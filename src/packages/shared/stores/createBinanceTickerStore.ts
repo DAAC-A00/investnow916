@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import { TickerData } from '../types/exchange';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
 import { defaultApiClient } from '../utils/apiClient';
-import { API_ENDPOINTS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 import { 
   BinanceSpotTicker,
   BinanceUmTicker,
@@ -52,7 +52,7 @@ const priceTracker = new PriceDecimalTracker();
 
 // 카테고리별 API URL 가져오기
 const getApiUrl = (category: BinanceCategory): string => {
-  const binanceEndpoints = API_ENDPOINTS.binance as any;
+  const binanceEndpoints = EXCHANGE_CONFIGS.binance.endpoints as any;
   switch (category) {
     case 'spot':
       return binanceEndpoints.spot.ticker24hr;

@@ -6,7 +6,7 @@ import { TickerSorter } from '../utils/tickerSort';
 import { TickerSearcher } from '../utils/tickerSearch';
 import { SortStorage } from '../utils/sortStorage';
 import { PriceDecimalTracker } from '../utils/priceFormatter';
-import { DATA_UPDATE_INTERVALS } from '../constants/exchange';
+import { EXCHANGE_CONFIGS } from '../constants/exchange';
 
 export interface UseBithumbTickerReturn {
   // 데이터 상태
@@ -82,7 +82,7 @@ export function useBithumbTicker(): UseBithumbTickerReturn {
     // 초기 데이터 로드
     fetchTickerData();
 
-    const interval = setInterval(fetchTickerData, DATA_UPDATE_INTERVALS.ticker.bithumb);
+    const interval = setInterval(fetchTickerData, EXCHANGE_CONFIGS.bithumb.updateIntervals.ticker);
 
     return () => clearInterval(interval);
   }, [fetchTickerData]); // 빈 의존성 배열로 마운트 시에만 실행

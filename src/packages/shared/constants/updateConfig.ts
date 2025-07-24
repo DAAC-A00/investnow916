@@ -2,7 +2,7 @@
  * 데이터 갱신 관련 유틸리티 함수를 제공하는 파일
  */
 
-import { ExchangeType, DATA_UPDATE_INTERVALS } from './exchange';
+import { ExchangeType, EXCHANGE_CONFIGS } from './exchange';
 
 /**
  * 로컬 스토리지에서 데이터를 저장하기 위한 키를 생성합니다.
@@ -52,7 +52,7 @@ export const getUpdateTime = (exchange: ExchangeType, category: string, isRawCat
  * @returns 갱신 주기 (밀리초 단위)
  */
 export const getInstrumentUpdateInterval = (exchange: ExchangeType): number => {
-  return DATA_UPDATE_INTERVALS.instrument[exchange];
+  return EXCHANGE_CONFIGS[exchange].updateIntervals.instrument;
 };
 
 /**
@@ -62,7 +62,11 @@ export const getInstrumentUpdateInterval = (exchange: ExchangeType): number => {
  * @returns 갱신 주기 (밀리초 단위)
  */
 export const getUpdateInterval = (exchange: ExchangeType, dataType: 'instrument' | 'ticker' = 'instrument'): number => {
-  return DATA_UPDATE_INTERVALS[dataType][exchange];
+  if (dataType === 'instrument') {
+    return EXCHANGE_CONFIGS[exchange].updateIntervals.instrument;
+  } else {
+    return EXCHANGE_CONFIGS[exchange].updateIntervals.ticker;
+  }
 };
 
 /**
