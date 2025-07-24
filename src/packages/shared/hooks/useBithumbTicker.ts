@@ -72,18 +72,8 @@ export function useBithumbTicker(): UseBithumbTickerReturn {
       setIsLoading(false);
     } catch (err) {
       console.error('빗썸 티커 데이터 가져오기 실패:', err);
-      
-      // API 호출 실패 시 테스트 데이터 사용
-      const testTickerData = apiClient.current.generateTestData();
-      
-      // 현재 티커 데이터를 이전 데이터로 저장 (애니메이션용)
-      setTickers(prevTickers => {
-        setBeforeTickers(prevTickers); // 이전 상태를 beforeTickers로 저장
-        return testTickerData;
-      });
-      setLastUpdate(new Date());
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
       setIsLoading(false);
-      setError(`빗썸 API 연결 실패 (테스트 데이터 사용 중): ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     }
   }, []); // 의존성 배열 제거
 

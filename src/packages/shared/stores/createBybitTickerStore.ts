@@ -83,24 +83,11 @@ export const useBybitTickerStore = create<BybitTickerState>()(
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           console.error(`❌ Bybit ${rawCategory} 티커 정보 로드 실패:`, errorMessage);
 
-          // 에러 시 테스트 데이터 사용 옵션
-          try {
-            const testData = apiClient.generateTestData(rawCategory);
-            set((state) => {
-              state.tickers[rawCategory] = testData;
-              state.lastUpdated[rawCategory] = new Date().toISOString();
-              state.isLoading = false;
-              state.error = `API 오류 (테스트 데이터 사용): ${errorMessage}`;
-            });
-            console.log(`⚠️ Bybit ${rawCategory} 테스트 데이터 로드:`, testData.length, '개');
-            return true;
-          } catch (testError) {
-            set((state) => {
-              state.isLoading = false;
-              state.error = errorMessage;
-            });
-            return false;
-          }
+          set((state) => {
+            state.isLoading = false;
+            state.error = errorMessage;
+          });
+          return false;
         }
       },
 
